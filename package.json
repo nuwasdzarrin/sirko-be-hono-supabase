@@ -1,0 +1,32 @@
+{
+  "name": "sirko-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sirko backend — Hono @ Vercel + PostgreSQL (portable, no Supabase SDK). Foundation phase.",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "dev": "node --env-file=.env --import tsx --watch src/dev-server.ts",
+    "migrate": "node --env-file=.env --import tsx src/db/migrate-cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.6.14",
+    "jose": "^5.9.6",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

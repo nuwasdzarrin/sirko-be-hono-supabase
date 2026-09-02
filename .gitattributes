@@ -1,0 +1,6 @@
+# Normalisasi baris: simpan LF di repo (deploy Linux/Vercel), checkout apa adanya.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
