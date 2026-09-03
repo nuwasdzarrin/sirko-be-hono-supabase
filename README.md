@@ -103,6 +103,8 @@ npm run typecheck   # tsc --noEmit — wajib bersih sebelum commit
 
 ## Deploy ke Vercel
 
+> **Runbook produksi lengkap (Supabase → migrasi → env → deploy → verifikasi): [DEPLOY.md](DEPLOY.md).**
+
 1. Root project = folder `sirko-backend/`. Vercel mengenali `api/[[...route]].ts` sebagai
    Serverless Function (Node), dan `vercel.json` mengarahkan **semua path** ke sana (catch-all).
 2. **Runtime Node** (bukan Edge) — wajib untuk TCP Postgres.
