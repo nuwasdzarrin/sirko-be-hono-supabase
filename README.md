@@ -173,6 +173,8 @@ npm run seed:catalog:prod    # ke DB di .env.production.local
 
 Strategi: banyak query **dangkal** per-brand & per-kategori (Indomie, Mayora, Wings, mie instan, biskuit, dll.) untuk menghindari blok deep-pagination + memperluas cakupan; wajib ada nama & foto; enrich net size, negara asal (prefix `899`=Indonesia), keywords. Aman diulang (menambah yang baru saja). Script: [db/seed-catalog.ts](src/db/seed-catalog.ts).
 
+**Kategori** dipetakan ke taksonomi Bahasa Indonesia ala toko kelontong/ritel (Sembako, Mie Instan, Makanan Ringan, Minuman, Kopi & Teh, Susu & Olahan Susu, Bumbu & Bahan Masak, Perawatan Tubuh, dll. — lihat [lib/catalog-category.ts](src/lib/catalog-category.ts)) lewat classifier berbasis kata kunci. Seed sudah otomatis mengklasifikasi; untuk memetakan ulang data lama: `npm run reclassify:catalog[:prod]`.
+
 > **Atribusi & lisensi:** data & foto berasal dari Open Food Facts / Open Beauty Facts di bawah **Open Database License (ODbL)**; produk individual difoto oleh kontributor komunitas. Simpan atribusi bila menampilkan foto ke publik. Baris hasil seed ditandai `source='crowdsource'`, `verified=false`.
 
 Semua respons memakai **envelope**: sukses `{ data, meta? }`, error `{ error: { code, message, details? } }`.

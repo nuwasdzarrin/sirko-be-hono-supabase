@@ -1,6 +1,7 @@
 import { sql } from './client.ts';
 import { uuid } from '../lib/uuid.ts';
 import { nowMs } from '../lib/time.ts';
+import { classifyCategory } from '../lib/catalog-category.ts';
 
 /**
  * Seed Katalog Umum (public_products) dari data TERBUKA Open Food Facts &
@@ -78,13 +79,6 @@ function parseQuantity(q?: string): { size: number | null; unit: string | null }
   return { size: Number.isFinite(size) ? size : null, unit };
 }
 
-function firstCategory(categories?: string): string | null {
-  if (!categories) return null;
-  const first = categories.split(',')[0]?.trim();
-  if (!first) return null;
-  return first.replace(/^[a-z]{2}:/i, '').trim() || null;
-}
-
 function cleanBrand(brands?: string): string | null {
   if (!brands) return null;
   const b = brands.split(',')[0]?.trim();
@@ -111,6 +105,14 @@ function toRow(p: OffProduct, ts: number): CatalogRow | null {
 
   const brand = cleanBrand(p.brands);
   const { size, unit } = parseQuantity(p.quantity);
+  const keywords = buildKeywords(name, brand);
+  const category = classifyCategory({
+    name,
+    offCategory: p.categories,
+    keywords,
+    brand,
+    photoUrl: photo,
+  });
   return {
     id: uuid(),
     barcode: code,
@@ -119,7 +121,7 @@ function toRow(p: OffProduct, ts: number): CatalogRow | null {
     short_description: null,
     photo_url: photo,
     brand,
-    category: firstCategory(p.categories),
+    category,
     manufacturer: null,
     default_unit: null,
     net_size: size,
@@ -127,7 +129,7 @@ function toRow(p: OffProduct, ts: number): CatalogRow | null {
     packaging: null,
     variant: null,
     country_of_origin: code.startsWith('899') ? 'ID' : null,
-    keywords: buildKeywords(name, brand),
+    keywords,
     verified: false,
     source: 'crowdsource',
     created_at: ts,

@@ -13,6 +13,8 @@
     "migrate:prod": "node --env-file=.env.production.local --import tsx src/db/migrate-cli.ts",
     "seed:catalog": "node --env-file=.env --import tsx src/db/seed-catalog.ts",
     "seed:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/seed-catalog.ts",
+    "reclassify:catalog": "node --env-file=.env --import tsx src/db/reclassify-catalog.ts",
+    "reclassify:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/reclassify-catalog.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
