@@ -17,6 +17,8 @@
     "reclassify:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/reclassify-catalog.ts",
     "export:catalog": "node --env-file=.env --import tsx src/db/export-catalog-assets.ts",
     "export:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/export-catalog-assets.ts",
+    "mirror:catalog": "node --env-file=.env --import tsx src/db/mirror-catalog-photos.ts",
+    "mirror:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/mirror-catalog-photos.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

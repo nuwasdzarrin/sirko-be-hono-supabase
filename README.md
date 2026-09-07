@@ -190,6 +190,16 @@ Menulis `data/public_product.json` (semua produk) lalu **mengunduh foto** ke `da
 
 > **Kuota Supabase (gratis):** Storage 1 GB, egress ~10 GB/bln. 2.400 foto ≈ 54 MB → muat di storage; namun untuk **produk default** lebih hemat & andal di-bundle ke app (nol egress, offline).
 
+### Mirror foto ke bucket sendiri (sirko-media)
+
+Unggah foto katalog ke bucket S3 sendiri lalu set `photo_url` DB ke URL publik bucket → **tak bergantung server pihak ketiga**:
+
+```bash
+npm run mirror:catalog:prod   # env opsional: CONCURRENCY, MIRROR_LIMIT (uji subset)
+```
+
+Sumber byte = berkas bundle `data/assets/public_products/` (fallback: unduh dari `photo_url`). Key S3 deterministik `catalog/<slug-nama>_<barcode>.<ext>` → **idempotent** (re-run menimpa objek & URL sama), update `photo_url` per-batch. Butuh `signPut()`/`publicUrl()` di [lib/storage.ts](src/lib/storage.ts). Script: [db/mirror-catalog-photos.ts](src/db/mirror-catalog-photos.ts).
+
 > **Atribusi & lisensi:** data & foto berasal dari Open Food Facts / Open Beauty Facts di bawah **Open Database License (ODbL)**; produk individual difoto oleh kontributor komunitas. Simpan atribusi bila menampilkan foto ke publik. Baris hasil seed ditandai `source='crowdsource'`, `verified=false`.
 
 Semua respons memakai **envelope**: sukses `{ data, meta? }`, error `{ error: { code, message, details? } }`.

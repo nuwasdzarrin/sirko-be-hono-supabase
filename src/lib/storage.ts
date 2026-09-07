@@ -28,6 +28,10 @@ export interface SignUploadResult {
 
 export interface StorageProvider {
   signUpload(input: SignUploadInput): SignUploadResult;
+  /** Presigned PUT URL untuk key PERSIS (tanpa uuid) — dipakai mirror server-side. */
+  signPut(key: string, contentType: string, expiresIn?: number): string;
+  /** URL publik objek untuk key tertentu. */
+  publicUrl(key: string): string;
 }
 
 // ── SigV4 helpers ─────────────────────────────────────────────────────────────
@@ -75,22 +79,23 @@ interface S3Config {
 class S3StorageProvider implements StorageProvider {
   constructor(private readonly cfg: S3Config) {}
 
-  signUpload(input: SignUploadInput): SignUploadResult {
-    const expiresIn = input.expiresIn ?? 300;
-    const key = `${input.scope}/${uuid()}-${sanitizeFileName(input.fileName)}`;
+  publicUrl(key: string): string {
+    const base = this.cfg.publicBaseUrl ?? `${this.cfg.endpoint.replace(/\/$/, '')}/${this.cfg.bucket}`;
+    return `${base.replace(/\/$/, '')}/${key}`;
+  }
 
+  /** Presigned PUT untuk key persis. SignedHeaders=host → Content-Type bebas. */
+  signPut(key: string, _contentType: string, expiresIn = 300): string {
     const url = new URL(this.cfg.endpoint);
     const host = url.host;
     const basePath = url.pathname.replace(/\/$/, '');
-    const rawPath = `${basePath}/${this.cfg.bucket}/${key}`;
-    const uriPath = canonicalUri(rawPath);
+    const uriPath = canonicalUri(`${basePath}/${this.cfg.bucket}/${key}`);
 
     const now = new Date();
     const { amzDate, dateStamp } = amzDates(now);
     const scope = `${dateStamp}/${this.cfg.region}/s3/aws4_request`;
     const credential = `${this.cfg.accessKeyId}/${scope}`;
 
-    // Query params presigned (di-sort saat membentuk canonical query string).
     const params: Record<string, string> = {
       'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
       'X-Amz-Credential': credential,
@@ -103,22 +108,8 @@ class S3StorageProvider implements StorageProvider {
       .map((k) => `${rfc3986(k)}=${rfc3986(params[k]!)}`)
       .join('&');
 
-    const canonicalHeaders = `host:${host}\n`;
-    const canonicalRequest = [
-      'PUT',
-      uriPath,
-      canonicalQuery,
-      canonicalHeaders,
-      'host',
-      'UNSIGNED-PAYLOAD',
-    ].join('\n');
-
-    const stringToSign = [
-      'AWS4-HMAC-SHA256',
-      amzDate,
-      scope,
-      sha256Hex(canonicalRequest),
-    ].join('\n');
+    const canonicalRequest = ['PUT', uriPath, canonicalQuery, `host:${host}\n`, 'host', 'UNSIGNED-PAYLOAD'].join('\n');
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, sha256Hex(canonicalRequest)].join('\n');
 
     const kDate = hmac(`AWS4${this.cfg.secretAccessKey}`, dateStamp);
     const kRegion = hmac(kDate, this.cfg.region);
@@ -126,15 +117,17 @@ class S3StorageProvider implements StorageProvider {
     const kSigning = hmac(kService, 'aws4_request');
     const signature = createHmac('sha256', kSigning).update(stringToSign, 'utf8').digest('hex');
 
-    const uploadUrl = `${url.protocol}//${host}${uriPath}?${canonicalQuery}&X-Amz-Signature=${signature}`;
-    const publicBase = this.cfg.publicBaseUrl ?? `${this.cfg.endpoint.replace(/\/$/, '')}/${this.cfg.bucket}`;
-    const publicUrl = `${publicBase.replace(/\/$/, '')}/${key}`;
+    return `${url.protocol}//${host}${uriPath}?${canonicalQuery}&X-Amz-Signature=${signature}`;
+  }
 
+  signUpload(input: SignUploadInput): SignUploadResult {
+    const expiresIn = input.expiresIn ?? 300;
+    const key = `${input.scope}/${uuid()}-${sanitizeFileName(input.fileName)}`;
     return {
-      uploadUrl,
+      uploadUrl: this.signPut(key, input.contentType, expiresIn),
       method: 'PUT',
       headers: { 'Content-Type': input.contentType },
-      publicUrl,
+      publicUrl: this.publicUrl(key),
       expiresIn,
     };
   }

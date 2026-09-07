@@ -2,6 +2,7 @@ import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { sql } from './client.ts';
+import { assetFilename } from '../lib/catalog-asset.ts';
 
 /**
  * Ekspor Katalog Umum untuk di-BUNDLE ke mobile app (produk default/starter):
@@ -25,32 +26,6 @@ const JSON_PATH = join(ROOT, 'public_product.json');
 const ASSET_REL = 'assets/public_products';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function extOf(url: string): string {
-  const m = url.split('?')[0]!.match(/\.(jpg|jpeg|png|webp|gif)$/i);
-  return (m ? m[1]! : 'jpg').toLowerCase();
-}
-function safeBarcode(bc: string): string {
-  return bc.replace(/[^0-9A-Za-z_-]/g, '');
-}
-
-/** Slug nama produk agar nama file mudah dibaca: "Coca-Cola 390ml" → "coca_cola_390ml". */
-function slugName(name: string | null): string {
-  const s = (name ?? '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '') // buang aksen (combining marks)
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 40)
-    .replace(/_+$/g, '');
-  return s || 'produk';
-}
-
-/** Nama file aset: <slug-nama>_<barcode>.<ext> — mudah dibaca, unik, deterministik. */
-function assetFilename(name: string | null, barcode: string, photoUrl: string): string {
-  return `${slugName(name)}_${safeBarcode(barcode)}.${extOf(photoUrl)}`;
-}
 
 async function exists(p: string): Promise<boolean> {
   try {
