@@ -19,7 +19,7 @@ const UA = 'SirkoCatalogBot/1.0 (nuwas@creativism.id) - bundling default catalog
 const CONCURRENCY = Number(process.env.CONCURRENCY ?? 10);
 
 const here = dirname(fileURLToPath(import.meta.url)); // .../sirko-backend/src/db
-const ROOT = process.env.ASSET_ROOT ?? join(here, '..', '..', '..', 'data'); // <project>/data
+const ROOT = process.env.ASSET_ROOT ?? join(here, '..', '..', 'data'); // sirko-backend/data
 const ASSET_DIR = join(ROOT, 'assets', 'public_products');
 const JSON_PATH = join(ROOT, 'public_product.json');
 const ASSET_REL = 'assets/public_products';
@@ -32,6 +32,24 @@ function extOf(url: string): string {
 }
 function safeBarcode(bc: string): string {
   return bc.replace(/[^0-9A-Za-z_-]/g, '');
+}
+
+/** Slug nama produk agar nama file mudah dibaca: "Coca-Cola 390ml" → "coca_cola_390ml". */
+function slugName(name: string | null): string {
+  const s = (name ?? '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '') // buang aksen (combining marks)
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40)
+    .replace(/_+$/g, '');
+  return s || 'produk';
+}
+
+/** Nama file aset: <slug-nama>_<barcode>.<ext> — mudah dibaca, unik, deterministik. */
+function assetFilename(name: string | null, barcode: string, photoUrl: string): string {
+  return `${slugName(name)}_${safeBarcode(barcode)}.${extOf(photoUrl)}`;
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -104,7 +122,7 @@ async function run() {
   const num = (v: string | null) => (v === null ? null : Number(v));
   const entries = rows.map((r) => {
     const imageFile =
-      r.barcode && r.photo_url ? `${ASSET_REL}/${safeBarcode(r.barcode)}.${extOf(r.photo_url)}` : null;
+      r.barcode && r.photo_url ? `${ASSET_REL}/${assetFilename(r.name, r.barcode, r.photo_url)}` : null;
     return {
       id: r.id,
       barcode: r.barcode,
@@ -140,7 +158,7 @@ async function run() {
   await pool(
     targets,
     async (r) => {
-      const file = `${safeBarcode(r.barcode!)}.${extOf(r.photo_url!)}`;
+      const file = assetFilename(r.name, r.barcode!, r.photo_url!);
       const dest = join(ASSET_DIR, file);
       done++;
       if (await exists(dest)) { skip++; return; }
