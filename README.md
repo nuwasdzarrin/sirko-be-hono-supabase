@@ -152,12 +152,15 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 
 `public_products` = tabel **GLOBAL** (tanpa `business_id`, **tanpa harga/stok**), dibaca semua toko, ditulis hanya `sirko_admin`. Pencarian pakai `pg_trgm` (GIN pada name/brand + keywords). Skema di [migrations/0003](src/db/migrations/0003_catalog.sql). Storage lewat **presigner SigV4 zero-dependency** ([lib/storage.ts](src/lib/storage.ts)) — portabel Supabase Storage ↔ MinIO/VPS via env `S3_*` + `S3_PUBLIC_BASE_URL`. Tak ada SDK Supabase.
 
-**Dashboard admin (HTML/EJS)**
+**Dashboard admin (HTML/EJS)** — lintas-tenant, Basic Auth opsional
 
-| Method | Path | Auth | Keterangan |
-|---|---|---|---|
-| GET | `/dashboard` | Basic Auth opsional | ringkasan **lintas-tenant**: KPI (toko/akun/user/transaksi/produk/pelanggan/katalog), daftar toko, transaksi terbaru, katalog |
-| GET | `/` | — | redirect ke `/dashboard` |
+| Path | Keterangan |
+|---|---|
+| `/dashboard` | **Ringkasan**: KPI + breakdown kategori katalog + highlight katalog terbaru + tautan ke halaman detail |
+| `/dashboard/catalog?page=&q=` | Katalog **berpaginasi** (24/hal) + **foto** produk + kotak **cari** (nama/brand/barcode) |
+| `/dashboard/businesses?page=` | Daftar toko berpaginasi (20/hal) |
+| `/dashboard/transactions?page=` | Daftar transaksi berpaginasi (20/hal) |
+| `/` | redirect ke `/dashboard` |
 
 Cikal-bakal Panel Admin Sirko. Template EJS di-embed sebagai string ([views/dashboard.view.ts](src/views/dashboard.view.ts)) → aman di serverless (tak baca file `.ejs` dari disk). Digerbang **Basic Auth** bila `DASHBOARD_USER` & `DASHBOARD_PASSWORD` diisi; kosong = terbuka (dev). Hanya-baca.
 
