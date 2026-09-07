@@ -9,6 +9,7 @@ import { healthRoutes } from './routes/health.ts';
 import { backupRoutes } from './routes/backup.ts';
 import { catalogRoutes } from './routes/catalog.ts';
 import { mediaRoutes } from './routes/media.ts';
+import { dashboardRoutes } from './routes/dashboard.ts';
 
 /**
  * Inisialisasi Hono + middleware global. Diekspor untuk dipakai entrypoint
@@ -33,6 +34,10 @@ export function createApp() {
   v1.route('/', healthRoutes);
 
   app.route('/v1', v1);
+
+  // Halaman admin (HTML) — di luar /v1. `/` diarahkan ke dashboard.
+  app.route('/dashboard', dashboardRoutes);
+  app.get('/', (c) => c.redirect('/dashboard'));
 
   return app;
 }

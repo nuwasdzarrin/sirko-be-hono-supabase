@@ -87,8 +87,11 @@ Project → **Settings → Environment Variables** (scope **Production**):
 | `S3_SECRET_ACCESS_KEY` | dari S3 Connection |
 | `S3_PUBLIC_BASE_URL` | `https://<REF>.supabase.co/storage/v1/object/public/sirko-media` |
 | `APP_ENV` | `production` |
+| `DASHBOARD_USER` | user Basic Auth untuk `/dashboard` (opsional tapi **disarankan** di produksi) |
+| `DASHBOARD_PASSWORD` | password Basic Auth `/dashboard` |
 
 > `APP_ENV=production` membuat `config/env.ts` **mewajibkan** semua `S3_*` lengkap (gagal-cepat bila kurang).
+> Bila `DASHBOARD_USER`/`DASHBOARD_PASSWORD` kosong, `/dashboard` **terbuka** — di produksi sebaiknya diisi.
 
 ---
 

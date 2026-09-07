@@ -25,6 +25,11 @@ const rawSchema = z.object({
   S3_PUBLIC_BASE_URL: z.string().optional(),
 
   APP_ENV: z.enum(['development', 'production']).default('development'),
+
+  // Dashboard admin (opsional). Bila keduanya diisi → halaman /dashboard digerbang
+  // Basic Auth. Bila kosong (dev) → terbuka. Di production SEBAIKNYA diisi.
+  DASHBOARD_USER: z.string().optional(),
+  DASHBOARD_PASSWORD: z.string().optional(),
 });
 
 const parsed = rawSchema.safeParse(process.env);
