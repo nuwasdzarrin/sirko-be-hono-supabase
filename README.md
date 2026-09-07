@@ -178,6 +178,18 @@ Strategi: banyak query **dangkal** per-brand & per-kategori (Indomie, Mayora, Wi
 
 **Kategori** dipetakan ke taksonomi Bahasa Indonesia ala toko kelontong/ritel (Sembako, Mie Instan, Makanan Ringan, Minuman, Kopi & Teh, Susu & Olahan Susu, Bumbu & Bahan Masak, Perawatan Tubuh, dll. — lihat [lib/catalog-category.ts](src/lib/catalog-category.ts)) lewat classifier berbasis kata kunci. Seed sudah otomatis mengklasifikasi; untuk memetakan ulang data lama: `npm run reclassify:catalog[:prod]`.
 
+### Ekspor bundle untuk Mobile App
+
+Ekspor katalog jadi **produk default/starter** yang di-bundle ke app (offline, tanpa dependensi server):
+
+```bash
+npm run export:catalog:prod   # → ../data/public_product.json + ../data/assets/public_products/*.jpg
+```
+
+Menulis `public_product.json` (semua produk) lalu **mengunduh foto** ke `data/assets/public_products/<barcode>.jpg` (resumable). Output di `<project-root>/data/` (di luar repo backend). Panduan format untuk mobile devs ada di `data/README.md`. Script: [db/export-catalog-assets.ts](src/db/export-catalog-assets.ts).
+
+> **Kuota Supabase (gratis):** Storage 1 GB, egress ~10 GB/bln. 2.400 foto ≈ 54 MB → muat di storage; namun untuk **produk default** lebih hemat & andal di-bundle ke app (nol egress, offline).
+
 > **Atribusi & lisensi:** data & foto berasal dari Open Food Facts / Open Beauty Facts di bawah **Open Database License (ODbL)**; produk individual difoto oleh kontributor komunitas. Simpan atribusi bila menampilkan foto ke publik. Baris hasil seed ditandai `source='crowdsource'`, `verified=false`.
 
 Semua respons memakai **envelope**: sukses `{ data, meta? }`, error `{ error: { code, message, details? } }`.
