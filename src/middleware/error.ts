@@ -26,10 +26,9 @@ export function errorHandler(err: unknown, c: Context) {
   }
 
   if (err instanceof HTTPException) {
-    return c.json(
-      fail('INTERNAL', err.message || 'Kesalahan permintaan'),
-      err.status as ContentfulStatusCode,
-    );
+    // Pertahankan Response asli (status + header, mis. WWW-Authenticate dari
+    // basicAuth) agar browser bisa menampilkan prompt login dengan benar.
+    return err.getResponse();
   }
 
   // Tak terduga → 500. Log lengkap di server, sembunyikan detail dari klien produksi.
