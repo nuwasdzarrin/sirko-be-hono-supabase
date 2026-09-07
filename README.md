@@ -183,10 +183,10 @@ Strategi: banyak query **dangkal** per-brand & per-kategori (Indomie, Mayora, Wi
 Ekspor katalog jadi **produk default/starter** yang di-bundle ke app (offline, tanpa dependensi server):
 
 ```bash
-npm run export:catalog:prod   # → ../data/public_product.json + ../data/assets/public_products/*.jpg
+npm run export:catalog:prod   # → data/public_product.json + data/assets/public_products/*.jpg
 ```
 
-Menulis `public_product.json` (semua produk) lalu **mengunduh foto** ke `data/assets/public_products/<barcode>.jpg` (resumable). Output di `<project-root>/data/` (di luar repo backend). Panduan format untuk mobile devs ada di `data/README.md`. Script: [db/export-catalog-assets.ts](src/db/export-catalog-assets.ts).
+Menulis `data/public_product.json` (semua produk) lalu **mengunduh foto** ke `data/assets/public_products/<slug-nama>_<barcode>.jpg` (resumable). Output di `data/` (ikut di-commit ke repo — dibundel untuk mobile). Panduan format untuk mobile devs ada di [data/README.md](data/README.md). Script: [db/export-catalog-assets.ts](src/db/export-catalog-assets.ts).
 
 > **Kuota Supabase (gratis):** Storage 1 GB, egress ~10 GB/bln. 2.400 foto ≈ 54 MB → muat di storage; namun untuk **produk default** lebih hemat & andal di-bundle ke app (nol egress, offline).
 
