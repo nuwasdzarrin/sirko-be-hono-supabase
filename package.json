@@ -11,6 +11,8 @@
     "dev": "node --env-file=.env --import tsx --watch src/dev-server.ts",
     "migrate": "node --env-file=.env --import tsx src/db/migrate-cli.ts",
     "migrate:prod": "node --env-file=.env.production.local --import tsx src/db/migrate-cli.ts",
+    "seed:catalog": "node --env-file=.env --import tsx src/db/seed-catalog.ts",
+    "seed:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/seed-catalog.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

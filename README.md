@@ -161,6 +161,20 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 
 Cikal-bakal Panel Admin Sirko. Template EJS di-embed sebagai string ([views/dashboard.view.ts](src/views/dashboard.view.ts)) → aman di serverless (tak baca file `.ejs` dari disk). Digerbang **Basic Auth** bila `DASHBOARD_USER` & `DASHBOARD_PASSWORD` diisi; kosong = terbuka (dev). Hanya-baca.
 
+### Seed Katalog Umum
+
+Isi `public_products` dari data **terbuka Open Food Facts / Open Beauty Facts** (produk beredar di Indonesia) — via API resmi (bukan scraping), dedupe by barcode, idempotent (`ON CONFLICT DO NOTHING`).
+
+```bash
+npm run seed:catalog         # ke DB di .env
+npm run seed:catalog:prod    # ke DB di .env.production.local
+# opsi: OFF_PAGES, BEAUTY_PAGES, PAGE_SIZE, BUDGET_MS
+```
+
+Strategi: banyak query **dangkal** per-brand & per-kategori (Indomie, Mayora, Wings, mie instan, biskuit, dll.) untuk menghindari blok deep-pagination + memperluas cakupan; wajib ada nama & foto; enrich net size, negara asal (prefix `899`=Indonesia), keywords. Aman diulang (menambah yang baru saja). Script: [db/seed-catalog.ts](src/db/seed-catalog.ts).
+
+> **Atribusi & lisensi:** data & foto berasal dari Open Food Facts / Open Beauty Facts di bawah **Open Database License (ODbL)**; produk individual difoto oleh kontributor komunitas. Simpan atribusi bila menampilkan foto ke publik. Baris hasil seed ditandai `source='crowdsource'`, `verified=false`.
+
 Semua respons memakai **envelope**: sukses `{ data, meta? }`, error `{ error: { code, message, details? } }`.
 Bentuk payload persis mengikuti `spec/10-api-contract.md`.
 
