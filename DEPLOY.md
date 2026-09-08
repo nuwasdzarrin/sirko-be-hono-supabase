@@ -134,6 +134,13 @@ curl -s $HOST/v1/backup/status -H "Authorization: Bearer <TOKEN>"               
 ---
 
 ## 6. Troubleshooting cepat
+- **`FUNCTION_INVOCATION_FAILED` / 500 di semua route**: cek boot error — app.ts membungkus
+  core & menampilkan error boot sebagai teks 500 (buka `/v1/health`). Penyebab umum:
+  - **`ERR_MODULE_NOT_FOUND: ...src/x.ts`** → import relatif memakai ekstensi `.ts`. Vercel
+    transpile `.ts`→`.js` per-file **tanpa** menulis ulang specifier → runtime gagal.
+    **Wajib pakai ekstensi `.js`** di semua import relatif (idiom Node ESM TS). tsx & vitest
+    tetap resolve `.js`→`.ts`.
+  - env kurang/invalid → pesan "Konfigurasi environment tidak valid".
 - **`/v1/health` → `db":"down"`**: `DATABASE_URL` salah / bukan pooler 6543 / kurang `sslmode=require`.
 - **500 di endpoint tulis media**: `S3_*` belum lengkap (padahal `APP_ENV=production`).
 - **Error koneksi Postgres saat trafik naik**: memakai `5432` langsung, bukan pooler `6543`.
@@ -142,6 +149,10 @@ curl -s $HOST/v1/backup/status -H "Authorization: Bearer <TOKEN>"               
 
 ---
 
-## 7. Rilis berikutnya
-- Push ke `main` → Vercel auto-deploy.
-- Bila ada migrasi baru (`00xx_*.sql`) → jalankan `npm run migrate:prod` **sebelum** trafik memakai skema baru (migrasi tidak otomatis saat deploy).
+## 7. Workflow branch (hemat build-time free tier)
+- **Kerja di `develop`** — `vercel.json` menyetel `git.deploymentEnabled.develop = false`
+  → push ke `develop` **TIDAK** memicu deploy (hemat build minutes).
+- **Hanya `main` yang auto-deploy** (production). Bila yakin: `git checkout main && git merge develop && git push`.
+- Deteksi framework: Vercel **zero-config Hono** menjalankan `export default app` dari `src/app.ts`.
+- Node dipin `22.x` via `engines` (project setting bisa override — cek Settings → Node.js Version).
+- Bila ada migrasi baru (`00xx_*.sql`) → `npm run migrate:prod` **sebelum** merge ke main.
