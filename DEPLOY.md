@@ -99,13 +99,12 @@ Project → **Settings → Environment Variables** (scope **Production**):
 
 1. **Add New… → Project** → import repo `nuwasdzarrin/sirko-be-hono-supabase`.
 2. **Root Directory**: `./` (repo ini sudah = folder backend).
-3. **Framework Preset**: **Other**.
-4. **Build Command**: kosongkan · **Install Command**: `npm install` · **Output**: default.
-   (Tak ada build step — `@vercel/node` mengompilasi fungsi `api/[[...route]].ts` langsung.)
+3. **Framework Preset**: **Hono** (auto-terdeteksi; kalau tak ada, biarkan default/Other).
+4. **Build/Install/Output**: biarkan default. Vercel **zero-config** mendeteksi `src/app.ts`
+   (`export default app`) dan menjalankannya sebagai Vercel Function (Node). **Tanpa** `api/`
+   manual maupun rewrite.
 5. Pastikan Env Vars (langkah 3) sudah terisi → **Deploy**.
-6. `vercel.json` sudah mengatur:
-   - **catch-all** semua path → fungsi Hono,
-   - **Cron harian** `GET /v1/health` (anti idle-pause Supabase).
+6. `vercel.json` hanya berisi **Cron harian** `GET /v1/health` (anti idle-pause Supabase).
 
 ---
 

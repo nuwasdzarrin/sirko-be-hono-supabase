@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Sirko backend — Hono @ Vercel + PostgreSQL (portable, no Supabase SDK). Foundation phase.",
   "engines": {
-    "node": ">=20.6.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "node --env-file=.env --import tsx --watch src/dev-server.ts",

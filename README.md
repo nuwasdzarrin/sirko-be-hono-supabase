@@ -12,7 +12,7 @@ Fitur 1 (Backup) & Fitur 2 (Katalog) menyusul di atas fondasi ini.
 
 | Kebutuhan | Pilihan |
 |---|---|
-| Framework | Hono + adapter `hono/vercel` (Node runtime) |
+| Framework | Hono (Vercel **zero-config** backend framework, Node runtime) |
 | DB | `postgres` (postgres.js), SQL-first, koneksi via **pooler** |
 | Auth | `bcryptjs` (hash) + `jose` (JWT sendiri, HS256) — **self-owned** |
 | Validasi | `zod` |
@@ -105,9 +105,10 @@ npm run typecheck   # tsc --noEmit — wajib bersih sebelum commit
 
 > **Runbook produksi lengkap (Supabase → migrasi → env → deploy → verifikasi): [DEPLOY.md](DEPLOY.md).**
 
-1. Root project = folder `sirko-backend/`. Vercel mengenali `api/[[...route]].ts` sebagai
-   Serverless Function (Node), dan `vercel.json` mengarahkan **semua path** ke sana (catch-all).
-2. **Runtime Node** (bukan Edge) — wajib untuk TCP Postgres.
+1. Root project = folder `sirko-backend/`. Vercel **auto-deteksi Hono** (zero-config):
+   `src/app.ts` meng-`export default app`, dijalankan sebagai Vercel Function — **tanpa**
+   `api/` manual maupun rewrite. `vercel.json` hanya berisi cron.
+2. **Runtime Node** (bukan Edge, default) — wajib untuk TCP Postgres.
 3. **Environment Variables** di dashboard Vercel: `DATABASE_URL` (versi **pooled 6543**,
    `?pgbouncer=true`), `JWT_SECRET`, `JWT_REFRESH_SECRET`, `S3_*`, `APP_ENV=production`.
 4. **Migrasi**: jalankan `npm run migrate` dari lokal/CI dengan `DATABASE_URL` produksi
@@ -208,9 +209,8 @@ Bentuk payload persis mengikuti `spec/10-api-contract.md`.
 ## Struktur folder
 
 ```
-api/[[...route]].ts     entrypoint Vercel (hono/vercel)
 src/
-  app.ts                init Hono + middleware global
+  app.ts                init Hono + middleware global + `export default app` (entry Vercel zero-config)
   config/env.ts         validasi env (zod), fail-fast
   db/
     client.ts           postgres.js module-scope, pooled, prepare:false

@@ -44,3 +44,8 @@ export function createApp() {
 
 export const app = createApp();
 export type App = typeof app;
+
+// Entry zero-config Vercel (deteksi backend framework Hono): Vercel menjalankan
+// default export ini sebagai Vercel Function (Node runtime) — tanpa adapter/rewrite
+// manual. Lokal & test tetap memakai named export `app`.
+export default app;
