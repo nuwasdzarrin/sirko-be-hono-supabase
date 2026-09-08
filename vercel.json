@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "develop": false
+    }
+  },
   "crons": [
     { "path": "/v1/health", "schedule": "0 3 * * *" }
   ]

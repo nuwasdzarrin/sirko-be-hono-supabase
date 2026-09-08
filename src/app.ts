@@ -1,51 +1,34 @@
 import { Hono } from 'hono';
-import type { AppEnv } from './types.ts';
-import { requestLogger } from './middleware/logger.ts';
-import { errorHandler } from './middleware/error.ts';
-import { fail } from './lib/envelope.ts';
-import { authRoutes } from './routes/auth.ts';
-import { meRoutes } from './routes/me.ts';
-import { healthRoutes } from './routes/health.ts';
-import { backupRoutes } from './routes/backup.ts';
-import { catalogRoutes } from './routes/catalog.ts';
-import { mediaRoutes } from './routes/media.ts';
-import { dashboardRoutes } from './routes/dashboard.ts';
 
 /**
- * Inisialisasi Hono + middleware global. Diekspor untuk dipakai entrypoint
- * Vercel (`api/[[...route]].ts`) maupun dev-server lokal.
+ * Entry aplikasi (dipakai Vercel zero-config, dev-server, & test).
  *
- * Semua rute berada di bawah `/v1` (spec 08 §8). Import sengaja diminimalkan
- * demi cold-start (spec 08 §4.3).
+ * Pola boot-safe: modul ini SENDIRI ringan (hanya import `hono`). Aplikasi inti
+ * (`app-core.ts`) yang melakukan validasi env & koneksi DB di-*dynamic import*
+ * saat request pertama. Bila boot inti gagal (mis. env kurang), error-nya
+ * ditampilkan sebagai HTTP 500 teks — bukan `FUNCTION_INVOCATION_FAILED` buta
+ * (log runtime tak bisa diakses di Vercel Hobby).
  */
-export function createApp() {
-  const app = new Hono<AppEnv>();
+const app = new Hono();
 
-  app.use('*', requestLogger);
-  app.onError(errorHandler);
-  app.notFound((c) => c.json(fail('NOT_FOUND', `Rute tidak ditemukan: ${c.req.path}`), 404));
+let core: { fetch: (req: Request) => Response | Promise<Response> } | null = null;
+let bootError: string | null = null;
 
-  const v1 = new Hono<AppEnv>();
-  v1.route('/auth', authRoutes);
-  v1.route('/backup', backupRoutes);
-  v1.route('/catalog', catalogRoutes);
-  v1.route('/media', mediaRoutes);
-  v1.route('/', meRoutes);
-  v1.route('/', healthRoutes);
+app.all('*', async (c) => {
+  if (!core && !bootError) {
+    try {
+      core = (await import('./app-core.ts')).app as unknown as typeof core;
+    } catch (e) {
+      bootError = e instanceof Error ? (e.stack ?? e.message) : String(e);
+      console.error('BOOT ERROR:', bootError);
+    }
+  }
+  if (bootError) {
+    return c.text(`SIRKO BOOT ERROR:\n\n${bootError}`, 500);
+  }
+  return core!.fetch(c.req.raw);
+});
 
-  app.route('/v1', v1);
-
-  // Halaman admin (HTML) — di luar /v1. `/` diarahkan ke dashboard.
-  app.route('/dashboard', dashboardRoutes);
-  app.get('/', (c) => c.redirect('/dashboard'));
-
-  return app;
-}
-
-export const app = createApp();
-export type App = typeof app;
-
-// Entry zero-config Vercel (deteksi backend framework Hono): Vercel menjalankan
-// default export ini sebagai Vercel Function (Node runtime) — tanpa adapter/rewrite
-// manual. Lokal & test tetap memakai named export `app`.
+// Named `app` (dev-server & test) + default (entry Vercel) → keduanya wrapper ini.
+export { app };
 export default app;
