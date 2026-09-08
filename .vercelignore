@@ -1,0 +1,4 @@
+# Aset bundle mobile (foto katalog) — tak dipakai runtime backend (foto dari Supabase).
+# Tetap ada di git untuk mobile devs, tapi tak perlu di-upload ke Vercel.
+data/
+tests/
