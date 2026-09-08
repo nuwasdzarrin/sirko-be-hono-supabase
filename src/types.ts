@@ -1,4 +1,4 @@
-import type { Role } from './lib/permissions.ts';
+import type { Role } from './lib/permissions.js';
 
 /** Identitas terverifikasi dari JWT, di-inject middleware auth ke context. */
 export interface AuthContext {

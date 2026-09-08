@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BACKUP_TABLES, type BackupTable, type Col } from '../db/backup-tables.ts';
+import { BACKUP_TABLES, type BackupTable, type Col } from '../db/backup-tables.js';
 
 /**
  * Skema zod backup. Filosofi: validasi STRUKTUR, bukan nilai bisnis — agar server

@@ -17,7 +17,7 @@ let bootError: string | null = null;
 app.all('*', async (c) => {
   if (!core && !bootError) {
     try {
-      core = (await import('./app-core.ts')).app as unknown as typeof core;
+      core = (await import('./app-core.js')).app as unknown as typeof core;
     } catch (e) {
       bootError = e instanceof Error ? (e.stack ?? e.message) : String(e);
       console.error('BOOT ERROR:', bootError);

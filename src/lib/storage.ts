@@ -1,7 +1,7 @@
 import { createHash, createHmac } from 'node:crypto';
-import { env } from '../config/env.ts';
-import { uuid } from './uuid.ts';
-import { AppError } from './errors.ts';
+import { env } from '../config/env.js';
+import { uuid } from './uuid.js';
+import { AppError } from './errors.js';
 
 /**
  * Abstraksi storage S3-compatible — presigned PUT URL via AWS Signature V4

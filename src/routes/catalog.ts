@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { requireAuth } from '../middleware/auth.ts';
-import { requireRole } from '../middleware/rbac.ts';
+import type { AppEnv } from '../types.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 import {
   handleCatalogLookup,
   handleCatalogSearch,
   handleCatalogCreate,
   handleCatalogUpdate,
   handleCatalogDelete,
-} from '../handlers/catalog.handlers.ts';
+} from '../handlers/catalog.handlers.js';
 
 /**
  * Rute Katalog (Fitur 2) — GLOBAL, di-mount pada `/v1/catalog`.

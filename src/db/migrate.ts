@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { sql as defaultSql, type Sql } from './client.ts';
+import { sql as defaultSql, type Sql } from './client.js';
 
 /**
  * Migration runner — maju-saja, idempotent, portabel. Diekspor sebagai fungsi

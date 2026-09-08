@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { ok } from '../lib/envelope.ts';
-import * as authService from '../services/auth.service.ts';
+import type { AppEnv } from '../types.js';
+import { ok } from '../lib/envelope.js';
+import * as authService from '../services/auth.service.js';
 
 /** GET /v1/me — pakai identitas dari context (di-inject requireAuth). */
 export async function handleMe(c: Context<AppEnv>) {

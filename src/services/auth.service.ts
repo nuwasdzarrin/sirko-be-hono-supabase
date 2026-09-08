@@ -1,20 +1,20 @@
-import { sql } from '../db/client.ts';
-import { AccountRepository } from '../db/repositories/account.repository.ts';
-import { BusinessRepository } from '../db/repositories/business.repository.ts';
-import { UserRepository } from '../db/repositories/user.repository.ts';
-import { RefreshTokenRepository } from '../db/repositories/refresh_token.repository.ts';
-import { hashPassword, verifyPassword } from '../lib/password.ts';
+import { sql } from '../db/client.js';
+import { AccountRepository } from '../db/repositories/account.repository.js';
+import { BusinessRepository } from '../db/repositories/business.repository.js';
+import { UserRepository } from '../db/repositories/user.repository.js';
+import { RefreshTokenRepository } from '../db/repositories/refresh_token.repository.js';
+import { hashPassword, verifyPassword } from '../lib/password.js';
 import {
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-} from '../lib/jwt.ts';
-import { effectivePermissions, type Role } from '../lib/permissions.ts';
-import { uuid } from '../lib/uuid.ts';
-import { nowMs } from '../lib/time.ts';
-import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '../config/env.ts';
-import { conflict, unauthenticated } from '../lib/errors.ts';
-import type { RegisterBusinessInput, LoginInput } from '../schemas/auth.schema.ts';
+} from '../lib/jwt.js';
+import { effectivePermissions, type Role } from '../lib/permissions.js';
+import { uuid } from '../lib/uuid.js';
+import { nowMs } from '../lib/time.js';
+import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '../config/env.js';
+import { conflict, unauthenticated } from '../lib/errors.js';
+import type { RegisterBusinessInput, LoginInput } from '../schemas/auth.schema.js';
 
 /** Bentuk respons auth (register/login) — sesuai kontrak 10 §1.1/§1.2. */
 export interface AuthPayload {

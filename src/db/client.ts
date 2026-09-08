@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-import { env } from '../config/env.ts';
+import { env } from '../config/env.js';
 
 /**
  * Koneksi Postgres — SATU instance di MODULE SCOPE agar di-reuse antar-invocation

@@ -5,7 +5,7 @@ import type {
   CatalogItem,
   BusinessItem,
   TxItem,
-} from '../services/dashboard.service.ts';
+} from '../services/dashboard.service.js';
 
 /**
  * View dashboard (EJS di-embed sebagai string → aman di serverless). Terdiri

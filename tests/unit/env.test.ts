@@ -17,13 +17,13 @@ describe('config/env', () => {
 
   it('gagal bila DATABASE_URL kosong', async () => {
     delete process.env.DATABASE_URL;
-    await expect(import('../../src/config/env.ts')).rejects.toThrow(/DATABASE_URL/);
+    await expect(import('../../src/config/env.js')).rejects.toThrow(/DATABASE_URL/);
   });
 
   it('gagal bila JWT_SECRET terlalu pendek', async () => {
     process.env.DATABASE_URL = 'postgresql://x/y';
     process.env.JWT_SECRET = 'pendek';
-    await expect(import('../../src/config/env.ts')).rejects.toThrow(/JWT_SECRET/);
+    await expect(import('../../src/config/env.js')).rejects.toThrow(/JWT_SECRET/);
   });
 
   it('gagal di production bila S3 tak lengkap', async () => {
@@ -33,7 +33,7 @@ describe('config/env', () => {
     process.env.APP_ENV = 'production';
     delete process.env.S3_ENDPOINT;
     delete process.env.S3_BUCKET;
-    await expect(import('../../src/config/env.ts')).rejects.toThrow(/S3/);
+    await expect(import('../../src/config/env.js')).rejects.toThrow(/S3/);
   });
 
   it('sukses dengan env development valid', async () => {
@@ -41,7 +41,7 @@ describe('config/env', () => {
     process.env.JWT_SECRET = 'a'.repeat(32);
     process.env.JWT_REFRESH_SECRET = 'b'.repeat(32);
     process.env.APP_ENV = 'development';
-    const mod = await import('../../src/config/env.ts');
+    const mod = await import('../../src/config/env.js');
     expect(mod.env.APP_ENV).toBe('development');
     expect(mod.ACCESS_TOKEN_TTL_SECONDS).toBe(3600);
   });

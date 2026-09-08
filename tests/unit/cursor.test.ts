@@ -6,8 +6,8 @@ import {
   ZERO_TS,
   ZERO_ID,
   type CursorState,
-} from '../../src/lib/cursor.ts';
-import { AppError } from '../../src/lib/errors.ts';
+} from '../../src/lib/cursor.js';
+import { AppError } from '../../src/lib/errors.js';
 
 describe('cursor', () => {
   it('encode → decode round-trip mempertahankan posisi', () => {

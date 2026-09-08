@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnv } from '../types.ts';
-import { forbidden, unauthenticated } from '../lib/errors.ts';
+import type { AppEnv } from '../types.js';
+import { forbidden, unauthenticated } from '../lib/errors.js';
 
 /**
  * requireTenant — pastikan request terikat ke sebuah toko (businessId ada).

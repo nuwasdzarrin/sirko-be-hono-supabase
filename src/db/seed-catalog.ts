@@ -1,7 +1,7 @@
-import { sql } from './client.ts';
-import { uuid } from '../lib/uuid.ts';
-import { nowMs } from '../lib/time.ts';
-import { classifyCategory } from '../lib/catalog-category.ts';
+import { sql } from './client.js';
+import { uuid } from '../lib/uuid.js';
+import { nowMs } from '../lib/time.js';
+import { classifyCategory } from '../lib/catalog-category.js';
 
 /**
  * Seed Katalog Umum (public_products) dari data TERBUKA Open Food Facts &

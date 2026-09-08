@@ -4,7 +4,7 @@ import {
   hasPermission,
   isRole,
   ALL_PERMISSIONS,
-} from '../../src/lib/permissions.ts';
+} from '../../src/lib/permissions.js';
 
 describe('permissions', () => {
   it('owner/admin/sirko_admin dapat wildcard administrator', () => {

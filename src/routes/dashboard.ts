@@ -1,18 +1,18 @@
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
-import { env } from '../config/env.ts';
+import { env } from '../config/env.js';
 import {
   getOverview,
   getCatalogPage,
   getBusinessesPage,
   getTransactionsPage,
-} from '../services/dashboard.service.ts';
+} from '../services/dashboard.service.js';
 import {
   renderOverview,
   renderCatalog,
   renderBusinesses,
   renderTransactions,
-} from '../views/dashboard.view.ts';
+} from '../views/dashboard.view.js';
 
 /**
  * Dashboard admin (HTML/EJS) di `/dashboard`:

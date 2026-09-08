@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getStorage } from '../../src/lib/storage.ts';
+import { getStorage } from '../../src/lib/storage.js';
 
 /**
  * Unit test presigner SigV4 (zero-dep). Nilai S3 diambil dari env aktif

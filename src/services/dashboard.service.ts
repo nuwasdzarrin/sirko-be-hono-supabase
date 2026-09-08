@@ -1,5 +1,5 @@
-import { sql } from '../db/client.ts';
-import { nowMs } from '../lib/time.ts';
+import { sql } from '../db/client.js';
+import { nowMs } from '../lib/time.js';
 
 /**
  * Dashboard service — pembaca LINTAS-TENANT (mode admin/monitoring). Sengaja

@@ -1,8 +1,8 @@
 import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { sql } from './client.ts';
-import { assetFilename } from '../lib/catalog-asset.ts';
+import { sql } from './client.js';
+import { assetFilename } from '../lib/catalog-asset.js';
 
 /**
  * Ekspor Katalog Umum untuk di-BUNDLE ke mobile app (produk default/starter):

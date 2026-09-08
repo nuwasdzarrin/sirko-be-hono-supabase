@@ -1,14 +1,14 @@
-import { sql } from '../db/client.ts';
-import { BackupRepository } from '../db/repositories/backup.repository.ts';
+import { sql } from '../db/client.js';
+import { BackupRepository } from '../db/repositories/backup.repository.js';
 import {
   BACKUP_TABLES,
   SUPPORTED_SCHEMA_VERSION,
   type BackupTable,
-} from '../db/backup-tables.ts';
-import { ROW_SCHEMAS, type PushEnvelope, type PullQuery } from '../schemas/backup.schema.ts';
-import { decodeCursor, encodeCursor, posFor, type CursorState } from '../lib/cursor.ts';
-import { nowMs } from '../lib/time.ts';
-import { upgradeRequired } from '../lib/errors.ts';
+} from '../db/backup-tables.js';
+import { ROW_SCHEMAS, type PushEnvelope, type PullQuery } from '../schemas/backup.schema.js';
+import { decodeCursor, encodeCursor, posFor, type CursorState } from '../lib/cursor.js';
+import { nowMs } from '../lib/time.js';
+import { upgradeRequired } from '../lib/errors.js';
 
 /**
  * Backup service — orkestrasi push/pull/status.

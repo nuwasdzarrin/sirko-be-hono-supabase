@@ -1,5 +1,5 @@
-import { BACKUP_WIRE_NAMES } from '../db/backup-tables.ts';
-import { validation } from './errors.ts';
+import { BACKUP_WIRE_NAMES } from '../db/backup-tables.js';
+import { validation } from './errors.js';
 
 /**
  * Cursor pull = opaque base64(JSON). Menyimpan posisi keyset PER TABEL:

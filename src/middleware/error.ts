@@ -2,9 +2,9 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ZodError } from 'zod';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { AppError } from '../lib/errors.ts';
-import { fail } from '../lib/envelope.ts';
-import { env } from '../config/env.ts';
+import { AppError } from '../lib/errors.js';
+import { fail } from '../lib/envelope.js';
+import { env } from '../config/env.js';
 
 /**
  * Error handler global (dipasang via app.onError). Memetakan semua error ke

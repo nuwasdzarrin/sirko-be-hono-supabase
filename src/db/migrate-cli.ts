@@ -1,5 +1,5 @@
-import { sql } from './client.ts';
-import { runMigrations } from './migrate.ts';
+import { sql } from './client.js';
+import { runMigrations } from './migrate.js';
 
 /**
  * CLI migrasi: `npm run migrate`

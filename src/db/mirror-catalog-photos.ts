@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { sql } from './client.ts';
-import { getStorage } from '../lib/storage.ts';
-import { assetFilename, contentTypeFor } from '../lib/catalog-asset.ts';
-import { nowMs } from '../lib/time.ts';
+import { sql } from './client.js';
+import { getStorage } from '../lib/storage.js';
+import { assetFilename, contentTypeFor } from '../lib/catalog-asset.js';
+import { nowMs } from '../lib/time.js';
 
 /**
  * Mirror foto Katalog Umum ke bucket S3 sendiri (sirko-media) lalu update

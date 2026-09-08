@@ -1,5 +1,5 @@
-import { sql as defaultSql, type DbClient } from '../client.ts';
-import { TenantRepository } from './base.repository.ts';
+import { sql as defaultSql, type DbClient } from '../client.js';
+import { TenantRepository } from './base.repository.js';
 
 export interface BusinessRow {
   id: string;

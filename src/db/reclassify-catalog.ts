@@ -1,6 +1,6 @@
-import { sql } from './client.ts';
-import { classifyCategory, CATALOG_CATEGORIES } from '../lib/catalog-category.ts';
-import { nowMs } from '../lib/time.ts';
+import { sql } from './client.js';
+import { classifyCategory, CATALOG_CATEGORIES } from '../lib/catalog-category.js';
+import { nowMs } from '../lib/time.js';
 
 /**
  * Petakan ulang kolom `category` public_products ke taksonomi Bahasa Indonesia

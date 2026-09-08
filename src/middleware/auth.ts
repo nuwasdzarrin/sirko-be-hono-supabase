@@ -1,8 +1,8 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnv } from '../types.ts';
-import { verifyAccessToken } from '../lib/jwt.ts';
-import { effectivePermissions } from '../lib/permissions.ts';
-import { unauthenticated } from '../lib/errors.ts';
+import type { AppEnv } from '../types.js';
+import { verifyAccessToken } from '../lib/jwt.js';
+import { effectivePermissions } from '../lib/permissions.js';
+import { unauthenticated } from '../lib/errors.js';
 
 /**
  * requireAuth — verifikasi JWT sendiri lalu inject {userId, businessId, role,

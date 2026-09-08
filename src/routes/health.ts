@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { ok } from '../lib/envelope.ts';
-import { nowMs } from '../lib/time.ts';
-import { sql } from '../db/client.ts';
+import type { AppEnv } from '../types.js';
+import { ok } from '../lib/envelope.js';
+import { nowMs } from '../lib/time.js';
+import { sql } from '../db/client.js';
 
 /**
  * GET /v1/health (tanpa Bearer). Dipakai Vercel Cron harian untuk mencegah

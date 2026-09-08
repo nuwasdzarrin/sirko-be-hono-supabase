@@ -1,5 +1,5 @@
-import { TenantRepository } from './base.repository.ts';
-import { BACKUP_TABLES, type BackupTable, type Col } from '../backup-tables.ts';
+import { TenantRepository } from './base.repository.js';
+import { BACKUP_TABLES, type BackupTable, type Col } from '../backup-tables.js';
 
 /**
  * BackupRepository — mesin backup generik, TenantRepository (paksa business_id).

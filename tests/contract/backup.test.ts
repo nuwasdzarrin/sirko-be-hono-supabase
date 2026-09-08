@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { app } from '../../src/app.ts';
-import { sql } from '../../src/db/client.ts';
-import { runMigrations } from '../../src/db/migrate.ts';
-import { uuid } from '../../src/lib/uuid.ts';
+import { app } from '../../src/app.js';
+import { sql } from '../../src/db/client.js';
+import { runMigrations } from '../../src/db/migrate.js';
+import { uuid } from '../../src/lib/uuid.js';
 
 /**
  * Contract test Backup (Fitur 1). Butuh Postgres nyata; skip bila tak tersambung.

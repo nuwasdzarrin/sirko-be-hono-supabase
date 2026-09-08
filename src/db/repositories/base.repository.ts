@@ -1,5 +1,5 @@
-import { sql as defaultSql, type DbClient } from '../client.ts';
-import { isUuid } from '../../lib/uuid.ts';
+import { sql as defaultSql, type DbClient } from '../client.js';
+import { isUuid } from '../../lib/uuid.js';
 
 /**
  * TenantRepository — basis SEMUA akses data milik-toko.

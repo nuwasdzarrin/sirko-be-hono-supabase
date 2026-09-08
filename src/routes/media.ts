@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { requireAuth } from '../middleware/auth.ts';
-import { handleSignUpload } from '../handlers/media.handlers.ts';
+import type { AppEnv } from '../types.js';
+import { requireAuth } from '../middleware/auth.js';
+import { handleSignUpload } from '../handlers/media.handlers.js';
 
 /**
  * Rute Media (Fitur 2) — di-mount pada `/v1/media`. Bearer (semua toko).

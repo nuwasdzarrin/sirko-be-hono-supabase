@@ -1,6 +1,6 @@
-import { getStorage, type SignUploadResult } from '../lib/storage.ts';
-import type { SignUploadRequest } from '../schemas/catalog.schema.ts';
-import { forbidden } from '../lib/errors.ts';
+import { getStorage, type SignUploadResult } from '../lib/storage.js';
+import type { SignUploadRequest } from '../schemas/catalog.schema.js';
+import { forbidden } from '../lib/errors.js';
 
 /**
  * Media service — terbitkan signed URL upload (client PUT biner langsung ke S3).

@@ -1,6 +1,6 @@
-import { sql as defaultSql, type Sql, type DbClient } from '../client.ts';
-import { TenantRepository } from './base.repository.ts';
-import type { Role } from '../../lib/permissions.ts';
+import { sql as defaultSql, type Sql, type DbClient } from '../client.js';
+import { TenantRepository } from './base.repository.js';
+import type { Role } from '../../lib/permissions.js';
 
 export interface UserRow {
   id: string;

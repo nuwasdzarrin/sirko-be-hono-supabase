@@ -1,15 +1,15 @@
 import type { Context } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { ok } from '../lib/envelope.ts';
+import type { AppEnv } from '../types.js';
+import { ok } from '../lib/envelope.js';
 import {
   lookupQuerySchema,
   searchQuerySchema,
   catalogCreateSchema,
   catalogUpdateSchema,
-} from '../schemas/catalog.schema.ts';
-import { notFound } from '../lib/errors.ts';
-import { isUuid } from '../lib/uuid.ts';
-import * as catalog from '../services/catalog.service.ts';
+} from '../schemas/catalog.schema.js';
+import { notFound } from '../lib/errors.js';
+import { isUuid } from '../lib/uuid.js';
+import * as catalog from '../services/catalog.service.js';
 
 export async function handleCatalogLookup(c: Context<AppEnv>) {
   const { barcode } = lookupQuerySchema.parse({ barcode: c.req.query('barcode') });

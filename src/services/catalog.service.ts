@@ -1,8 +1,8 @@
-import { CatalogRepository, type CatalogRow } from '../db/repositories/catalog.repository.ts';
-import type { CatalogCreateInput, CatalogUpdateInput, SearchQuery } from '../schemas/catalog.schema.ts';
-import { uuid } from '../lib/uuid.ts';
-import { nowMs } from '../lib/time.ts';
-import { conflict, notFound, validation } from '../lib/errors.ts';
+import { CatalogRepository, type CatalogRow } from '../db/repositories/catalog.repository.js';
+import type { CatalogCreateInput, CatalogUpdateInput, SearchQuery } from '../schemas/catalog.schema.js';
+import { uuid } from '../lib/uuid.js';
+import { nowMs } from '../lib/time.js';
+import { conflict, notFound, validation } from '../lib/errors.js';
 
 /**
  * Catalog service — public_products GLOBAL (tanpa businessId, tanpa harga/stok).

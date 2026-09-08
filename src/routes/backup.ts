@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { requireAuth } from '../middleware/auth.ts';
-import { requireTenant } from '../middleware/tenant.ts';
+import type { AppEnv } from '../types.js';
+import { requireAuth } from '../middleware/auth.js';
+import { requireTenant } from '../middleware/tenant.js';
 import {
   handleBackupPush,
   handleBackupPull,
   handleBackupStatus,
-} from '../handlers/backup.handlers.ts';
+} from '../handlers/backup.handlers.js';
 
 /**
  * Rute Backup (Fitur 1) — semua Bearer + tenant (khusus konteks toko).

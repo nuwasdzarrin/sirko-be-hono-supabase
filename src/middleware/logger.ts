@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { randomUUID } from 'node:crypto';
-import type { AppEnv } from '../types.ts';
+import type { AppEnv } from '../types.js';
 
 /**
  * requestLogger — beri tiap request `requestId`, catat metode/path/status/durasi.

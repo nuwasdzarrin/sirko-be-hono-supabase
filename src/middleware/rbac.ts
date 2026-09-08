@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnv } from '../types.ts';
-import { hasPermission, type Permission, type Role } from '../lib/permissions.ts';
-import { forbidden, unauthenticated } from '../lib/errors.ts';
+import type { AppEnv } from '../types.js';
+import { hasPermission, type Permission, type Role } from '../lib/permissions.js';
+import { forbidden, unauthenticated } from '../lib/errors.js';
 
 /**
  * requirePermission('X') — jaga endpoint dengan permission tertentu.

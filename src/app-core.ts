@@ -1,15 +1,15 @@
 import { Hono } from 'hono';
-import type { AppEnv } from './types.ts';
-import { requestLogger } from './middleware/logger.ts';
-import { errorHandler } from './middleware/error.ts';
-import { fail } from './lib/envelope.ts';
-import { authRoutes } from './routes/auth.ts';
-import { meRoutes } from './routes/me.ts';
-import { healthRoutes } from './routes/health.ts';
-import { backupRoutes } from './routes/backup.ts';
-import { catalogRoutes } from './routes/catalog.ts';
-import { mediaRoutes } from './routes/media.ts';
-import { dashboardRoutes } from './routes/dashboard.ts';
+import type { AppEnv } from './types.js';
+import { requestLogger } from './middleware/logger.js';
+import { errorHandler } from './middleware/error.js';
+import { fail } from './lib/envelope.js';
+import { authRoutes } from './routes/auth.js';
+import { meRoutes } from './routes/me.js';
+import { healthRoutes } from './routes/health.js';
+import { backupRoutes } from './routes/backup.js';
+import { catalogRoutes } from './routes/catalog.js';
+import { mediaRoutes } from './routes/media.js';
+import { dashboardRoutes } from './routes/dashboard.js';
 
 /**
  * Aplikasi Hono inti + middleware global. Modul ini melakukan kerja berat saat

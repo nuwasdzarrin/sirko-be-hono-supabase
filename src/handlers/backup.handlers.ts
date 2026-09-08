@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { ok } from '../lib/envelope.ts';
-import { pushEnvelopeSchema, pullQuerySchema } from '../schemas/backup.schema.ts';
-import * as backup from '../services/backup.service.ts';
+import type { AppEnv } from '../types.js';
+import { ok } from '../lib/envelope.js';
+import { pushEnvelopeSchema, pullQuerySchema } from '../schemas/backup.schema.js';
+import * as backup from '../services/backup.service.js';
 
 /** businessId dijamin ada oleh requireTenant; ambil dari context (JWT). */
 function businessId(c: Context<AppEnv>): string {

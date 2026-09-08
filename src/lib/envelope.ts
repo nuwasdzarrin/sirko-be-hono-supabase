@@ -1,4 +1,4 @@
-import type { ErrorCode } from './errors.ts';
+import type { ErrorCode } from './errors.js';
 
 /** Envelope sukses: `{ data, meta? }` (spec 10 §0). */
 export interface SuccessEnvelope<T> {

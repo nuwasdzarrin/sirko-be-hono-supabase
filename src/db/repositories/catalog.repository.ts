@@ -1,4 +1,4 @@
-import { sql as defaultSql, type Sql } from '../client.ts';
+import { sql as defaultSql, type Sql } from '../client.js';
 
 /**
  * CatalogRepository — akses `public_products` (tabel GLOBAL, spec 08 §9).

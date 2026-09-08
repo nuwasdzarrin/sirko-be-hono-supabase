@@ -1,4 +1,4 @@
-import { sql as defaultSql, type Sql, type DbClient } from '../client.ts';
+import { sql as defaultSql, type Sql, type DbClient } from '../client.js';
 
 /**
  * RefreshTokenRepository — mencatat `jti` refresh token untuk rotasi & revoke.

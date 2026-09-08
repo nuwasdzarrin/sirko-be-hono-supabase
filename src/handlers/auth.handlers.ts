@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
-import type { AppEnv } from '../types.ts';
-import { ok } from '../lib/envelope.ts';
-import { registerBusinessSchema, loginSchema, refreshSchema } from '../schemas/auth.schema.ts';
-import * as authService from '../services/auth.service.ts';
+import type { AppEnv } from '../types.js';
+import { ok } from '../lib/envelope.js';
+import { registerBusinessSchema, loginSchema, refreshSchema } from '../schemas/auth.schema.js';
+import * as authService from '../services/auth.service.js';
 
 /** Handler tipis: parse+validasi (zod) → service → envelope sukses. */
 

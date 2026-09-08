@@ -5,8 +5,8 @@ import {
   verifyAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-} from '../../src/lib/jwt.ts';
-import { AppError } from '../../src/lib/errors.ts';
+} from '../../src/lib/jwt.js';
+import { AppError } from '../../src/lib/errors.js';
 
 const claims = { userId: 'u-1', businessId: 'b-1', role: 'owner' as const };
 

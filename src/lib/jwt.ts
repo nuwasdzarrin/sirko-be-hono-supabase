@@ -3,9 +3,9 @@ import {
   env,
   ACCESS_TOKEN_TTL_SECONDS,
   REFRESH_TOKEN_TTL_SECONDS,
-} from '../config/env.ts';
-import { isRole, type Role } from './permissions.ts';
-import { unauthenticated } from './errors.ts';
+} from '../config/env.js';
+import { isRole, type Role } from './permissions.js';
+import { unauthenticated } from './errors.js';
 
 /**
  * JWT self-owned (jose, HS256) — portabel, tanpa Supabase Auth.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, isMoney, addMoney, MoneyError, MAX_MONEY } from '../../src/lib/money.ts';
+import { money, isMoney, addMoney, MoneyError, MAX_MONEY } from '../../src/lib/money.js';
 
 describe('money', () => {
   it('menerima integer non-negatif', () => {

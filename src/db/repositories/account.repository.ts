@@ -1,4 +1,4 @@
-import { sql as defaultSql, type Sql, type DbClient } from '../client.ts';
+import { sql as defaultSql, type Sql, type DbClient } from '../client.js';
 
 /**
  * AccountRepository — identitas login cloud (email/phone + password_hash).
