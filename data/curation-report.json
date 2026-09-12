@@ -3,22 +3,22 @@
     "totalInput": 2400,
     "dedupDibuang": 0,
     "totalUnik": 2400,
-    "relevan": 1719,
-    "perluReview": 414,
-    "takRelevan_softDelete": 267,
+    "relevan": 1770,
+    "perluReview": 288,
+    "takRelevan_softDelete": 342,
     "namaDibersihkan": 290,
     "barcodeInvalid": 49,
-    "akanVerifiedTrue": 1701
+    "akanVerifiedTrue": 1751
   },
   "distribusiKategori": {
-    "Lainnya": 172,
     "Kesehatan": 20,
-    "Perawatan": 173,
-    "Minuman": 762,
-    "Sembako": 64,
-    "Snack": 438,
-    "Makanan": 278,
-    "Bumbu/Dapur": 207,
+    "Perawatan": 152,
+    "Minuman": 735,
+    "Sembako": 62,
+    "Snack": 437,
+    "Makanan": 276,
+    "Lainnya": 168,
+    "Bumbu/Dapur": 189,
     "Kebersihan": 17,
     "ATK": 1,
     "Rokok": 1
@@ -177,11 +177,6 @@
   ],
   "perluReviewManual": [
     {
-      "barcode": "5900300550159",
-      "name": "Schwarzer Tee Von Lipton - 25 Beutel",
-      "brand": "Unilever"
-    },
-    {
       "barcode": "0748927051261",
       "name": "100% Whey Protein Powder",
       "brand": "Optimum Nutrition"
@@ -210,26 +205,6 @@
       "barcode": "6947929617428",
       "name": "Franzzi Yogurt Chocolate Flavor Cookie",
       "brand": "Franzzi"
-    },
-    {
-      "barcode": "8719200270442",
-      "name": "Blue Band",
-      "brand": "Blue Band"
-    },
-    {
-      "barcode": "8719200073050",
-      "name": "Aardbei&bietjes spread",
-      "brand": "Blue Band"
-    },
-    {
-      "barcode": "8714100856918",
-      "name": "Abricot & pumpkin spread",
-      "brand": "Blue Band"
-    },
-    {
-      "barcode": "8719200073074",
-      "name": "Abrikoos & pompoen spread",
-      "brand": "Blue Band"
     },
     {
       "barcode": "80000532",
@@ -272,39 +247,9 @@
       "brand": "Magnum"
     },
     {
-      "barcode": "8410127010257",
-      "name": "Amido de milho",
-      "brand": "Maizena"
-    },
-    {
-      "barcode": "9415007055877",
-      "name": "Anchor butter unsalted",
-      "brand": "Anchor"
-    },
-    {
-      "barcode": "9415007056003",
-      "name": "Anchor Cheddar",
-      "brand": null
-    },
-    {
       "barcode": "9415007009801",
       "name": "Anlene ACTIFIT 3X Cokelat",
       "brand": "Fonterra"
-    },
-    {
-      "barcode": "10102807",
-      "name": "Anti Bacterial 80 ml",
-      "brand": "trick or treat"
-    },
-    {
-      "barcode": "0000110102809",
-      "name": "Anti fungal",
-      "brand": "Trick or treat"
-    },
-    {
-      "barcode": "0000110102810",
-      "name": "Anti fungal",
-      "brand": "Trick or treat"
     },
     {
       "barcode": "75076399",
@@ -325,11 +270,6 @@
       "barcode": "8002270506802",
       "name": "Aranciata Rossa (orange sanguine)",
       "brand": "Nestlé"
-    },
-    {
-      "barcode": "8886467033032",
-      "name": "Argan Oil & Lavender Shampoo",
-      "brand": "Love Beauty and Planet"
     },
     {
       "barcode": "8809301766170",
@@ -362,11 +302,6 @@
       "brand": "Sk-ii"
     },
     {
-      "barcode": "8720182308016",
-      "name": "Avocado & Lime Sauce",
-      "brand": "Hellmann's"
-    },
-    {
       "barcode": "59096061",
       "name": "Axe blue lavender",
       "brand": "Unilever"
@@ -392,11 +327,6 @@
       "brand": "balaji"
     },
     {
-      "barcode": "7610900245505",
-      "name": "Balance sans Lactose",
-      "brand": "Emmi"
-    },
-    {
       "barcode": "8710604750950",
       "name": "Bearnaisesaus 19 gram 3 stk",
       "brand": "Knorr"
@@ -410,16 +340,6 @@
       "barcode": "8711200503896",
       "name": "Beef Gravy Pot",
       "brand": "Knorr"
-    },
-    {
-      "barcode": "8888900700006",
-      "name": "Beef Spaghetti Bolognese Rasa Sapi",
-      "brand": "La Fonte"
-    },
-    {
-      "barcode": "0186852000310",
-      "name": "Belgian Chocolate",
-      "brand": "Talenti"
     },
     {
       "barcode": "8711327318144",
@@ -447,41 +367,141 @@
       "brand": "Unilever"
     },
     {
-      "barcode": "8719200018532",
-      "name": "Blue band",
-      "brand": "Blue Band"
+      "barcode": "9310016801609",
+      "name": "Blue Ribbon Classic Vanilla",
+      "brand": "Streets"
     },
     {
-      "barcode": "6034000482072",
-      "name": "Blue Band",
-      "brand": "Blue Band"
+      "barcode": "3608580750390",
+      "name": "Bonne Maman Peach Preserve",
+      "brand": "Bonne Maman"
     },
     {
-      "barcode": "8719200171404",
-      "name": "Blue Band",
-      "brand": "Blue Band"
+      "barcode": "9338078004035",
+      "name": "Bubs Organic",
+      "brand": null
     },
     {
-      "barcode": "6164004676235",
-      "name": "Blue Band",
-      "brand": "Blue Band"
+      "barcode": "7613036569927",
+      "name": "Cafe De Cereales",
+      "brand": "Nestlé"
     },
     {
-      "barcode": "8961102110023",
-      "name": "Blue Band",
-      "brand": "Blue Band"
+      "barcode": "0183405000025",
+      "name": "Calm Original (Unflavored)",
+      "brand": "Natural Vitality"
     },
     {
-      "barcode": "6034000482034",
-      "name": "Blue Band - Spread for Bread (Medium)",
-      "brand": "Blue Band"
+      "barcode": "8886049011151",
+      "name": "Candy",
+      "brand": null
+    },
+    {
+      "barcode": "8886007000241",
+      "name": "Cap botol teh clp hijau 25s",
+      "brand": null
+    },
+    {
+      "barcode": "0070382002343",
+      "name": "Car Cleaner & Conditioner Rich",
+      "brand": null
+    },
+    {
+      "barcode": "10467630",
+      "name": "car shampoo 2 In 1",
+      "brand": null
+    },
+    {
+      "barcode": "3415581117189",
+      "name": "Caramel Biscuit & Cream Ice Cream",
+      "brand": "Häagen-Dazs"
+    },
+    {
+      "barcode": "8934760212897",
+      "name": "Caramel Cream Egg Cookies",
+      "brand": "Tipo"
+    },
+    {
+      "barcode": "9319133333574",
+      "name": "Carman's Super Berry Muesli Bars (Cranberry, Blueberry & Goji)",
+      "brand": "Carman's"
+    },
+    {
+      "barcode": "10448697",
+      "name": "CAT Shampoo 500ml",
+      "brand": null
+    },
+    {
+      "barcode": "3606000551916",
+      "name": "CeraVe Moisturising",
+      "brand": "CeraVe"
+    },
+    {
+      "barcode": "6221007032540",
+      "name": "Cerelac",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "6221007032700",
+      "name": "Cerelac",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "6221007032588",
+      "name": "Cerelac",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "6221007032649",
+      "name": "Cerelac",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "4002309037578",
+      "name": "CERES Spread Selai Choco Double Hazelnut 350 g",
+      "brand": "CERES"
+    },
+    {
+      "barcode": "0772618061000",
+      "name": "Cetaphil Gentle Skin Cleanser",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "5900020036988",
+      "name": "Cheerios Aveia",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "0048001701014",
+      "name": "Chicken Flavor Bouillon",
+      "brand": "Knorr"
     }
   ],
   "takRelevanContoh": [
     {
+      "barcode": "5900300550159",
+      "name": "(3, 58eur / 100g) Schwarzer Tee Von Lipton - 25 Beutel",
+      "brand": "Unilever"
+    },
+    {
       "barcode": "5414972103365",
       "name": "Aïki Noodles Cup BBQ",
       "brand": "Royco"
+    },
+    {
+      "barcode": "10102807",
+      "name": "anti bacterial 80 ml",
+      "brand": "trick or treat"
+    },
+    {
+      "barcode": "0000110102809",
+      "name": "Anti fungal",
+      "brand": "Trick or treat"
+    },
+    {
+      "barcode": "0000110102810",
+      "name": "Anti fungal",
+      "brand": "Trick or treat"
     },
     {
       "barcode": "3760162124125",
@@ -494,6 +514,11 @@
       "brand": "Aquarius"
     },
     {
+      "barcode": "8886467033032",
+      "name": "Argan Oil & Lavender Shampoo",
+      "brand": "Love Beauty and Planet"
+    },
+    {
       "barcode": "3033710084913",
       "name": "Arôme MAGGI",
       "brand": "Maggi"
@@ -504,9 +529,24 @@
       "brand": "Mondelez"
     },
     {
+      "barcode": "8720182308016",
+      "name": "Avocado & Lime Sauce",
+      "brand": "Hellmann's"
+    },
+    {
+      "barcode": "7610900245505",
+      "name": "Balance sans Lactose",
+      "brand": "Emmi"
+    },
+    {
       "barcode": "7501005102735",
       "name": "Bebida de soja sin azúcar añadida",
       "brand": "Ades"
+    },
+    {
+      "barcode": "0186852000310",
+      "name": "Belgian Chocolate",
+      "brand": "Talenti"
     },
     {
       "barcode": "3174780000431",
@@ -527,6 +567,11 @@
       "barcode": "3036812100161",
       "name": "Bouillon de légumes et vermicelles",
       "brand": "Royco"
+    },
+    {
+      "barcode": "8711327630895",
+      "name": "Bourbon Vanille",
+      "brand": "Cremissimo"
     },
     {
       "barcode": "7611100047425",
@@ -559,6 +604,11 @@
       "brand": "Lipton"
     },
     {
+      "barcode": "8906069405102",
+      "name": "Cheesy Melt",
+      "brand": "Veeba"
+    },
+    {
       "barcode": "3033710071005",
       "name": "Chicorée & Café, RICORÉ® Au Lait, Boîte de 400g",
       "brand": "Nestlé"
@@ -577,56 +627,6 @@
       "barcode": "7613032655495",
       "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 260g",
       "brand": "Nestlé"
-    },
-    {
-      "barcode": "7613035676497",
-      "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 260g",
-      "brand": "Nestlé"
-    },
-    {
-      "barcode": "7613034227775",
-      "name": "Chicorée & Café, RICORÉ® L'Original, Recharge de 180g",
-      "brand": "Nestlé"
-    },
-    {
-      "barcode": "8445291219717",
-      "name": "Chicorée & Café, RICORÉ® L'Original, Recharge de 290g",
-      "brand": "Nestlé"
-    },
-    {
-      "barcode": "7613034541239",
-      "name": "Chicorée & Café, RICORÉ® Noir Intense, Boîte de 240g",
-      "brand": "Nestlé"
-    },
-    {
-      "barcode": "5410056186538",
-      "name": "Classic Tomates-légumes 25 Sachets",
-      "brand": "Royco"
-    },
-    {
-      "barcode": "50112579",
-      "name": "Coca Cola zéro",
-      "brand": "Coca-Cola"
-    },
-    {
-      "barcode": "90370762",
-      "name": "Coca Cola Zéro",
-      "brand": "Coca-Cola"
-    },
-    {
-      "barcode": "5449000308023",
-      "name": "Coca-Cola goût original",
-      "brand": "Coca-Cola"
-    },
-    {
-      "barcode": "5449000275165",
-      "name": "Coca-Cola Lima Zero azúcar",
-      "brand": "Coca Cola"
-    },
-    {
-      "barcode": "5000112554359",
-      "name": "Coca-Cola zéro",
-      "brand": "Coca-Cola"
     }
   ],
   "barcodeInvalidContoh": [

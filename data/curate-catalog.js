@@ -86,6 +86,18 @@ const CONFIG = {
     'tropicana slim', 'fortune', 'sovia', 'kunci mas', 'sunco', 'botan', 'pronas', 'king\'s', 'cap panda',
     'nescafe', 'tora', 'abc', 'kapal api', 'excelso', 'caffino', 'indocafe', 'top coffee',
     'promag', 'bodrex', 'komix', 'entrostop', 'diapet', 'oskadon', 'paramex', 'mixagrip', 'ultraflu',
+    // --- Tahap 3: brand yang terlihat di review & memang dijual ritel Indonesia ---
+    'kusuka', 'heavenly blush', 'la fonte', 'maizena', 'mister potato', 'mr potato', 'mr. potato',
+    'pocky', 'tiger balm', 'anchor', 'twinings', 'kellogg', 'nissin', 'khong guan', 'monde',
+    'blue band', 'buavita', 'ultra milk', 'teh javana', 'nu green tea', 'nu milk tea', 'kobe',
+  ],
+
+  // Brand ASING (tanpa kehadiran ritel Indonesia) → soft-delete walau nama ASCII.
+  // Konservatif: hanya yang jelas tak ada di pasar ID & tak punya sub-brand ID.
+  foreignBrands: [
+    'elle & vire', 'elle vire', 'calv', 'hellmann', 'langnese', 'cremissimo', 'talenti',
+    'ligeresa', 'emmi', 'monini', 'paws n tails', 'love beauty and planet', 'veeba',
+    'trick or treat', 'ricoré', 'ricore', 'maggi arome', 'schwarzer',
   ],
 
   // Stopword (id+en) + satuan — dibuang dari keywords.
@@ -169,6 +181,7 @@ function relevance(cleanNm, brand, barcode) {
   // Non-899 + nama non-ASCII (bahasa asing) → irrelevant, walau brand cocok
   // (cegah SKU asing spt "Arôme MAGGI"/"NESCAFÉ Décaféiné" hidup lagi saat brandsID diperluas).
   if (/[^\x00-\x7f]/.test(cleanNm)) return 'irrelevant';
+  if (CONFIG.foreignBrands.some((b) => hay.includes(b))) return 'irrelevant'; // brand asing zero-ID
   if (CONFIG.brandsID.some((b) => hay.includes(b))) return 'relevant';
   return 'review';
 }
