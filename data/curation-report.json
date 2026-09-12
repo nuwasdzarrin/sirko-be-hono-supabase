@@ -1,0 +1,714 @@
+{
+  "ringkasan": {
+    "totalInput": 2400,
+    "dedupDibuang": 0,
+    "totalUnik": 2400,
+    "relevan": 1377,
+    "perluReview": 849,
+    "takRelevan_softDelete": 174,
+    "namaDibersihkan": 288,
+    "barcodeInvalid": 49,
+    "akanVerifiedTrue": 1365
+  },
+  "distribusiKategori": {
+    "Lainnya": 180,
+    "Kesehatan": 20,
+    "Perawatan": 179,
+    "Minuman": 775,
+    "Sembako": 64,
+    "Snack": 443,
+    "Makanan": 287,
+    "Bumbu/Dapur": 259,
+    "Kebersihan": 17,
+    "ATK": 1,
+    "Rokok": 1
+  },
+  "contohNamaSebelumSesudah": [
+    {
+      "barcode": "5900300550159",
+      "before": "(3, 58eur / 100g) Schwarzer Tee Von Lipton - 25 Beutel",
+      "after": "Schwarzer Tee Von Lipton - 25 Beutel"
+    },
+    {
+      "barcode": "9556001299352",
+      "before": "12000444 Milo active go  Original",
+      "after": "Milo active go Original"
+    },
+    {
+      "barcode": "8997240600041",
+      "before": "12000992 OATSIDE Oat Milk",
+      "after": "OATSIDE Oat Milk"
+    },
+    {
+      "barcode": "8997009510017",
+      "before": "12001004 You C1000 Vitamin Lemon",
+      "after": "You C1000 Vitamin Lemon"
+    },
+    {
+      "barcode": "9555480005652",
+      "before": "17000019 Mybizcuit Sugar Free Digestives Biscuit 200gm",
+      "after": "Mybizcuit Sugar Free Digestives Biscuit 200gm"
+    },
+    {
+      "barcode": "6947929617534",
+      "before": "17000544 Franzzi Cheese Chocolate Flavor Cookie",
+      "after": "Franzzi Cheese Chocolate Flavor Cookie"
+    },
+    {
+      "barcode": "6947929617428",
+      "before": "17000544 Franzzi Yogurt Chocolate Flavor Cookie",
+      "after": "Franzzi Yogurt Chocolate Flavor Cookie"
+    },
+    {
+      "barcode": "9556001216236",
+      "before": "17000567 Chocolate Bar",
+      "after": "Chocolate Bar"
+    },
+    {
+      "barcode": "8992760221028",
+      "before": "17000725 Oreo Original (Vanilla)",
+      "after": "Oreo Original (Vanilla)"
+    },
+    {
+      "barcode": "6111031005200",
+      "before": "6111031005200",
+      "after": "Oreo"
+    },
+    {
+      "barcode": "8719200270442",
+      "before": "8719200270442",
+      "after": "Blue Band"
+    },
+    {
+      "barcode": "8901764012907",
+      "before": "8901764012907",
+      "after": "Coca-Cola"
+    },
+    {
+      "barcode": "8993175548182",
+      "before": "8993175548182",
+      "after": "Nabati"
+    },
+    {
+      "barcode": "8994907002316",
+      "before": "abc",
+      "after": "Abc"
+    },
+    {
+      "barcode": "0711844110182",
+      "before": "ABC KECAP MANIS",
+      "after": "ABC Kecap Manis"
+    },
+    {
+      "barcode": "0711844120532",
+      "before": "ABC SAMBAL EXTRA PEDAS",
+      "after": "ABC Sambal Extra Pedas"
+    },
+    {
+      "barcode": "80000532",
+      "before": "acqua minerale",
+      "after": "Acqua Minerale"
+    },
+    {
+      "barcode": "4064700214200",
+      "before": "active shampoo 2 in 1",
+      "after": "Active Shampoo 2 In 1"
+    },
+    {
+      "barcode": "8992772123068",
+      "before": "ADEM SARI BOX 5S E-1B",
+      "after": "Adem Sari BOX 5s E-1b"
+    },
+    {
+      "barcode": "8858831008120",
+      "before": "AHA BODY BOOSTER LOTION",
+      "after": "AHA Body Booster Lotion"
+    },
+    {
+      "barcode": "8992761139018",
+      "before": "AIR MINERAL ADES ECO GREEN 600ML",
+      "after": "AIR Mineral Ades ECO Green 600ml"
+    },
+    {
+      "barcode": "8997227860376",
+      "before": "almond cookies",
+      "after": "Almond Cookies"
+    },
+    {
+      "barcode": "10102807",
+      "before": "anti bacterial 80 ml",
+      "after": "Anti Bacterial 80 ml"
+    },
+    {
+      "barcode": "8997225840134",
+      "before": "aoka susu",
+      "after": "Aoka Susu"
+    },
+    {
+      "barcode": "4056489810940",
+      "before": "apple juice",
+      "after": "Apple Juice"
+    },
+    {
+      "barcode": "8886008101091",
+      "before": "AQUA",
+      "after": "Aqua"
+    },
+    {
+      "barcode": "3760162124125",
+      "before": "Aqua  crème famille",
+      "after": "Aqua crème famille"
+    },
+    {
+      "barcode": "8886008101336",
+      "before": "aqua botol kecil",
+      "after": "Aqua Botol Kecil"
+    },
+    {
+      "barcode": "6928820029572",
+      "before": "atmosphere airy light uv emulsion",
+      "after": "Atmosphere Airy Light Uv Emulsion"
+    },
+    {
+      "barcode": "8998866108751",
+      "before": "azura",
+      "after": "Azura"
+    }
+  ],
+  "perluReviewManual": [
+    {
+      "barcode": "5900300550159",
+      "name": "Schwarzer Tee Von Lipton - 25 Beutel",
+      "brand": "Unilever"
+    },
+    {
+      "barcode": "0748927051261",
+      "name": "100% Whey Protein Powder",
+      "brand": "Optimum Nutrition"
+    },
+    {
+      "barcode": "5060060211261",
+      "name": "10186597",
+      "brand": null
+    },
+    {
+      "barcode": "5060060211254",
+      "name": "10199500",
+      "brand": null
+    },
+    {
+      "barcode": "0049000001327",
+      "name": "12 Fl Oz",
+      "brand": "Sprite"
+    },
+    {
+      "barcode": "9555480005652",
+      "name": "Mybizcuit Sugar Free Digestives Biscuit 200gm",
+      "brand": null
+    },
+    {
+      "barcode": "6947929617534",
+      "name": "Franzzi Cheese Chocolate Flavor Cookie",
+      "brand": "Franzzi"
+    },
+    {
+      "barcode": "6947929617428",
+      "name": "Franzzi Yogurt Chocolate Flavor Cookie",
+      "brand": "Franzzi"
+    },
+    {
+      "barcode": "6111031005200",
+      "name": "Oreo",
+      "brand": "Oreo"
+    },
+    {
+      "barcode": "8719200270442",
+      "name": "Blue Band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "8901764012907",
+      "name": "Coca-Cola",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "8719200073050",
+      "name": "Aardbei&bietjes spread",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "8714100856918",
+      "name": "Abricot & pumpkin spread",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "8719200073074",
+      "name": "Abrikoos & pompoen spread",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "80000532",
+      "name": "Acqua Minerale",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "4064700214200",
+      "name": "Active Shampoo 2 In 1",
+      "brand": null
+    },
+    {
+      "barcode": "0011111040564",
+      "name": "Advanced Care Hand Wash",
+      "brand": "Dove"
+    },
+    {
+      "barcode": "5000426171518",
+      "name": "AFTER EIGHT Coffret 300g",
+      "brand": "After Eight"
+    },
+    {
+      "barcode": "8858831008120",
+      "name": "AHA Body Booster Lotion",
+      "brand": "Precious Skin"
+    },
+    {
+      "barcode": "9555021515756",
+      "name": "Alicafe French roast 3in1",
+      "brand": null
+    },
+    {
+      "barcode": "9556863110789",
+      "name": "Almond Chocolate",
+      "brand": "Royal De Dolton"
+    },
+    {
+      "barcode": "8711327631502",
+      "name": "Almond Magnum",
+      "brand": "Unilever"
+    },
+    {
+      "barcode": "8711327539259",
+      "name": "Almond remix",
+      "brand": "Magnum"
+    },
+    {
+      "barcode": "8410127010257",
+      "name": "Amido de milho",
+      "brand": "Maizena"
+    },
+    {
+      "barcode": "9415007055877",
+      "name": "Anchor butter unsalted",
+      "brand": "Anchor"
+    },
+    {
+      "barcode": "9415007056003",
+      "name": "Anchor Cheddar",
+      "brand": null
+    },
+    {
+      "barcode": "9415007009801",
+      "name": "Anlene ACTIFIT 3X Cokelat",
+      "brand": "Fonterra"
+    },
+    {
+      "barcode": "10102807",
+      "name": "Anti Bacterial 80 ml",
+      "brand": "trick or treat"
+    },
+    {
+      "barcode": "0000110102809",
+      "name": "Anti fungal",
+      "brand": "Trick or treat"
+    },
+    {
+      "barcode": "0000110102810",
+      "name": "Anti fungal",
+      "brand": "Trick or treat"
+    },
+    {
+      "barcode": "75076399",
+      "name": "Antitranspirante Stick Men",
+      "brand": "Rexona"
+    },
+    {
+      "barcode": "8809640732829",
+      "name": "Anua Heartleaf Pore Control Cleansing Oil",
+      "brand": null
+    },
+    {
+      "barcode": "8809640736667",
+      "name": "Anua PDRN + HYALURON",
+      "brand": null
+    },
+    {
+      "barcode": "4056489810940",
+      "name": "Apple Juice",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "8002270506802",
+      "name": "Aranciata Rossa (orange sanguine)",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "8886467033032",
+      "name": "Argan Oil & Lavender Shampoo",
+      "brand": "Love Beauty and Planet"
+    },
+    {
+      "barcode": "8809301766170",
+      "name": "Ariul hand essence",
+      "brand": "Ariul"
+    },
+    {
+      "barcode": "8710522627594",
+      "name": "Asia Noodles - Beef Taste",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "8710522627433",
+      "name": "Asia Noodles - Chicken Taste",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "8710522627518",
+      "name": "Asia Noodles - Duck Taste",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "0048256221800",
+      "name": "Astonish",
+      "brand": "astonish"
+    },
+    {
+      "barcode": "6928820029572",
+      "name": "Atmosphere Airy Light Uv Emulsion",
+      "brand": "Sk-ii"
+    },
+    {
+      "barcode": "8720182308016",
+      "name": "Avocado & Lime Sauce",
+      "brand": "Hellmann's"
+    },
+    {
+      "barcode": "59096061",
+      "name": "Axe blue lavender",
+      "brand": "Unilever"
+    },
+    {
+      "barcode": "0514047172281",
+      "name": "B&B Kiss spray colg riko",
+      "brand": null
+    },
+    {
+      "barcode": "0027546524500",
+      "name": "Babby happy body fit pants M34",
+      "brand": null
+    },
+    {
+      "barcode": "8690560105219",
+      "name": "Bagdat Cloves 15 g",
+      "brand": "Bağdat"
+    },
+    {
+      "barcode": "8906010500870",
+      "name": "Balaji Cream Onion",
+      "brand": "balaji"
+    },
+    {
+      "barcode": "7610900245505",
+      "name": "Balance sans Lactose",
+      "brand": "Emmi"
+    },
+    {
+      "barcode": "8710604750950",
+      "name": "Bearnaisesaus 19 gram 3 stk",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "7501005102728",
+      "name": "Bebida De Soya",
+      "brand": "Ades"
+    },
+    {
+      "barcode": "8711200503896",
+      "name": "Beef Gravy Pot",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "8888900700006",
+      "name": "Beef Spaghetti Bolognese Rasa Sapi",
+      "brand": "La Fonte"
+    },
+    {
+      "barcode": "0186852000310",
+      "name": "Belgian Chocolate",
+      "brand": "Talenti"
+    },
+    {
+      "barcode": "8711327318144",
+      "name": "Ben & Jerry's Glace Mini Pots The Fan-Favourites Cool-lection 4x100ml",
+      "brand": "Ben & Jerry's"
+    },
+    {
+      "barcode": "4055500012684",
+      "name": "Bihophar blossom honey",
+      "brand": null
+    },
+    {
+      "barcode": "5994235978676",
+      "name": "Biokul To Go! Marshmallow Yogurt",
+      "brand": "Biokul"
+    },
+    {
+      "barcode": "7622300830151",
+      "name": "Biscoito Original Batman Oreo Pacote 90g",
+      "brand": "Oreo"
+    },
+    {
+      "barcode": "7622201820275",
+      "name": "Biscuit",
+      "brand": "Oreo"
+    },
+    {
+      "barcode": "0066721026880",
+      "name": "Biscuit",
+      "brand": "Oreo"
+    }
+  ],
+  "takRelevanContoh": [
+    {
+      "barcode": "3033710084913",
+      "name": "Arôme MAGGI",
+      "brand": "Maggi"
+    },
+    {
+      "barcode": "3664346300193",
+      "name": "Au bon lait de nos régions - Chocolat au lait extra-fin",
+      "brand": "Mondelez"
+    },
+    {
+      "barcode": "7501005102735",
+      "name": "Bebida de soja sin azúcar añadida",
+      "brand": "Ades"
+    },
+    {
+      "barcode": "3174780000431",
+      "name": "Boisson rafraîchissante aux extraits végétaux",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "3036810070176",
+      "name": "Bouillon à la chinoise",
+      "brand": "CVC Capital Partners"
+    },
+    {
+      "barcode": "7611100047425",
+      "name": "Bündner Gerstensuppe",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "8712423011861",
+      "name": "Calvé Salsa Rosa",
+      "brand": "Unilever"
+    },
+    {
+      "barcode": "5942321001944",
+      "name": "Cappy Lemonade Căpșuni Zero Zahăr",
+      "brand": "Coca Cola"
+    },
+    {
+      "barcode": "3387390326574",
+      "name": "Céréales Cookie Crisp",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "6221007032724",
+      "name": "Cerelac Blé",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "3228881083326",
+      "name": "Cha Noite Tranquila 20SAQUETSS",
+      "brand": "Lipton"
+    },
+    {
+      "barcode": "3033710071005",
+      "name": "Chicorée & Café, RICORÉ® Au Lait, Boîte de 400g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "3033710073467",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 100g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "8445291838321",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 250g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "7613032655495",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 260g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "7613035676497",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Boîte de 260g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "7613034227775",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Recharge de 180g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "8445291219717",
+      "name": "Chicorée & Café, RICORÉ® L'Original, Recharge de 290g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "7613034541239",
+      "name": "Chicorée & Café, RICORÉ® Noir Intense, Boîte de 240g",
+      "brand": "Nestlé"
+    },
+    {
+      "barcode": "50112579",
+      "name": "Coca Cola zéro",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "90370762",
+      "name": "Coca Cola Zéro",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "5449000308023",
+      "name": "Coca-Cola goût original",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "5449000275165",
+      "name": "Coca-Cola Lima Zero azúcar",
+      "brand": "Coca Cola"
+    },
+    {
+      "barcode": "5000112554359",
+      "name": "Coca-Cola zéro",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "5449000278807",
+      "name": "Cola cola zero azúcar zero cafeina",
+      "brand": "Coca-Cola"
+    },
+    {
+      "barcode": "8720181594830",
+      "name": "Déodorant",
+      "brand": "Dove"
+    },
+    {
+      "barcode": "8712566220526",
+      "name": "Douceur de 8 légumes",
+      "brand": "Knorr"
+    },
+    {
+      "barcode": "8683130036105",
+      "name": "Dove Avokado Yağı ve Kalendula Özü Sıvı Sabun 450 ml",
+      "brand": "Dove"
+    },
+    {
+      "barcode": "8720182256836",
+      "name": "Dove Beauty Cream Bar Original Yumuşak Pürüzsüz Bir Cilt İçin Nemlendirici Krem Sabun 90 gr x 4",
+      "brand": "Dove"
+    },
+    {
+      "barcode": "8690521050671",
+      "name": "Dove Deeply Caring Sıvı Sabun 450 ml",
+      "brand": "Dove"
+    }
+  ],
+  "barcodeInvalidContoh": [
+    {
+      "barcode": "10102807",
+      "name": "Anti Bacterial 80 ml"
+    },
+    {
+      "barcode": "0000110102810",
+      "name": "Anti fungal"
+    },
+    {
+      "barcode": "10467630",
+      "name": "car shampoo 2 In 1"
+    },
+    {
+      "barcode": "10448697",
+      "name": "CAT Shampoo 500ml"
+    },
+    {
+      "barcode": "06742708",
+      "name": "Coca-Cola"
+    },
+    {
+      "barcode": "06731906",
+      "name": "Coca-Cola Zero"
+    },
+    {
+      "barcode": "04127107",
+      "name": "Decaffeinated decaf black tea bags"
+    },
+    {
+      "barcode": "10448696",
+      "name": "DOG AND CAT Anti Fungal Shampoo"
+    },
+    {
+      "barcode": "10448695",
+      "name": "DOG AND CAT Flea AND Tick Shampo"
+    },
+    {
+      "barcode": "10522766",
+      "name": "Dog anti dandruff & itch relief shampoo"
+    },
+    {
+      "barcode": "10522767",
+      "name": "Dog anti mites & itch relief shampoo"
+    },
+    {
+      "barcode": "10128867",
+      "name": "Dry Shampo Powder 80 gr"
+    },
+    {
+      "barcode": "0899317556004",
+      "name": "Gogumalava Wafer 48g"
+    },
+    {
+      "barcode": "05306150",
+      "name": "Golda Dolce latte coffee 200"
+    },
+    {
+      "barcode": "91215722",
+      "name": "Heerlijk Romig"
+    },
+    {
+      "barcode": "0000208077247",
+      "name": "Holly Hand Sanitizer Gel 30ML Aloevera"
+    },
+    {
+      "barcode": "10102811",
+      "name": "Hydrating Mist 80 ml"
+    },
+    {
+      "barcode": "0485008250000",
+      "name": "Illustro - Anti Fog Lens Cleaner"
+    },
+    {
+      "barcode": "0101190221052",
+      "name": "Ketumbar"
+    },
+    {
+      "barcode": "91214627",
+      "name": "Kookroom"
+    }
+  ]
+}

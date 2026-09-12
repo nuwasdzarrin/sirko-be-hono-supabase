@@ -6,3 +6,7 @@ node_modules/
 dist/
 *.log
 coverage/
+
+# Kurasi: cadangan lokal & intermediate (regenerable)
+data/backup/
+data/public_product.curated.json
