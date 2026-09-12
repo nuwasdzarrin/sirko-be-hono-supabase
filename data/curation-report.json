@@ -3,22 +3,22 @@
     "totalInput": 2400,
     "dedupDibuang": 0,
     "totalUnik": 2400,
-    "relevan": 1377,
-    "perluReview": 849,
-    "takRelevan_softDelete": 174,
-    "namaDibersihkan": 288,
+    "relevan": 1719,
+    "perluReview": 414,
+    "takRelevan_softDelete": 267,
+    "namaDibersihkan": 290,
     "barcodeInvalid": 49,
-    "akanVerifiedTrue": 1365
+    "akanVerifiedTrue": 1701
   },
   "distribusiKategori": {
-    "Lainnya": 180,
+    "Lainnya": 172,
     "Kesehatan": 20,
-    "Perawatan": 179,
-    "Minuman": 775,
+    "Perawatan": 173,
+    "Minuman": 762,
     "Sembako": 64,
-    "Snack": 443,
-    "Makanan": 287,
-    "Bumbu/Dapur": 259,
+    "Snack": 438,
+    "Makanan": 278,
+    "Bumbu/Dapur": 207,
     "Kebersihan": 17,
     "ATK": 1,
     "Rokok": 1
@@ -30,9 +30,19 @@
       "after": "Schwarzer Tee Von Lipton - 25 Beutel"
     },
     {
+      "barcode": "0049000001327",
+      "before": "12 Fl Oz",
+      "after": "Sprite"
+    },
+    {
       "barcode": "9556001299352",
       "before": "12000444 Milo active go  Original",
       "after": "Milo active go Original"
+    },
+    {
+      "barcode": "9556001183576",
+      "before": "12000446out Milo 125ml 4s",
+      "after": "Milo 125ml 4s"
     },
     {
       "barcode": "8997240600041",
@@ -163,16 +173,6 @@
       "barcode": "8886008101336",
       "before": "aqua botol kecil",
       "after": "Aqua Botol Kecil"
-    },
-    {
-      "barcode": "6928820029572",
-      "before": "atmosphere airy light uv emulsion",
-      "after": "Atmosphere Airy Light Uv Emulsion"
-    },
-    {
-      "barcode": "8998866108751",
-      "before": "azura",
-      "after": "Azura"
     }
   ],
   "perluReviewManual": [
@@ -197,11 +197,6 @@
       "brand": null
     },
     {
-      "barcode": "0049000001327",
-      "name": "12 Fl Oz",
-      "brand": "Sprite"
-    },
-    {
       "barcode": "9555480005652",
       "name": "Mybizcuit Sugar Free Digestives Biscuit 200gm",
       "brand": null
@@ -217,19 +212,9 @@
       "brand": "Franzzi"
     },
     {
-      "barcode": "6111031005200",
-      "name": "Oreo",
-      "brand": "Oreo"
-    },
-    {
       "barcode": "8719200270442",
       "name": "Blue Band",
       "brand": "Blue Band"
-    },
-    {
-      "barcode": "8901764012907",
-      "name": "Coca-Cola",
-      "brand": "Coca-Cola"
     },
     {
       "barcode": "8719200073050",
@@ -255,11 +240,6 @@
       "barcode": "4064700214200",
       "name": "Active Shampoo 2 In 1",
       "brand": null
-    },
-    {
-      "barcode": "0011111040564",
-      "name": "Advanced Care Hand Wash",
-      "brand": "Dove"
     },
     {
       "barcode": "5000426171518",
@@ -340,11 +320,6 @@
       "barcode": "8809640736667",
       "name": "Anua PDRN + HYALURON",
       "brand": null
-    },
-    {
-      "barcode": "4056489810940",
-      "name": "Apple Juice",
-      "brand": "Coca-Cola"
     },
     {
       "barcode": "8002270506802",
@@ -462,22 +437,62 @@
       "brand": "Biokul"
     },
     {
-      "barcode": "7622300830151",
-      "name": "Biscoito Original Batman Oreo Pacote 90g",
-      "brand": "Oreo"
+      "barcode": "7613287194374",
+      "name": "Bitesize Shredded Wheat",
+      "brand": "Nestlé"
     },
     {
-      "barcode": "7622201820275",
-      "name": "Biscuit",
-      "brand": "Oreo"
+      "barcode": "8720181418389",
+      "name": "Black Vanilla",
+      "brand": "Unilever"
     },
     {
-      "barcode": "0066721026880",
-      "name": "Biscuit",
-      "brand": "Oreo"
+      "barcode": "8719200018532",
+      "name": "Blue band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "6034000482072",
+      "name": "Blue Band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "8719200171404",
+      "name": "Blue Band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "6164004676235",
+      "name": "Blue Band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "8961102110023",
+      "name": "Blue Band",
+      "brand": "Blue Band"
+    },
+    {
+      "barcode": "6034000482034",
+      "name": "Blue Band - Spread for Bread (Medium)",
+      "brand": "Blue Band"
     }
   ],
   "takRelevanContoh": [
+    {
+      "barcode": "5414972103365",
+      "name": "Aïki Noodles Cup BBQ",
+      "brand": "Royco"
+    },
+    {
+      "barcode": "3760162124125",
+      "name": "Aqua  crème famille",
+      "brand": "Aqua"
+    },
+    {
+      "barcode": "5449000171795",
+      "name": "Aquarius Sabor Naranja (sin azúcar)",
+      "brand": "Aquarius"
+    },
     {
       "barcode": "3033710084913",
       "name": "Arôme MAGGI",
@@ -502,6 +517,16 @@
       "barcode": "3036810070176",
       "name": "Bouillon à la chinoise",
       "brand": "CVC Capital Partners"
+    },
+    {
+      "barcode": "3036812080128",
+      "name": "Bouillon à la chinoise et noodles",
+      "brand": "Royco"
+    },
+    {
+      "barcode": "3036812100161",
+      "name": "Bouillon de légumes et vermicelles",
+      "brand": "Royco"
     },
     {
       "barcode": "7611100047425",
@@ -574,6 +599,11 @@
       "brand": "Nestlé"
     },
     {
+      "barcode": "5410056186538",
+      "name": "Classic Tomates-légumes 25 Sachets",
+      "brand": "Royco"
+    },
+    {
       "barcode": "50112579",
       "name": "Coca Cola zéro",
       "brand": "Coca-Cola"
@@ -597,36 +627,6 @@
       "barcode": "5000112554359",
       "name": "Coca-Cola zéro",
       "brand": "Coca-Cola"
-    },
-    {
-      "barcode": "5449000278807",
-      "name": "Cola cola zero azúcar zero cafeina",
-      "brand": "Coca-Cola"
-    },
-    {
-      "barcode": "8720181594830",
-      "name": "Déodorant",
-      "brand": "Dove"
-    },
-    {
-      "barcode": "8712566220526",
-      "name": "Douceur de 8 légumes",
-      "brand": "Knorr"
-    },
-    {
-      "barcode": "8683130036105",
-      "name": "Dove Avokado Yağı ve Kalendula Özü Sıvı Sabun 450 ml",
-      "brand": "Dove"
-    },
-    {
-      "barcode": "8720182256836",
-      "name": "Dove Beauty Cream Bar Original Yumuşak Pürüzsüz Bir Cilt İçin Nemlendirici Krem Sabun 90 gr x 4",
-      "brand": "Dove"
-    },
-    {
-      "barcode": "8690521050671",
-      "name": "Dove Deeply Caring Sıvı Sabun 450 ml",
-      "brand": "Dove"
     }
   ],
   "barcodeInvalidContoh": [

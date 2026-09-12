@@ -68,6 +68,24 @@ const CONFIG = {
     'tolak angin', 'antangin', 'kaki tiga', 'komix', 'bodrex', 'promag', 'entrostop',
     'pocari sweat', 'mizone', 'kratingdaeng', 'extra joss', 'kuku bima', 'hemaviton',
     'so nice', 'so good', 'fiesta', 'kanzler', 'bernardi', 'kraft', 'prochiz',
+    // --- Tahap 2: merek global/nasional yang lazim di ritel Indonesia ---
+    'oreo', 'coca-cola', 'coca cola', 'sprite', 'fanta', 'pepsi', 'mirinda', 'tebs', '7up',
+    'fruit tea', 'teh gelas', 'teh kotak', 'teh javana', 'ichi ocha', 'ale ale', 'okky', 'mogu',
+    'mizone', 'aquarius', 'hydro coco', 'yakult', 'milkuat', 'calpico', 'ichitan',
+    'lays', 'cheetos', 'doritos', 'pringles', 'potabee', 'jetz', 'twistko', 'oishi', 'french fries',
+    'kitkat', 'kit kat', 'cadbury', 'toblerone', 'chocolatos', 'choki choki', 'top', 'nextar',
+    'good time', 'better', 'selamat', 'hatari', 'malkist', 'slai olai', 'wafello', 'monde', 'serena',
+    'fitbar', 'soyjoy', 'gerry', 'chomp', 'momogi', 'jagoan neon', 'yupi', 'hexos', 'mintz', 'fox',
+    'dove', 'lux', 'citra', 'gatsby', 'clear', 'sunsilk', 'pantene', 'head shoulders', 'rejoice',
+    'emeron', 'zinc', 'ponds', 'olay', 'vaseline', 'nivea', 'marina', 'biore', 'garnier',
+    'wardah', 'pixy', 'viva', 'sariayu', 'mustika ratu', 'gatsby', 'nuvo', 'shinzui', 'dettol',
+    'softex', 'laurier', 'charm', 'kotex', 'hers', 'sensi', 'mamypoko', 'sweety', 'merries',
+    'mama lemon', 'mama lime', 'ekonomi', 'boom', 'attack', 'downy', 'superpell', 'harpic',
+    'vixal', 'baygon', 'hit', 'vape', 'stella', 'glade', 'kispray', 'bayclin', 'wipol', 'proclin',
+    'gaga', 'mie gelas', 'kobe', 'del monte', 'heinz', 'dua belibis', 'jawara', 'maggi', 'kecap',
+    'tropicana slim', 'fortune', 'sovia', 'kunci mas', 'sunco', 'botan', 'pronas', 'king\'s', 'cap panda',
+    'nescafe', 'tora', 'abc', 'kapal api', 'excelso', 'caffino', 'indocafe', 'top coffee',
+    'promag', 'bodrex', 'komix', 'entrostop', 'diapet', 'oskadon', 'paramex', 'mixagrip', 'ultraflu',
   ],
 
   // Stopword (id+en) + satuan — dibuang dari keywords.
@@ -80,7 +98,7 @@ const CONFIG = {
   // Regex prefix "harga/berat nyasar" di depan nama → dibuang.
   namePrefixJunk: [
     /^\s*\([^)]*?(?:eur|€|rp|usd|\/\s*100\s*g|\bgr\b|\bml\b|\bg\b|\bkg\b|\bl\b|\bcl\b|%|,)[^)]*\)\s*/i, // "(3, 58eur / 100g) "
-    /^\s*\d{5,}\s+/, // kode angka nyasar di depan
+    /^\s*\d{5,}[a-z]{0,5}\s+/i, // kode angka nyasar (mungkin nempel huruf) di depan: "12000446out "
     /^\s*[-•·]\s*/, // bullet nyasar
   ],
 };
@@ -108,6 +126,8 @@ function cleanName(raw, brand, barcode) {
   if (/^\d{6,14}$/.test(s)) s = brand ? String(brand) : ''; // nama = barcode → pakai brand
   for (const re of CONFIG.namePrefixJunk) s = s.replace(re, '');
   s = s.replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').trim();
+  // Nama yang hanya ukuran (mis. "12 Fl Oz", "600 ml") → pakai brand bila ada.
+  if (/^\d+(?:[.,]\d+)?\s*(?:fl\s?oz|oz|ml|cl|g|gr|kg|l|liter|ltr)$/i.test(s) && brand) s = String(brand);
   const hasLower = /[a-z]/.test(s);
   const hasUpper = /[A-Z]/.test(s);
   if (s && (!hasLower || !hasUpper)) s = titleCase(s); // ALL CAPS / all-lower → Title Case
@@ -145,11 +165,11 @@ function barcodeValid(code) {
 function relevance(cleanNm, brand, barcode) {
   const bc = String(barcode ?? '');
   const hay = `${cleanNm} ${brand ?? ''}`.toLowerCase();
-  const id899 = bc.startsWith('899');
-  const brandID = CONFIG.brandsID.some((b) => hay.includes(b));
-  if (id899 || brandID) return 'relevant';
-  const foreign = /[^\x00-\x7f]/.test(cleanNm); // nama non-ASCII (aksen/huruf asing)
-  if (foreign) return 'irrelevant';
+  if (bc.startsWith('899')) return 'relevant'; // GS1 Indonesia → selalu relevan (walau ada é/®)
+  // Non-899 + nama non-ASCII (bahasa asing) → irrelevant, walau brand cocok
+  // (cegah SKU asing spt "Arôme MAGGI"/"NESCAFÉ Décaféiné" hidup lagi saat brandsID diperluas).
+  if (/[^\x00-\x7f]/.test(cleanNm)) return 'irrelevant';
+  if (CONFIG.brandsID.some((b) => hay.includes(b))) return 'relevant';
   return 'review';
 }
 
