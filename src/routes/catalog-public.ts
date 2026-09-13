@@ -3,6 +3,7 @@ import { basicAuth } from 'hono/basic-auth';
 import { env } from '../config/env.js';
 import { ok } from '../lib/envelope.js';
 import { getCatalogPage } from '../services/dashboard.service.js';
+import { parseVerified } from '../services/catalog.service.js';
 
 /**
  * `GET /v1/catalog.json?q=&page=&limit=` — versi JSON katalog yang mudah dibuka
@@ -25,7 +26,8 @@ catalogPublicRoutes.get('/catalog.json', async (c) => {
   const page = intParam(c.req.query('page'), 1);
   const limit = Math.min(intParam(c.req.query('limit'), 50), 200);
   const q = c.req.query('q') ?? '';
-  const pg = await getCatalogPage({ page, limit, q });
+  const verified = parseVerified(c.req.query('verified'));
+  const pg = await getCatalogPage({ page, limit, q, verified });
   return c.json(
     ok(pg.items, { total: pg.total, page: pg.page, pages: pg.pages, limit: pg.limit, q: pg.q }),
   );

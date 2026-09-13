@@ -82,9 +82,16 @@ export interface SearchResult {
   meta: { nextCursor: string | null; hasMore: boolean };
 }
 
-export async function search(query: SearchQuery): Promise<SearchResult> {
+/** Parse query `verified`: '1'/'true' → true, '0'/'false' → false, lainnya → undefined (semua). */
+export function parseVerified(v: string | undefined): boolean | undefined {
+  if (v === '1' || v === 'true') return true;
+  if (v === '0' || v === 'false') return false;
+  return undefined;
+}
+
+export async function search(query: SearchQuery, verified?: boolean): Promise<SearchResult> {
   const offset = decodeOffset(query.cursor);
-  const rows = await repo.search(query.q, query.limit, offset);
+  const rows = await repo.search(query.q, query.limit, offset, verified);
   const hasMore = rows.length === query.limit;
   return {
     data: rows.map(serialize),

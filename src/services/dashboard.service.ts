@@ -106,12 +106,18 @@ export interface CatalogItem {
   updatedAt: number;
 }
 
-export async function getCatalogPage(opts: { page: number; limit: number; q?: string }): Promise<Page<CatalogItem>> {
+export async function getCatalogPage(opts: {
+  page: number;
+  limit: number;
+  q?: string;
+  verified?: boolean;
+}): Promise<Page<CatalogItem>> {
   const q = (opts.q ?? '').trim();
   const like = `%${q}%`;
-  const where = q
+  const base = q
     ? sql`deleted_at IS NULL AND (name ILIKE ${like} OR brand ILIKE ${like} OR barcode ILIKE ${like})`
     : sql`deleted_at IS NULL`;
+  const where = opts.verified === undefined ? base : sql`${base} AND verified = ${opts.verified}`;
 
   const totalRows = await sql<{ c: number }[]>`SELECT count(*)::int c FROM public_products WHERE ${where}`;
   const total = totalRows[0]?.c ?? 0;

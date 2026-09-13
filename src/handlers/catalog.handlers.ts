@@ -23,7 +23,8 @@ export async function handleCatalogSearch(c: Context<AppEnv>) {
     cursor: c.req.query('cursor'),
     limit: c.req.query('limit'),
   });
-  const { data, meta } = await catalog.search(query);
+  const verified = catalog.parseVerified(c.req.query('verified'));
+  const { data, meta } = await catalog.search(query, verified);
   return c.json(ok(data, meta), 200);
 }
 

@@ -32,12 +32,14 @@ export class CatalogRepository {
    * Pencarian relevansi: substring (ILIKE) + trigram similarity (%) pada
    * name/brand + kecocokan keyword. Urut skor similarity desc. Offset-paginasi.
    */
-  async search(q: string, limit: number, offset: number): Promise<CatalogRow[]> {
+  async search(q: string, limit: number, offset: number, verified?: boolean): Promise<CatalogRow[]> {
+    // Filter verified opsional: true → terkurasi saja; false → perlu-review saja; undefined → semua.
+    const vf = verified === undefined ? this.sql`` : this.sql`AND verified = ${verified}`;
     // Tanpa kata kunci → daftar semua produk hidup (browse-all, terpaginasi).
     if (!q || !q.trim()) {
       return this.sql<CatalogRow[]>`
         SELECT * FROM public_products
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL ${vf}
         ORDER BY name ASC, id ASC
         LIMIT ${limit} OFFSET ${offset}
       `;
@@ -48,7 +50,7 @@ export class CatalogRepository {
              GREATEST(similarity(coalesce(name, ''), ${q}),
                       similarity(coalesce(brand, ''), ${q})) AS _score
       FROM public_products
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL ${vf}
         AND (
           name ILIKE ${like} OR brand ILIKE ${like}
           OR coalesce(name, '') % ${q} OR coalesce(brand, '') % ${q}

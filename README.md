@@ -145,8 +145,10 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 | Method | Path | Auth | Keterangan |
 |---|---|---|---|
 | GET | `/v1/catalog/lookup?barcode=` | Bearer (semua toko) | 1 produk atau **404** — auto-fill saat scan |
-| GET | `/v1/catalog/search?q=&cursor=&limit=` | Bearer (semua toko) | cari name/brand/keywords (trigram), urut relevansi, paginasi (`limit` maks 50). **`q` opsional** — tanpa `q` = daftar semua (browse-all) |
-| GET | `/v1/catalog.json?q=&page=&limit=` | **Basic Auth** (DASHBOARD_*) | versi JSON browser-friendly (tanpa JWT) — paginasi page/pages/total; `q` opsional |
+| GET | `/v1/catalog/search?q=&cursor=&limit=&verified=` | Bearer (semua toko) | cari name/brand/keywords (trigram), urut relevansi, paginasi (`limit` maks 50). **`q` opsional** (tanpa `q` = semua); **`verified=1\|0`** filter |
+| GET | `/v1/catalog.json?q=&page=&limit=&verified=` | **Basic Auth** (DASHBOARD_*) | versi JSON browser-friendly (tanpa JWT) — paginasi page/pages/total; `q` & `verified` opsional |
+
+> Dokumentasi ringkas untuk mobile dev: [API.md](API.md). Kontrak lengkap: `spec/10-api-contract.md`.
 | POST | `/v1/catalog` | **sirko_admin** | buat produk katalog → 201 |
 | PUT | `/v1/catalog/:id` | **sirko_admin** | update sebagian → 200 |
 | DELETE | `/v1/catalog/:id` | **sirko_admin** | soft delete → `{id, deleted:true}` |
