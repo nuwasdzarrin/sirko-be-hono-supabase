@@ -33,6 +33,15 @@ export class CatalogRepository {
    * name/brand + kecocokan keyword. Urut skor similarity desc. Offset-paginasi.
    */
   async search(q: string, limit: number, offset: number): Promise<CatalogRow[]> {
+    // Tanpa kata kunci → daftar semua produk hidup (browse-all, terpaginasi).
+    if (!q || !q.trim()) {
+      return this.sql<CatalogRow[]>`
+        SELECT * FROM public_products
+        WHERE deleted_at IS NULL
+        ORDER BY name ASC, id ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    }
     const like = `%${q}%`;
     return this.sql<CatalogRow[]>`
       SELECT *,

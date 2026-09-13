@@ -8,6 +8,7 @@ import { meRoutes } from './routes/me.js';
 import { healthRoutes } from './routes/health.js';
 import { backupRoutes } from './routes/backup.js';
 import { catalogRoutes } from './routes/catalog.js';
+import { catalogPublicRoutes } from './routes/catalog-public.js';
 import { mediaRoutes } from './routes/media.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 
@@ -26,6 +27,7 @@ export function createApp() {
   app.notFound((c) => c.json(fail('NOT_FOUND', `Rute tidak ditemukan: ${c.req.path}`), 404));
 
   const v1 = new Hono<AppEnv>();
+  v1.route('/', catalogPublicRoutes); // /v1/catalog.json (Basic Auth, browser JSON) — sebelum grup Bearer
   v1.route('/auth', authRoutes);
   v1.route('/backup', backupRoutes);
   v1.route('/catalog', catalogRoutes);

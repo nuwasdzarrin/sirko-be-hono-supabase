@@ -65,7 +65,8 @@ export const lookupQuerySchema = z.object({
 });
 
 export const searchQuerySchema = z.object({
-  q: z.string().trim().min(1).max(120),
+  // q opsional: tanpa q → daftar SEMUA produk (terpaginasi). Dengan q → cari relevansi.
+  q: z.string().trim().max(120).optional().default(''),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
