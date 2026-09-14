@@ -72,6 +72,29 @@ curl -s "$BASE/v1/catalog/search?q=indomie&verified=1&limit=20" -H "Authorizatio
 ```
 > Kategori: `Makanan · Minuman · Rokok · Sembako · Kebersihan · Perawatan · Kesehatan · Bumbu/Dapur · Snack · ATK · Lainnya`.
 
+### 2b. Kontribusi katalog (crowdsource, dengan moderasi)
+Toko biasa (peran apa pun) boleh **mengusulkan** produk baru / perbaikan. Usulan **tidak langsung** masuk katalog — masuk antrean, di-review admin di dashboard. Setelah **disetujui** → muncul di katalog (`verified=true`, `source="crowdsource"`).
+
+| Method | Path | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/v1/catalog/contributions` | Bearer (toko) | usul produk **baru**; atau perbaikan bila kirim `targetId` |
+| GET | `/v1/catalog/contributions?status=&limit=&cursor=` | Bearer (toko) | daftar **usulan toko saya** + statusnya |
+
+Body `POST` (hanya `name` wajib): `name, barcode, barcodeType, brand, category, photoUrl, manufacturer, defaultUnit, netSize, netUnit, packaging, variant, countryOfOrigin, shortDescription, keywords[], note`, plus `targetId` (uuid produk katalog yang mau diperbaiki). Foto: upload dulu via `POST /v1/media/sign-upload` (`scope:"catalog"`), lalu kirim `photoUrl`-nya.
+
+Respons `POST` → `201 { data:{ id, status:"pending", ... } }`. `GET` tiap item punya `status` (`pending|approved|rejected`), `reviewNote`, `resultProductId`.
+
+```bash
+# usul produk baru dari toko
+curl -s -X POST "$BASE/v1/catalog/contributions" -H "Authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"name":"Teh Kotak 300ml","barcode":"8990001112223","brand":"Ultra","category":"Minuman","netSize":300,"netUnit":"ml","note":"produk warung saya"}'
+
+# cek status usulan saya
+curl -s "$BASE/v1/catalog/contributions" -H "Authorization: Bearer $TOKEN"
+```
+> **Review admin** dilakukan di dashboard: `/dashboard/contributions` (Basic Auth) — ada tombol Setujui / Tolak (dengan alasan). Tulis langsung ke katalog (`POST /v1/catalog`, `PUT/DELETE /:id`) tetap khusus `sirko_admin`.
+
 ---
 
 ## 3. Media (foto) — S3 signed URL

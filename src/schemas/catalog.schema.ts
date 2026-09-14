@@ -60,6 +60,40 @@ export const catalogUpdateSchema = z
   .refine((o) => Object.keys(o).length > 0, { message: 'Tidak ada field untuk diperbarui' });
 export type CatalogUpdateInput = z.infer<typeof catalogUpdateSchema>;
 
+/**
+ * POST /v1/catalog/contributions — usulan produk dari toko biasa (moderasi).
+ * `targetId` diisi bila mengusulkan EDIT produk katalog yang sudah ada.
+ * TANPA `verified`/`source` (ditentukan admin saat approve).
+ */
+export const catalogContributionSchema = z.object({
+  targetId: z.string().uuid().optional(),
+  barcode: catalogFields.barcode,
+  barcodeType: catalogFields.barcodeType,
+  name: catalogFields.name,
+  shortDescription: catalogFields.shortDescription,
+  photoUrl: catalogFields.photoUrl,
+  brand: catalogFields.brand,
+  category: catalogFields.category,
+  manufacturer: catalogFields.manufacturer,
+  defaultUnit: catalogFields.defaultUnit,
+  netSize: catalogFields.netSize,
+  netUnit: catalogFields.netUnit,
+  packaging: catalogFields.packaging,
+  variant: catalogFields.variant,
+  countryOfOrigin: catalogFields.countryOfOrigin,
+  keywords: catalogFields.keywords,
+  note: z.string().trim().max(500).nullish(),
+});
+export type CatalogContributionInput = z.infer<typeof catalogContributionSchema>;
+
+/** GET /v1/catalog/contributions — filter status opsional + paginasi. */
+export const contributionListQuerySchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type ContributionListQuery = z.infer<typeof contributionListQuerySchema>;
+
 export const lookupQuerySchema = z.object({
   barcode: z.string().trim().min(1).max(64),
 });

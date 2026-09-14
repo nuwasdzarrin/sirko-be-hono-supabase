@@ -5,6 +5,7 @@ import type {
   CatalogItem,
   BusinessItem,
   TxItem,
+  ContribPage,
 } from '../services/dashboard.service.js';
 
 /**
@@ -78,6 +79,26 @@ const CSS = `
   .pager .cur{background:var(--acc);color:#08122b;border-color:var(--acc);font-weight:700}
   .pager .dis{color:var(--mut);opacity:.5}
   .pager .info{border:0;color:var(--mut);margin-left:auto}
+  nav.top a.tab .nb{background:var(--warn);color:#08122b;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800;margin-left:4px}
+  .subnav{display:flex;gap:6px;margin:0 0 14px}
+  .subnav a{padding:5px 12px;border-radius:999px;border:1px solid var(--line);color:var(--mut);font-size:13px}
+  .subnav a.on{background:var(--card);color:var(--tx);border-color:var(--acc)}
+  .clist{display:grid;grid-template-columns:1fr;gap:12px}
+  .cc{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .cc .ph{width:96px;height:96px;flex:0 0 96px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--line)}
+  .cc .ph.none{display:flex;align-items:center;justify-content:center;color:var(--mut);background:#101534;font-size:11px}
+  .cc .body{flex:1;min-width:0}
+  .cc .nm{font-weight:700;font-size:15px}
+  .cc .meta{color:var(--mut);font-size:12px;margin-top:2px}
+  .cc .kv{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:13px}
+  .cc .kv b{color:var(--mut);font-weight:600}
+  .cc .note{margin-top:8px;font-size:13px;background:#101534;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--tx)}
+  .cc .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .cc .acts input[type=text]{flex:1;min-width:160px;background:#101534;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 10px;font-size:13px}
+  .btn{border:0;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn.ok{background:var(--ok);color:#062318}
+  .btn.bad{background:var(--bad);color:#2a0808}
+  form.inline{display:contents}
 `;
 
 const LAYOUT = `<!doctype html><html lang="id"><head>
@@ -88,6 +109,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <span class="brand">Sirko Admin</span>
     <a class="tab <%= active==='overview'?'active':'' %>" href="/dashboard">Ringkasan</a>
     <a class="tab <%= active==='catalog'?'active':'' %>" href="/dashboard/catalog">Katalog</a>
+    <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
     <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
     <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
     <span class="spacer"></span>
@@ -97,8 +119,14 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
   <%- body %>
 </div></body></html>`;
 
-function renderLayout(opts: { title: string; active: string; body: string; serverTime: number }): string {
-  return ejs.render(LAYOUT, { ...opts, css: CSS, ...helpers });
+function renderLayout(opts: {
+  title: string;
+  active: string;
+  body: string;
+  serverTime: number;
+  pendingContrib?: number;
+}): string {
+  return ejs.render(LAYOUT, { pendingContrib: 0, ...opts, css: CSS, ...helpers });
 }
 
 /** Bangun HTML paginasi (jendela ±2 + ujung). mkUrl(p) → URL halaman p. */
@@ -170,7 +198,78 @@ const OVERVIEW_TPL = `
 
 export function renderOverview(d: Overview): string {
   const body = ejs.render(OVERVIEW_TPL, { d, ...helpers });
-  return renderLayout({ title: 'Ringkasan', active: 'overview', body, serverTime: d.serverTime });
+  return renderLayout({
+    title: 'Ringkasan',
+    active: 'overview',
+    body,
+    serverTime: d.serverTime,
+    pendingContrib: d.pendingContributions,
+  });
+}
+
+// ── Kontribusi (moderasi) ─────────────────────────────────────────────────────
+
+const CONTRIB_TPL = `
+<h1>Kontribusi Katalog</h1>
+<div class="subnav">
+  <a class="<%= pg.status==='pending'?'on':'' %>"  href="/dashboard/contributions?status=pending">Menunggu (<%= pg.counts.pending %>)</a>
+  <a class="<%= pg.status==='approved'?'on':'' %>" href="/dashboard/contributions?status=approved">Disetujui (<%= pg.counts.approved %>)</a>
+  <a class="<%= pg.status==='rejected'?'on':'' %>" href="/dashboard/contributions?status=rejected">Ditolak (<%= pg.counts.rejected %>)</a>
+</div>
+<% if (pg.items.length === 0) { %>
+  <div class="empty">Tidak ada usulan pada status ini.</div>
+<% } else { %>
+<div class="clist">
+  <% pg.items.forEach(function(it){ %>
+    <div class="cc">
+      <% if (it.photoUrl) { %><img class="ph" src="<%= it.photoUrl %>" alt="" loading="lazy" onerror="this.style.display='none'"><% } else { %><div class="ph none">tanpa foto</div><% } %>
+      <div class="body">
+        <div class="nm"><%= it.name || '—' %> <% if (it.targetId){ %><span class="pill warn">usul EDIT</span><% } else { %><span class="pill ok">produk baru</span><% } %></div>
+        <div class="meta">dari <b><%= it.businessName || '—' %></b> · <%= fmtDateTime(it.createdAt) %></div>
+        <div class="kv">
+          <span><b>Barcode:</b> <code><%= it.barcode || '—' %></code></span>
+          <span><b>Brand:</b> <%= it.brand || '—' %></span>
+          <span><b>Kategori:</b> <%= it.category || '—' %></span>
+          <span><b>Ukuran:</b> <%= it.netSize ? (it.netSize+' '+(it.netUnit||'')) : '—' %></span>
+        </div>
+        <% if (it.keywords && it.keywords.length){ %><div class="kv"><span><b>Kata kunci:</b> <%= it.keywords.join(', ') %></span></div><% } %>
+        <% if (it.note){ %><div class="note">📝 <%= it.note %></div><% } %>
+        <% if (it.status==='pending'){ %>
+          <div class="acts">
+            <form class="inline" method="post" action="/dashboard/contributions/<%= it.id %>/approve">
+              <button class="btn ok" type="submit">✓ Setujui</button>
+            </form>
+            <form class="inline" method="post" action="/dashboard/contributions/<%= it.id %>/reject">
+              <input type="text" name="note" placeholder="Alasan tolak (opsional)">
+              <button class="btn bad" type="submit">✕ Tolak</button>
+            </form>
+          </div>
+        <% } else { %>
+          <div class="meta" style="margin-top:10px">
+            <span class="pill <%= it.status==='approved'?'ok':'bad' %>"><%= it.status==='approved'?'disetujui':'ditolak' %></span>
+            oleh <%= it.reviewedBy || '—' %> · <%= it.reviewedAt ? fmtDateTime(it.reviewedAt) : '—' %>
+            <% if (it.reviewNote){ %> · alasan: <%= it.reviewNote %><% } %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+</div>
+<% } %>
+<%- pager %>
+`;
+
+export function renderContributions(pg: ContribPage): string {
+  const mkUrl = (p: number) => `/dashboard/contributions?status=${pg.status}&page=${p}`;
+  const pager = pagerHtml(pg.page, pg.pages, pg.total, mkUrl);
+  const body = ejs.render(CONTRIB_TPL, { pg, pager, ...helpers });
+  return renderLayout({
+    title: 'Kontribusi',
+    active: 'contributions',
+    body,
+    serverTime: pg.serverTime,
+    pendingContrib: pg.counts.pending,
+  });
 }
 
 // ── Katalog (foto + paginasi + cari) ─────────────────────────────────────────

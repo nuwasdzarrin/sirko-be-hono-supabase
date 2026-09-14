@@ -6,10 +6,13 @@ import {
   searchQuerySchema,
   catalogCreateSchema,
   catalogUpdateSchema,
+  catalogContributionSchema,
+  contributionListQuerySchema,
 } from '../schemas/catalog.schema.js';
-import { notFound } from '../lib/errors.js';
+import { notFound, validation } from '../lib/errors.js';
 import { isUuid } from '../lib/uuid.js';
 import * as catalog from '../services/catalog.service.js';
+import * as contributions from '../services/catalog-contribution.service.js';
 
 export async function handleCatalogLookup(c: Context<AppEnv>) {
   const { barcode } = lookupQuerySchema.parse({ barcode: c.req.query('barcode') });
@@ -25,6 +28,28 @@ export async function handleCatalogSearch(c: Context<AppEnv>) {
   });
   const verified = catalog.parseVerified(c.req.query('verified'));
   const { data, meta } = await catalog.search(query, verified);
+  return c.json(ok(data, meta), 200);
+}
+
+// ── Kontribusi katalog (toko biasa, dengan moderasi) ─────────────────────────
+
+export async function handleContributionSubmit(c: Context<AppEnv>) {
+  const auth = c.get('auth');
+  if (!auth?.businessId) throw validation('Hanya akun toko yang bisa mengusulkan produk');
+  const input = catalogContributionSchema.parse(await c.req.json());
+  const created = await contributions.submit(auth.businessId, auth.userId, input);
+  return c.json(ok(created), 201);
+}
+
+export async function handleContributionListMine(c: Context<AppEnv>) {
+  const auth = c.get('auth');
+  if (!auth?.businessId) throw validation('Hanya akun toko yang punya daftar usulan');
+  const query = contributionListQuerySchema.parse({
+    status: c.req.query('status'),
+    cursor: c.req.query('cursor'),
+    limit: c.req.query('limit'),
+  });
+  const { data, meta } = await contributions.listMine(auth.businessId, query);
   return c.json(ok(data, meta), 200);
 }
 

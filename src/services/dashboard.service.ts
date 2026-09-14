@@ -1,5 +1,6 @@
 import { sql } from '../db/client.js';
 import { nowMs } from '../lib/time.js';
+import { CatalogContributionRepository } from '../db/repositories/catalog-contribution.repository.js';
 
 /**
  * Dashboard service — pembaca LINTAS-TENANT (mode admin/monitoring). Sengaja
@@ -49,11 +50,12 @@ export interface Overview {
   counts: Counts;
   categories: Array<{ category: string; n: number }>;
   recentCatalog: Array<{ id: string; name: string | null; photoUrl: string | null; category: string | null }>;
+  pendingContributions: number;
   serverTime: number;
 }
 
 export async function getOverview(): Promise<Overview> {
-  const [counts, catRows, recent] = await Promise.all([
+  const [counts, catRows, recent, pending] = await Promise.all([
     getCounts(),
     sql<{ category: string | null; n: string }[]>`
       SELECT coalesce(category, 'Lainnya') AS category, count(*)::int n
@@ -65,11 +67,13 @@ export async function getOverview(): Promise<Overview> {
       WHERE deleted_at IS NULL AND photo_url IS NOT NULL
       ORDER BY updated_at DESC NULLS LAST LIMIT 12
     `,
+    contribRepo.countByStatus('pending'),
   ]);
   return {
     counts,
     categories: catRows.map((c) => ({ category: c.category ?? 'Lainnya', n: n(c.n) })),
     recentCatalog: recent.map((r) => ({ id: r.id, name: r.name, photoUrl: r.photo_url, category: r.category })),
+    pendingContributions: pending,
     serverTime: nowMs(),
   };
 }
@@ -154,6 +158,77 @@ export async function getCatalogPage(opts: {
     pages,
     limit: opts.limit,
     q,
+    serverTime: nowMs(),
+  };
+}
+
+// ── Kontribusi katalog (antrean moderasi) ────────────────────────────────────
+
+const contribRepo = new CatalogContributionRepository();
+
+export interface ContribItem {
+  id: string;
+  businessName: string | null;
+  targetId: string | null;
+  barcode: string | null;
+  name: string | null;
+  brand: string | null;
+  category: string | null;
+  photoUrl: string | null;
+  netSize: number | null;
+  netUnit: string | null;
+  keywords: string[];
+  note: string | null;
+  status: string;
+  reviewNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: number | null;
+  createdAt: number;
+}
+
+export interface ContribPage extends Page<ContribItem> {
+  status: string;
+  counts: { pending: number; approved: number; rejected: number };
+}
+
+export async function getContributionsPage(opts: {
+  page: number;
+  limit: number;
+  status?: 'pending' | 'approved' | 'rejected';
+}): Promise<ContribPage> {
+  const [total, counts] = await Promise.all([
+    contribRepo.countByStatus(opts.status),
+    contribRepo.statusCounts(),
+  ]);
+  const { pages, page, offset } = paging(total, opts.page, opts.limit);
+  const rows = await contribRepo.listByStatus(opts.status, opts.limit, offset);
+  return {
+    items: rows.map((r) => ({
+      id: r.id as string,
+      businessName: (r.business_name as string | null) ?? null,
+      targetId: (r.target_id as string | null) ?? null,
+      barcode: (r.barcode as string | null) ?? null,
+      name: (r.name as string | null) ?? null,
+      brand: (r.brand as string | null) ?? null,
+      category: (r.category as string | null) ?? null,
+      photoUrl: (r.photo_url as string | null) ?? null,
+      netSize: r.net_size === null || r.net_size === undefined ? null : n(r.net_size),
+      netUnit: (r.net_unit as string | null) ?? null,
+      keywords: (r.keywords as string[]) ?? [],
+      note: (r.note as string | null) ?? null,
+      status: (r.status as string) ?? 'pending',
+      reviewNote: (r.review_note as string | null) ?? null,
+      reviewedBy: (r.reviewed_by as string | null) ?? null,
+      reviewedAt: r.reviewed_at === null || r.reviewed_at === undefined ? null : n(r.reviewed_at),
+      createdAt: n(r.created_at),
+    })),
+    total,
+    page,
+    pages,
+    limit: opts.limit,
+    q: '',
+    status: opts.status ?? 'all',
+    counts,
     serverTime: nowMs(),
   };
 }
