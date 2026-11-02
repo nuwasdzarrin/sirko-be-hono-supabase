@@ -49,7 +49,9 @@ async function getCounts(): Promise<Counts> {
 export interface Overview {
   counts: Counts;
   categories: Array<{ category: string; n: number }>;
-  recentCatalog: Array<{ id: string; name: string | null; photoUrl: string | null; category: string | null }>;
+  recentCatalog: Array<{
+    id: string; name: string | null; barcode: string | null; photoUrl: string | null; category: string | null;
+  }>;
   pendingContributions: number;
   serverTime: number;
 }
@@ -57,22 +59,20 @@ export interface Overview {
 export async function getOverview(): Promise<Overview> {
   const [counts, catRows, recent, pending] = await Promise.all([
     getCounts(),
-    sql<{ category: string | null; n: string }[]>`
-      SELECT coalesce(category, 'Lainnya') AS category, count(*)::int n
-      FROM public_products WHERE deleted_at IS NULL
-      GROUP BY 1 ORDER BY n DESC
-    `,
-    sql<{ id: string; name: string | null; photo_url: string | null; category: string | null }[]>`
-      SELECT id, name, photo_url, category FROM public_products
+    categoryCounts(),
+    sql<{ id: string; name: string | null; barcode: string | null; photo_url: string | null; category: string | null }[]>`
+      SELECT id, name, barcode, photo_url, category FROM public_products
       WHERE deleted_at IS NULL AND photo_url IS NOT NULL
-      ORDER BY updated_at DESC NULLS LAST LIMIT 12
+      ORDER BY updated_at DESC NULLS LAST LIMIT 20
     `,
     contribRepo.countByStatus('pending'),
   ]);
   return {
     counts,
-    categories: catRows.map((c) => ({ category: c.category ?? 'Lainnya', n: n(c.n) })),
-    recentCatalog: recent.map((r) => ({ id: r.id, name: r.name, photoUrl: r.photo_url, category: r.category })),
+    categories: catRows.map((c) => ({ category: c.category, n: n(c.n) })),
+    recentCatalog: recent.map((r) => ({
+      id: r.id, name: r.name, barcode: r.barcode, photoUrl: r.photo_url, category: r.category,
+    })),
     pendingContributions: pending,
     serverTime: nowMs(),
   };
@@ -110,20 +110,64 @@ export interface CatalogItem {
   updatedAt: number;
 }
 
+/** Kategori tanpa nilai (NULL) ditampilkan & difilter sebagai 'Lainnya'. */
+export const UNCATEGORIZED = 'Lainnya';
+export const CATALOG_SOURCES = ['admin', 'crowdsource'] as const;
+export type CatalogSource = (typeof CATALOG_SOURCES)[number];
+
+export interface CatalogFilters {
+  q: string;
+  category?: string;
+  source?: CatalogSource;
+  verified?: boolean;
+}
+
+export interface CatalogPage extends Page<CatalogItem> {
+  filters: CatalogFilters;
+  /** Semua kategori (produk hidup) + jumlah, untuk chip filter. */
+  categories: Array<{ category: string; n: number }>;
+}
+
+export function parseSource(v: string | undefined): CatalogSource | undefined {
+  return (CATALOG_SOURCES as readonly string[]).includes(v ?? '') ? (v as CatalogSource) : undefined;
+}
+
+function categoryCounts() {
+  return sql<{ category: string; n: number }[]>`
+    SELECT coalesce(category, ${UNCATEGORIZED}) AS category, count(*)::int n
+    FROM public_products WHERE deleted_at IS NULL
+    GROUP BY 1 ORDER BY n DESC, 1
+  `;
+}
+
 export async function getCatalogPage(opts: {
   page: number;
   limit: number;
   q?: string;
+  category?: string;
+  source?: CatalogSource;
   verified?: boolean;
-}): Promise<Page<CatalogItem>> {
+}): Promise<CatalogPage> {
   const q = (opts.q ?? '').trim();
+  const category = opts.category?.trim() || undefined;
   const like = `%${q}%`;
-  const base = q
-    ? sql`deleted_at IS NULL AND (name ILIKE ${like} OR brand ILIKE ${like} OR barcode ILIKE ${like})`
-    : sql`deleted_at IS NULL`;
-  const where = opts.verified === undefined ? base : sql`${base} AND verified = ${opts.verified}`;
+  const conds = [sql`deleted_at IS NULL`];
+  if (q) conds.push(sql`(name ILIKE ${like} OR brand ILIKE ${like} OR barcode ILIKE ${like})`);
+  if (category) {
+    conds.push(
+      category === UNCATEGORIZED
+        ? sql`(category IS NULL OR category = ${category})`
+        : sql`category = ${category}`,
+    );
+  }
+  if (opts.source) conds.push(sql`source = ${opts.source}`);
+  if (opts.verified !== undefined) conds.push(sql`verified = ${opts.verified}`);
+  const where = conds.reduce((acc, c) => sql`${acc} AND ${c}`);
 
-  const totalRows = await sql<{ c: number }[]>`SELECT count(*)::int c FROM public_products WHERE ${where}`;
+  const [totalRows, categories] = await Promise.all([
+    sql<{ c: number }[]>`SELECT count(*)::int c FROM public_products WHERE ${where}`,
+    categoryCounts(),
+  ]);
   const total = totalRows[0]?.c ?? 0;
   const { pages, page, offset } = paging(total, opts.page, opts.limit);
 
@@ -158,6 +202,8 @@ export async function getCatalogPage(opts: {
     pages,
     limit: opts.limit,
     q,
+    filters: { q, category, source: opts.source, verified: opts.verified },
+    categories,
     serverTime: nowMs(),
   };
 }

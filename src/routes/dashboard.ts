@@ -1,9 +1,17 @@
 import { Hono } from 'hono';
-import { basicAuth } from 'hono/basic-auth';
-import { env } from '../config/env.js';
+import {
+  checkCredentials,
+  dashboardAuthEnabled,
+  endSession,
+  safeNext,
+  sessionUser,
+  startSession,
+} from '../lib/dashboard-session.js';
+import { parseVerified } from '../services/catalog.service.js';
 import {
   getOverview,
   getCatalogPage,
+  parseSource,
   getBusinessesPage,
   getTransactionsPage,
   getContributionsPage,
@@ -14,6 +22,7 @@ import {
   renderBusinesses,
   renderTransactions,
   renderContributions,
+  renderLogin,
 } from '../views/dashboard.view.js';
 import * as contributions from '../services/catalog-contribution.service.js';
 
@@ -23,13 +32,52 @@ import * as contributions from '../services/catalog-contribution.service.js';
  *  - `/catalog`      katalog berpaginasi + foto + cari
  *  - `/businesses`   daftar toko berpaginasi
  *  - `/transactions` daftar transaksi berpaginasi
- * Digerbang Basic Auth bila DASHBOARD_USER & DASHBOARD_PASSWORD diisi. Baca lintas-tenant.
+ *  - `/login`        halaman login (sesi cookie) · `POST /logout`
+ * Digerbang login bila DASHBOARD_USER & DASHBOARD_PASSWORD diisi. Baca lintas-tenant.
  */
-export const dashboardRoutes = new Hono();
+type DashEnv = { Variables: { admin: string } };
+export const dashboardRoutes = new Hono<DashEnv>();
 
-if (env.DASHBOARD_USER && env.DASHBOARD_PASSWORD) {
-  dashboardRoutes.use('*', basicAuth({ username: env.DASHBOARD_USER, password: env.DASHBOARD_PASSWORD }));
-}
+dashboardRoutes.get('/login', async (c) => {
+  const next = safeNext(c.req.query('next'));
+  if (!dashboardAuthEnabled || (await sessionUser(c))) return c.redirect(next);
+  return c.html(renderLogin({ next, error: null, user: '' }));
+});
+
+dashboardRoutes.post('/login', async (c) => {
+  const body = await c.req.parseBody();
+  const user = typeof body.user === 'string' ? body.user.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
+  const next = safeNext(typeof body.next === 'string' ? body.next : undefined);
+  if (!checkCredentials(user, password)) {
+    // Perlambat tebakan beruntun (murah, tanpa state).
+    await new Promise((r) => setTimeout(r, 600));
+    return c.html(renderLogin({ next, error: 'Username atau password salah.', user }), 401);
+  }
+  await startSession(c, user, body.remember === 'on');
+  return c.redirect(next);
+});
+
+dashboardRoutes.post('/logout', (c) => {
+  endSession(c);
+  return c.redirect('/dashboard/login');
+});
+
+// Gerbang sesi untuk semua halaman lain.
+dashboardRoutes.use('*', async (c, next) => {
+  if (!dashboardAuthEnabled) {
+    c.set('admin', 'dev');
+    return next();
+  }
+  const admin = await sessionUser(c);
+  if (!admin) {
+    const url = new URL(c.req.url);
+    const target = safeNext(url.pathname + url.search);
+    return c.redirect(`/dashboard/login?next=${encodeURIComponent(target)}`);
+  }
+  c.set('admin', admin);
+  return next();
+});
 
 const intParam = (v: string | undefined, def: number) => {
   const n = Number(v);
@@ -40,11 +88,17 @@ dashboardRoutes.get('/', async (c) => c.html(renderOverview(await getOverview())
 
 dashboardRoutes.get('/catalog', async (c) => {
   const page = intParam(c.req.query('page'), 1);
-  const q = c.req.query('q') ?? '';
-  return c.html(renderCatalog(await getCatalogPage({ page, limit: 24, q })));
+  const pg = await getCatalogPage({
+    page,
+    limit: 24,
+    q: c.req.query('q') ?? '',
+    category: c.req.query('category'),
+    source: parseSource(c.req.query('source')),
+    verified: parseVerified(c.req.query('verified')),
+  });
+  return c.html(renderCatalog(pg));
 });
 
-const REVIEWER = env.DASHBOARD_USER || 'admin';
 const ALLOWED_STATUS = ['pending', 'approved', 'rejected'] as const;
 
 dashboardRoutes.get('/contributions', async (c) => {
@@ -57,14 +111,14 @@ dashboardRoutes.get('/contributions', async (c) => {
 });
 
 dashboardRoutes.post('/contributions/:id/approve', async (c) => {
-  await contributions.approve(c.req.param('id'), REVIEWER);
+  await contributions.approve(c.req.param('id'), c.get('admin'));
   return c.redirect('/dashboard/contributions?status=pending');
 });
 
 dashboardRoutes.post('/contributions/:id/reject', async (c) => {
   const body = await c.req.parseBody();
   const note = typeof body.note === 'string' ? body.note : undefined;
-  await contributions.reject(c.req.param('id'), REVIEWER, note);
+  await contributions.reject(c.req.param('id'), c.get('admin'), note);
   return c.redirect('/dashboard/contributions?status=pending');
 });
 

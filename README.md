@@ -158,17 +158,18 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 
 `public_products` = tabel **GLOBAL** (tanpa `business_id`, **tanpa harga/stok**), dibaca semua toko, ditulis hanya `sirko_admin`. Pencarian pakai `pg_trgm` (GIN pada name/brand + keywords). Skema di [migrations/0003](src/db/migrations/0003_catalog.sql). Storage lewat **presigner SigV4 zero-dependency** ([lib/storage.ts](src/lib/storage.ts)) — portabel Supabase Storage ↔ MinIO/VPS via env `S3_*` + `S3_PUBLIC_BASE_URL`. Tak ada SDK Supabase.
 
-**Dashboard admin (HTML/EJS)** — lintas-tenant, Basic Auth opsional
+**Dashboard admin (HTML/EJS)** — lintas-tenant, login sesi cookie, tema terang/gelap
 
 | Path | Keterangan |
 |---|---|
-| `/dashboard` | **Ringkasan**: KPI + breakdown kategori katalog + highlight katalog terbaru + tautan ke halaman detail |
-| `/dashboard/catalog?page=&q=` | Katalog **berpaginasi** (24/hal) + **foto** produk + kotak **cari** (nama/brand/barcode) |
+| `/dashboard/login` | Halaman login (`POST /dashboard/login`, `POST /dashboard/logout`) |
+| `/dashboard` | **Ringkasan**: KPI + kategori katalog (tiap kategori = link ke katalog terfilter) + 20 katalog terbaru + tombol "Lihat semua" |
+| `/dashboard/catalog?page=&q=&category=&source=&verified=` | Katalog **berpaginasi** (24/hal) + foto + **cari** (nama/brand/barcode) + **scan barcode/QR** (kamera atau foto, html5-qrcode dari cdnjs) + filter chip **kategori** / **sumber** (`admin`\|`crowdsource`) / **status** (`verified=1\|0`). Semua filter di query URL → aman di-reload/dibagikan. `category=Lainnya` juga mencakup produk tanpa kategori |
 | `/dashboard/businesses?page=` | Daftar toko berpaginasi (20/hal) |
 | `/dashboard/transactions?page=` | Daftar transaksi berpaginasi (20/hal) |
 | `/` | redirect ke `/dashboard` |
 
-Cikal-bakal Panel Admin Sirko. Template EJS di-embed sebagai string ([views/dashboard.view.ts](src/views/dashboard.view.ts)) → aman di serverless (tak baca file `.ejs` dari disk). Digerbang **Basic Auth** bila `DASHBOARD_USER` & `DASHBOARD_PASSWORD` diisi; kosong = terbuka (dev). Hanya-baca.
+Cikal-bakal Panel Admin Sirko. Template EJS di-embed sebagai string ([views/dashboard.view.ts](src/views/dashboard.view.ts)) → aman di serverless (tak baca file `.ejs` dari disk). Digerbang **halaman login** bila `DASHBOARD_USER` & `DASHBOARD_PASSWORD` diisi; kosong = terbuka (dev). Sesi = cookie HMAC (kunci diturunkan dari `JWT_SECRET`), `HttpOnly` + `SameSite=Lax` (+`Secure` di production) → aman dari CSRF untuk tombol approve/reject; 12 jam, atau 30 hari bila "Ingat saya". Ganti `JWT_SECRET` = semua sesi admin keluar. Moderasi tercatat atas nama user yang login. `/v1/catalog.json` tetap Basic Auth (untuk akses programatik).
 
 ### Seed Katalog Umum
 

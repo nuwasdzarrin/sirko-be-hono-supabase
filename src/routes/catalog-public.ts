@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { env } from '../config/env.js';
 import { ok } from '../lib/envelope.js';
-import { getCatalogPage } from '../services/dashboard.service.js';
+import { getCatalogPage, parseSource } from '../services/dashboard.service.js';
 import { parseVerified } from '../services/catalog.service.js';
 
 /**
- * `GET /v1/catalog.json?q=&page=&limit=` — versi JSON katalog yang mudah dibuka
+ * `GET /v1/catalog.json?q=&page=&limit=&category=&source=&verified=` — versi JSON katalog yang mudah dibuka
  * di BROWSER (digerbang Basic Auth yang sama dengan dashboard, BUKAN Bearer JWT).
  * Untuk admin/inspeksi cepat. Paginasi berbasis halaman (page/pages/total).
  * Bila DASHBOARD_USER/PASSWORD tak diset → terbuka (dev).
@@ -27,8 +27,15 @@ catalogPublicRoutes.get('/catalog.json', async (c) => {
   const limit = Math.min(intParam(c.req.query('limit'), 50), 200);
   const q = c.req.query('q') ?? '';
   const verified = parseVerified(c.req.query('verified'));
-  const pg = await getCatalogPage({ page, limit, q, verified });
+  const pg = await getCatalogPage({
+    page,
+    limit,
+    q,
+    verified,
+    category: c.req.query('category'),
+    source: parseSource(c.req.query('source')),
+  });
   return c.json(
-    ok(pg.items, { total: pg.total, page: pg.page, pages: pg.pages, limit: pg.limit, q: pg.q }),
+    ok(pg.items, { total: pg.total, page: pg.page, pages: pg.pages, limit: pg.limit, ...pg.filters }),
   );
 });

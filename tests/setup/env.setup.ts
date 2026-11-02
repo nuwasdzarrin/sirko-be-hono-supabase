@@ -43,6 +43,10 @@ if (/supabase\.(co|com)/i.test(process.env.DATABASE_URL)) {
   throw new Error('TEST_DATABASE_URL mengarah ke Supabase — test hanya boleh ke DB uji lokal.');
 }
 
+// Kredensial dashboard agar login sesi teruji (contract dashboard).
+process.env.DASHBOARD_USER ??= 'admin-test';
+process.env.DASHBOARD_PASSWORD ??= 'password-test-123';
+
 // S3 dummy agar presigner (Fitur 2 Media) bisa diuji struktur signed URL-nya.
 process.env.S3_ENDPOINT ??= 'https://s3.test.local/storage/v1/s3';
 process.env.S3_REGION ??= 'ap-southeast-1';
