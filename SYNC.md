@@ -214,15 +214,49 @@ konsisten setelah semua halaman diterapkan).
   (mencegah data dua toko tercampur).
 - Logout cloud: sync berhenti; data lokal tetap.
 
-### 8.6 Batasan yang diketahui (fase berikutnya)
-- **Saldo turunan** (`products.stock`, `product_variants.stock`,
-  `customers.debtBalance`, `suppliers.debtBalance`, `wallets.balance`) ikut LWW
-  sebagai kolom master. Bila **dua perangkat mengubah saldo yang sama secara
-  bersamaan saat offline**, perubahan yang kalah LWW hilang (ledger-nya tetap
-  lengkap di `stock_logs` / `wallet_transactions` / `credit_payments`).
-  Pola aman saat ini: satu perangkat kasir aktif per toko; perangkat lain untuk
-  melihat laporan / backup. Solusi lanjutan: hitung ulang saldo dari ledger
-  setelah pull.
+### 8.6 Saldo turunan dihitung ulang dari ledger (multi-kasir)
+Stok dan saldo kas **bukan** sumber kebenaran — ledger-lah sumbernya:
+
+| Kolom | Rumus (baris `deleted_at IS NULL`) |
+|---|---|
+| `products.stock` | Σ `stock_logs.qty_change` dgn `product_id = id AND variant_id IS NULL` |
+| `product_variants.stock` | Σ `stock_logs.qty_change` dgn `variant_id = id` |
+| `wallets.balance` | Σ `in` − Σ `out` − Σ `transfer` keluar (`wallet_id`) + Σ `transfer` masuk (`target_wallet_id`) |
+
+1. **Ledger lengkap (klien ≥ 1.2.0+15).** Setiap perubahan stok menulis
+   `stock_logs`: stok awal produk/varian (`type: initial`), edit stok lewat form
+   (`adjustment`, `refType: manual`), penjualan/void/pembelian/stok masuk/
+   penyesuaian, opname (`adjustment` = fisik − stok **saat finalisasi**).
+   Form edit yang tak mengubah stok **tidak** menulis kolom stok (tak menimpa
+   penjualan bersamaan). Saldo kas sudah lewat `wallet_transactions` sejak Fase 7.
+2. **Rekonsiliasi sekali** (`ledger_reconciled_v1` di app_settings lokal), di
+   awal sync pertama build ini: baris yang stok/saldonya ≠ Σ ledger mendapat
+   satu baris ledger selisih (`refType: reconcile`, stok `initial` bila belum
+   ada log, selain itu `adjustment`; wallet `in`/`out` kategori
+   `rekonsiliasi`). Id-nya **UUID v5 deterministik**
+   (`uuid5(URL, "sirko:ledger-reconcile:v1:<product|variant|wallet>:<id>")`) →
+   dua HP dengan data lama yang sama menghasilkan baris yang sama; server
+   (append) menyimpan sekali.
+3. **Hitung ulang setelah pull.** Dalam transaksi `applyRemote` yang sama,
+   untuk id yang tersentuh halaman itu (baris master, atau `stock_logs` /
+   `wallet_transactions` yang merujuknya) kolom saldo di-set = rumus di atas,
+   hanya bila berbeda, dengan trigger dirty nonaktif (tidak di-push balik).
+   Ledger bersifat append dan unik per id → dua kasir yang menjual barang sama
+   saat offline akan **konvergen** ke stok yang benar setelah keduanya sync.
+4. **Prasyarat:** semua HP satu toko memakai build ≥ 1.2.0+15. Data yang
+   di-push build 1.2.0+14 (produk tanpa log stok awal) baru benar di HP lain
+   setelah HP asalnya diperbarui dan sync sekali (rekonsiliasi).
+
+### 8.7 Batasan yang diketahui (fase berikutnya)
+- **Hutang pelanggan / supplier** (`customers.debtBalance`,
+  `suppliers.debtBalance`) masih LWW: ledger-nya (transaksi kredit,
+  `credit_payments`, pembelian tempo) belum lengkap untuk semua jalur dan
+  pembayaran memakai clamp. Dua HP yang mengubah hutang **pelanggan yang sama**
+  bersamaan saat offline → perubahan yang kalah LWW hilang. Pola aman: satu HP
+  mencatat pembayaran hutang.
+- Penolakan stok minus dihitung terhadap stok lokal; dua kasir offline bisa
+  bersama-sama menjual stok terakhir → setelah sync stok bisa negatif (jujur
+  sesuai ledger).
 - **Nomor invoice** dihitung per perangkat (`invoice_seq_<tgl>` lokal), tetapi
   selalu melanjutkan dari nomor tertinggi hari itu yang sudah ada di DB →
   aman untuk HP hasil pulihkan / instal ulang. Dua kasir yang **aktif
