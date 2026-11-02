@@ -38,7 +38,7 @@ Kirim baris ber-`isDirty=true`. Boleh dibatch (disarankan **≤ 500 baris/tabel*
 ```
 POST /v1/backup/push
 {
-  "clientInfo": { "deviceId": "<uuid>", "appVersion": "1.0.0", "schemaVersion": 8 },
+  "clientInfo": { "deviceId": "<uuid>", "appVersion": "1.0.0", "schemaVersion": 10 },
   "tables": {
     "products":          [ { id, name, barcode, sellingPrice, costPrice, stock, updatedAt, deletedAt } , ... ],
     "transactions":      [ { id, invoiceNo, datetime, grandTotal, status, updatedAt, deletedAt }, ... ],
@@ -69,7 +69,10 @@ Respons:
 Nama tabel (`tables` key) = snake_case: `business, users, categories, units, customers, products,
 product_variants, wholesale_prices, stock_logs, transactions, transaction_items, payments,
 installments, credit_payments, wallets, wallet_transactions, suppliers, purchases, purchase_items,
-stock_opnames, stock_opname_items, receipt_presets, discounts, app_settings`.
+stock_opnames, stock_opname_items, receipt_presets, discounts, app_settings, bills`.
+
+> Server mendukung `schemaVersion` ≤ **10**. `held_sales`/`held_sale_items` (Tunda) **local-only** — jangan
+> di-push. `public_products`/thumbs = cache katalog global, bukan data toko.
 
 > `business` bersifat singleton (1 baris; id dari body diabaikan, yang di-update baris toko dari JWT).
 

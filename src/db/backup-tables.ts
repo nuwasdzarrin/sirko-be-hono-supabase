@@ -123,6 +123,7 @@ export const BACKUP_TABLES: BackupTable[] = [
       T('imagePath', 'image_path'),
       B('hasVariants', 'has_variants'),
       B('isActive', 'is_active'),
+      B('needsPrice', 'needs_price'),
     ],
   },
   {
@@ -196,6 +197,23 @@ export const BACKUP_TABLES: BackupTable[] = [
     cols: [T('key', 'key'), T('value', 'value')],
   },
   {
+    wire: 'bills',
+    db: 'bills',
+    kind: 'lww',
+    cols: [
+      U('employeeId', 'employee_id'),
+      I('openedAt', 'opened_at'),
+      I('closedAt', 'closed_at'),
+      M('openingCash', 'opening_cash'),
+      M('closingCash', 'closing_cash'),
+      M('expectedCash', 'expected_cash'),
+      M('cashSalesTotal', 'cash_sales_total'),
+      M('variance', 'variance'),
+      E('status', 'status', ['open', 'closed']),
+      T('note', 'note'),
+    ],
+  },
+  {
     wire: 'transactions',
     db: 'transactions',
     kind: 'lww',
@@ -211,6 +229,7 @@ export const BACKUP_TABLES: BackupTable[] = [
       M('grandTotal', 'grand_total'),
       M('paidTotal', 'paid_total'),
       M('changeTotal', 'change_total'),
+      M('roundingAdjustment', 'rounding_adjustment'),
       E('status', 'status', ['paid', 'credit', 'partial', 'void']),
       B('isCredit', 'is_credit'),
       T('note', 'note'),
@@ -351,6 +370,7 @@ export const BACKUP_TABLES: BackupTable[] = [
       U('opnameId', 'opname_id'),
       U('productId', 'product_id'),
       U('variantId', 'variant_id'),
+      T('nameSnapshot', 'name_snapshot'),
       I('systemQty', 'system_qty'),
       I('physicalQty', 'physical_qty'),
       I('diff', 'diff'),
@@ -359,7 +379,7 @@ export const BACKUP_TABLES: BackupTable[] = [
 ];
 
 /** Versi skema tertinggi yang didukung server (spec 10 §7). */
-export const SUPPORTED_SCHEMA_VERSION = 8;
+export const SUPPORTED_SCHEMA_VERSION = 10;
 
 export const BACKUP_TABLE_BY_WIRE: Map<string, BackupTable> = new Map(
   BACKUP_TABLES.map((t) => [t.wire, t]),

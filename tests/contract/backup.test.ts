@@ -206,6 +206,37 @@ suite('Backup contract', () => {
     expect(r2.json.data.applied).toEqual(r1.json.data.applied); // identik, bukan STALE skip
     expect(r2.json.data.applied.products).toBe(1);
   });
+
+  it('skema app v10: bills + needsPrice/roundingAdjustment/nameSnapshot ter-push & ter-pull', async () => {
+    const { token } = await newStore();
+    const ts = now();
+    const bill = {
+      id: uuid(),
+      employeeId: uuid(),
+      openedAt: ts,
+      openingCash: 100000,
+      status: 'open',
+      updatedAt: ts,
+    };
+    const p = product({ needsPrice: true });
+    const t = txn({ billId: bill.id, roundingAdjustment: -200 });
+    const item = { id: uuid(), opnameId: uuid(), nameSnapshot: 'Indomie Goreng', systemQty: 5, physicalQty: 4, diff: -1, updatedAt: ts };
+    const body = { clientInfo: { schemaVersion: 10 }, tables: { bills: [bill], products: [p], transactions: [t], stock_opname_items: [item] } };
+
+    const push = await req('POST', '/v1/backup/push', token, body);
+    expect(push.status).toBe(200);
+    expect(push.json.data.rejected).toEqual([]);
+    expect(push.json.data.applied).toMatchObject({ bills: 1, products: 1, transactions: 1, stock_opname_items: 1 });
+
+    const { json } = await req('GET', '/v1/backup/pull', token);
+    expect(json.data.tables.bills[0]).toMatchObject({ id: bill.id, openingCash: 100000, status: 'open' });
+    expect(json.data.tables.products[0].needsPrice).toBe(true);
+    expect(json.data.tables.transactions[0]).toMatchObject({ billId: bill.id, roundingAdjustment: -200 });
+    expect(json.data.tables.stock_opname_items[0].nameSnapshot).toBe('Indomie Goreng');
+
+    const status = await req('GET', '/v1/backup/status', token);
+    expect(status.json.data.counts.bills).toBe(1);
+  });
 });
 
 function txn(over: Record<string, unknown> = {}) {

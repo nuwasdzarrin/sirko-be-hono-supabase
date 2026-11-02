@@ -56,22 +56,24 @@ Ada dua lapis test:
 
 - **Unit** (`tests/unit/`) — murni, tanpa DB/jaringan: `money`, `jwt`, `env`, `permissions`, `cursor`.
 - **Integration / contract** (`tests/contract/`) — endpoint nyata via `app.request()` terhadap
-  Postgres uji: `auth` (register→login→/me) & `backup` (push/pull/status). Butuh `DATABASE_URL`;
+  Postgres uji: `auth` (register→login→/me) & `backup` (push/pull/status). DB dari `TEST_DATABASE_URL`
+  (default `postgresql://postgres:postgres@localhost:5432/sirko_test`) — **`DATABASE_URL` di `.env` sengaja diabaikan**;
   bila DB tak tersambung, suite contract **di-skip** (bukan gagal) → unit tetap hijau di CI tanpa DB.
 
 ```bash
 # Unit saja (tanpa DB) — selalu jalan
 npx vitest run tests/unit
 
-# Full (unit + integration) — butuh DATABASE_URL ke DB uji
-DATABASE_URL='postgresql://postgres:postgres@localhost:5432/sirko_test' npm test
+# Full (unit + integration) — default ke sirko_test lokal (override: TEST_DATABASE_URL=...)
+npm test
 ```
 
 `npm test` = `vitest run` (menjalankan unit + contract sekaligus).
 
 #### Menyiapkan DB uji (Postgres lokal, sekali saja)
 
-Contract test menulis ke DB — **jangan** arahkan ke DB produksi. Buat DB throwaway `sirko_test`:
+Contract test menulis ke DB **tanpa membersihkan** — **jangan** arahkan ke DB produksi. Setup test
+menolak (throw) bila `TEST_DATABASE_URL` mengarah ke Supabase. Buat DB throwaway `sirko_test`:
 
 ```bash
 # butuh superuser lokal (contoh: postgres/postgres @ 5432)
@@ -85,10 +87,10 @@ Untuk mereset bersih: `psql -U postgres -h localhost -c "DROP DATABASE sirko_tes
 
 ```bash
 # satu file
-DATABASE_URL='postgresql://postgres:postgres@localhost:5432/sirko_test' npx vitest run tests/contract/backup.test.ts
+npx vitest run tests/contract/backup.test.ts
 
 # mode watch saat mengembangkan
-DATABASE_URL='postgresql://postgres:postgres@localhost:5432/sirko_test' npm run test:watch
+npm run test:watch
 ```
 
 #### Typecheck
@@ -98,8 +100,8 @@ npm run typecheck   # tsc --noEmit — wajib bersih sebelum commit
 ```
 
 > Env test (`JWT_SECRET`, `S3_*` dummy untuk uji signed-URL, dll.) di-fallback otomatis oleh
-> `tests/setup/env.setup.ts` — cukup sediakan `DATABASE_URL`. File itu juga memuat `.env` bila ada,
-> jadi `DATABASE_URL` boleh ditaruh di `.env`.
+> `tests/setup/env.setup.ts`. File itu memuat `.env` bila ada, **kecuali `DATABASE_URL`** (`.env` lokal
+> bisa saja menunjuk DB produksi). DB test hanya dari `TEST_DATABASE_URL` / default lokal.
 
 ## Deploy ke Vercel
 

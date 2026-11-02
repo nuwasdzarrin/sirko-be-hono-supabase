@@ -16,6 +16,8 @@ if (existsSync(envPath)) {
     const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
     if (!m) continue;
     const key = m[1]!;
+    // DATABASE_URL di .env = DB dev/produksi → JANGAN dipakai test (lihat di bawah).
+    if (key === 'DATABASE_URL') continue;
     if (process.env[key] !== undefined) continue;
     let val = m[2]!.trim();
     if (
@@ -32,9 +34,14 @@ if (existsSync(envPath)) {
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long';
 process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret-at-least-32-characters-long';
 process.env.APP_ENV ??= 'development';
-// DATABASE_URL dummy hanya agar env.ts lolos validasi; contract test akan
-// men-skip dirinya bila DB tak benar-benar tersambung.
-process.env.DATABASE_URL ??= 'postgresql://sirko:sirko@localhost:5432/sirko_test';
+// DB test SELALU dari TEST_DATABASE_URL (default: Postgres lokal `sirko_test`),
+// tak pernah dari DATABASE_URL — contract test menulis data & tak membersihkannya.
+// Contract test men-skip dirinya bila DB tak benar-benar tersambung.
+process.env.DATABASE_URL =
+  process.env.TEST_DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/sirko_test';
+if (/supabase\.(co|com)/i.test(process.env.DATABASE_URL)) {
+  throw new Error('TEST_DATABASE_URL mengarah ke Supabase — test hanya boleh ke DB uji lokal.');
+}
 
 // S3 dummy agar presigner (Fitur 2 Media) bisa diuji struktur signed URL-nya.
 process.env.S3_ENDPOINT ??= 'https://s3.test.local/storage/v1/s3';

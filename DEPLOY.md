@@ -65,7 +65,9 @@ Output diharapkan:
 → apply  0001_init ...        ✓ done
 → apply  0002_tenant_backup_tables ...  ✓ done
 → apply  0003_catalog ...     ✓ done
-Selesai: 3 migrasi diterapkan.
+→ apply  0004_catalog_contributions ...  ✓ done
+→ apply  0005_schema_v10 ...  ✓ done
+Selesai: 5 migrasi diterapkan.
 ```
 Idempotent — aman diulang (migrasi yang sudah ada di-skip). **Hapus `.env.production.local`** setelah selesai bila tak ingin menyimpan kredensial DB di disk.
 
