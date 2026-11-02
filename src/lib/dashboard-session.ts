@@ -35,14 +35,16 @@ export function checkCredentials(user: string, password: string): boolean {
   return dashboardAuthEnabled && u && p;
 }
 
-const secure = () => env.APP_ENV === 'production';
+/** `Secure` mengikuti protokol request (Vercel: x-forwarded-proto) — tak bergantung APP_ENV. */
+const secure = (c: Context) =>
+  c.req.header('x-forwarded-proto') === 'https' || new URL(c.req.url).protocol === 'https:';
 
 export async function startSession(c: Context, user: string, remember: boolean): Promise<void> {
   const ttl = remember ? LONG_TTL_S : SHORT_TTL_S;
   const exp = Date.now() + ttl * 1000;
   await setSignedCookie(c, SESSION_COOKIE, `${user}|${exp}`, SECRET, {
     httpOnly: true,
-    secure: secure(),
+    secure: secure(c),
     sameSite: 'Lax',
     path: '/',
     maxAge: ttl,
@@ -50,7 +52,7 @@ export async function startSession(c: Context, user: string, remember: boolean):
 }
 
 export function endSession(c: Context): void {
-  deleteCookie(c, SESSION_COOKIE, { path: '/', secure: secure() });
+  deleteCookie(c, SESSION_COOKIE, { path: '/', secure: secure(c) });
 }
 
 /** Nama admin dari sesi valid, atau null. */

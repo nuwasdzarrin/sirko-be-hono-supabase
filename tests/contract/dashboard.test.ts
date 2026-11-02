@@ -91,6 +91,15 @@ suite('Dashboard contract', () => {
     const sc = res.headers.get('set-cookie') ?? '';
     expect(sc).toMatch(/HttpOnly/i);
     expect(sc).toMatch(/SameSite=Lax/i);
+    expect(sc).not.toMatch(/Secure/i); // request http → tanpa Secure
+
+    const https = form({ user: USER, password: PASS });
+    const r2 = await app.request('/dashboard/login', {
+      method: 'POST',
+      headers: { 'Content-Type': https['Content-Type'], 'x-forwarded-proto': 'https' },
+      body: https.body,
+    });
+    expect(r2.headers.get('set-cookie')).toMatch(/Secure/);
   });
 
   it('cookie dipalsukan ditolak', async () => {
