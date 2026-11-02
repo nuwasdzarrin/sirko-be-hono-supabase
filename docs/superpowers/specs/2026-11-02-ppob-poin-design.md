@@ -74,7 +74,7 @@ Sumber produk **[pemilik]**:
    server bertanya ulang ke Digiflazz), ditambah tombol "Cek status" di dashboard.
 6. **Penyedia di balik adaptor**: `ppob/providers/digiflazz.ts` & `manual.ts`
    dengan antarmuka sama (`purchase`, `checkStatus`). Notifikasi & email juga
-   adaptor (`notify/telegram.ts`, `mail/brevo.ts`) — bisa diganti lewat env.
+   adaptor (`notify/telegram.ts`, `mail/resend.ts`) — bisa diganti lewat env.
 7. **Relay Digiflazz di VPS Kreatora (WAJIB).** Digiflazz hanya menerima
    panggilan dari **IP yang di-whitelist**, baik mode development maupun produksi
    (selain itu ditolak RC 45). Vercel tak punya IP keluar tetap, jadi panggilan
@@ -315,7 +315,7 @@ berlaku juga di mode development, jadi relay sudah harus ada sejak tahap uji.
 
 Vercel: `PPOB_ENABLED`, `PPOB_RELAY_URL`, `RELAY_SECRET`,
 `DIGIFLAZZ_WEBHOOK_SECRET`, `DIGIFLAZZ_TESTING` (true di non-produksi),
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `BREVO_API_KEY`, `MAIL_FROM`,
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `RESEND_API_KEY`, `MAIL_FROM`,
 `PUBLIC_DASHBOARD_URL` (untuk link di notifikasi).
 Relay (VPS Kreatora): `DIGIFLAZZ_USERNAME`, `DIGIFLAZZ_API_KEY`, `RELAY_SECRET`,
 `PORT`. IP `151.243.222.93` di-whitelist di dashboard Digiflazz (mode dev & prod).
@@ -324,14 +324,14 @@ mati dengan rapi (`PPOB_NONAKTIF`), test memakai adaptor palsu.
 
 ## 14. Keputusan saya yang perlu Anda cek
 
-1. Top-up tahap 1 = transfer bank/QRIS statis + konfirmasi admin (tanpa gateway).
+1. Top-up tahap 1 = transfer bank/QRIS statis + konfirmasi admin (tanpa gateway) **[pemilik: setuju]**.
 2. Kode unik top-up ikut dikreditkan sebagai Poin.
-3. Notifikasi admin via **Telegram** (WA menyusul lewat adaptor bila perlu).
-4. Email via **Brevo** (API HTTP); token dikirim ke email pemilik toko + email
+3. Notifikasi admin via **Telegram** **[pemilik: setuju]**.
+4. Email via **Resend** (API HTTP) **[pemilik]**; token dikirim ke email pemilik toko + email
    pembeli bila diisi.
-5. Markup default per kategori, bisa di-override per produk.
-6. Penjualan PPOB dicatat sebagai transaksi kasir (tahap app).
-7. Poin tidak kedaluwarsa; min top-up 20.000, maks 5.000.000.
+5. Markup default per kategori, bisa di-override per produk **[pemilik: setuju]**.
+6. Penjualan PPOB dicatat sebagai transaksi kasir (tahap app); **pemilik toko menentukan sendiri harga jual/labanya** ke pembeli **[pemilik]**.
+7. Poin tidak kedaluwarsa; min top-up 20.000, maks 5.000.000 **[pemilik: setuju]**.
 8. Pengingat order token manual tanpa worker latar (dipicu aktivitas + cron harian).
 9. **Relay Digiflazz di VPS Kreatora** (karena whitelist IP); kredensial Digiflazz
    hanya ada di relay, dan Vercel bicara ke relay dengan HMAC.
@@ -339,7 +339,7 @@ mati dengan rapi (`PPOB_NONAKTIF`), test memakai adaptor palsu.
 
 **Yang perlu Anda siapkan (di luar kode):** akun Digiflazz (username, API key,
 webhook secret) + whitelist IP Kreatora; saldo deposit Digiflazz; bot Telegram
-(token + chat ID grup admin); akun Brevo + domain pengirim terverifikasi;
+(token + chat ID grup admin); akun Resend + domain pengirim terverifikasi;
 rekening/QRIS tujuan top-up; subdomain untuk relay.
 
 ## 15. Pengujian
