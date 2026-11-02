@@ -223,8 +223,10 @@ konsisten setelah semua halaman diterapkan).
   Pola aman saat ini: satu perangkat kasir aktif per toko; perangkat lain untuk
   melihat laporan / backup. Solusi lanjutan: hitung ulang saldo dari ledger
   setelah pull.
-- **Nomor invoice** dihitung per perangkat (`invoice_seq_<tgl>` lokal) → dua
-  kasir aktif bisa menghasilkan nomor sama. Solusi lanjutan: kode perangkat di
-  nomor invoice.
+- **Nomor invoice** dihitung per perangkat (`invoice_seq_<tgl>` lokal), tetapi
+  selalu melanjutkan dari nomor tertinggi hari itu yang sudah ada di DB →
+  aman untuk HP hasil pulihkan / instal ulang. Dua kasir yang **aktif
+  bersamaan** sebelum saling sync tetap bisa menghasilkan nomor sama. Solusi
+  lanjutan: kode perangkat di nomor invoice.
 - **Foto produk** (`imagePath`) = path file lokal; foto tidak ikut tersinkron.
 - Opname **draft** tidak terlihat di perangkat lain sampai difinalisasi.
