@@ -147,6 +147,36 @@ suite('Backup contract', () => {
     expect(aProducts.some((r: any) => r.id === pA.id)).toBe(true);
   });
 
+  it('tabrakan id lintas-toko → rejected ID_CONFLICT (bukan STALE), data A utuh', async () => {
+    const a = await newStore();
+    const b = await newStore();
+    const pA = product({ name: 'Milik A' });
+    const payA = { id: uuid(), transactionId: uuid(), method: 'cash', amount: 5000, updatedAt: now(), deletedAt: null };
+    await req('POST', '/v1/backup/push', a.token, pushBody({ products: [pA], payments: [payA] }));
+
+    // B (mis. "salin produk dari toko A" yang lupa membuat id baru) memakai id A.
+    const pOk = product({ name: 'Milik B' });
+    const res = await req(
+      'POST',
+      '/v1/backup/push',
+      b.token,
+      pushBody({
+        products: [{ ...pA, name: 'Salinan B', updatedAt: now() + 10 }, pOk],
+        payments: [{ ...payA, amount: 1 }],
+      }),
+    );
+    expect(res.status).toBe(200);
+    const { rejected, skipped, applied } = res.json.data;
+    expect(rejected).toContainEqual(expect.objectContaining({ table: 'products', id: pA.id, code: 'ID_CONFLICT' }));
+    expect(rejected).toContainEqual(expect.objectContaining({ table: 'payments', id: payA.id, code: 'ID_CONFLICT' }));
+    expect(skipped.some((s: any) => s.id === pA.id)).toBe(false);
+    expect(applied.products).toBe(1); // baris lain dalam batch tetap tersimpan
+
+    const aPull = await req('GET', '/v1/backup/pull', a.token);
+    const aRow = (aPull.json.data.tables.products ?? []).find((r: any) => r.id === pA.id);
+    expect(aRow.name).toBe('Milik A');
+  });
+
   it('pull cursor: batch terpaginasi, tak lewat/tak dobel', async () => {
     const { token } = await newStore();
     const products = Array.from({ length: 5 }, (_, i) => product({ name: `P${i}` }));

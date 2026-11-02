@@ -123,6 +123,20 @@ export class BackupRepository extends TenantRepository {
     return { appliedIds: new Set(applied.map((r) => r.id)) };
   }
 
+  /**
+   * Id dari [ids] yang SUDAH dipakai toko LAIN (tabrakan id lintas-tenant).
+   * Baris seperti ini tak boleh dilaporkan STALE — klien akan menandainya
+   * bersih dan datanya hilang diam-diam (SYNC.md §3, kode `ID_CONFLICT`).
+   */
+  async foreignIds(table: BackupTable, ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0 || table.kind === 'singleton') return new Set();
+    const rows = await this.sql.unsafe<{ id: string }[]>(
+      `SELECT id FROM ${q(table.db)} WHERE id = ANY($1::uuid[]) AND business_id <> $2`,
+      [ids, this.businessId] as never[],
+    );
+    return new Set(rows.map((r) => r.id));
+  }
+
   /** INSERT append-only (immutable). DO NOTHING → idempotent murni. */
   async insertAppend(table: BackupTable, rows: Record<string, unknown>[]): Promise<UpsertResult> {
     if (rows.length === 0) return { appliedIds: new Set() };

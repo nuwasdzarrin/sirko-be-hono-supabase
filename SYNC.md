@@ -55,6 +55,7 @@ Respons:
   "applied":  { "products": 2, "transactions": 1, ... },   // jumlah tersimpan/terupdate
   "skipped":  [ { "table":"products","id":"...","reason":"STALE" } ],  // LWW: versi server lebih baru
   "rejected": [ { "table":"...","id":"...","code":"VALIDATION","message":"..." } ] // payload cacat
+              // atau code "ID_CONFLICT": id sudah dipakai TOKO LAIN → baris tak disimpan
 } }
 ```
 **Aturan server (WAJIB dipahami):**
@@ -170,6 +171,11 @@ konvergen & tidak merusak data lokal. Kode: `sirko/lib/features/sync/`.
   Guard `updated_at` mencegah perubahan yang terjadi *selama* request ikut
   dianggap terkirim. Baris `rejected` ditandai bersih + dicatat di status sync
   (tidak diulang tanpa akhir); perbaikan data → baris dirty lagi → terkirim ulang.
+- **`ID_CONFLICT`** = id baris sudah dimiliki toko lain di server (UUID global).
+  Server **tidak** menimpa dan **tidak** melaporkannya sebagai `STALE` (dulu
+  begitu → klien menandai bersih → data hilang diam-diam). Penyebab realistis:
+  fitur salin data antar-toko (paket Juragan, lihat `JURAGAN.md`) yang menyalin
+  `id`. Aturan: setiap salinan lintas-toko **wajib** membuat UUID baru.
 
 ### 8.3 Menerapkan hasil PULL (cloud → lokal)
 Semua penerapan per halaman dalam **satu transaksi** dengan trigger nonaktif

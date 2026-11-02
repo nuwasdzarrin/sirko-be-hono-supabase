@@ -24,7 +24,11 @@ import { upgradeRequired } from '../lib/errors.js';
 interface RejectedRow {
   table: string;
   id: string | null;
-  code: 'VALIDATION';
+  /**
+   * VALIDATION = payload cacat. ID_CONFLICT = id sudah dipakai toko lain
+   * (mis. fitur salin produk antar-toko yang lupa membuat id baru).
+   */
+  code: 'VALIDATION' | 'ID_CONFLICT';
   message: string;
 }
 interface SkippedRow {
@@ -94,8 +98,23 @@ export async function push(
   await sql.begin(async (tx) => {
     const repo = new BackupRepository(businessId, tx);
     for (const table of BACKUP_TABLES) {
-      const rows = perTable.get(table.wire);
+      let rows = perTable.get(table.wire);
       if (!rows || rows.length === 0) continue;
+
+      // Tabrakan id lintas-toko → rejected (bukan STALE), baris lain tetap jalan.
+      const foreign = await repo.foreignIds(table, rows.map((r) => r.id as string));
+      if (foreign.size > 0) {
+        for (const id of foreign) {
+          rejected.push({
+            table: table.wire,
+            id,
+            code: 'ID_CONFLICT',
+            message: 'id sudah dipakai toko lain; buat id baru (UUID) untuk baris ini',
+          });
+        }
+        rows = rows.filter((r) => !foreign.has(r.id as string));
+        if (rows.length === 0) continue;
+      }
 
       if (table.kind === 'singleton') {
         const row = rows[rows.length - 1]!; // business = 1 baris
