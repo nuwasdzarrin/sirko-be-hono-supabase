@@ -254,3 +254,4 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 | Q4 | Karyawan (kasir) boleh di beberapa toko? | Tidak — kasir PIN per toko (sudah begitu). Akun cloud karyawan lintas-toko menyusul |
 | Q5 | Pelanggan/supplier dibagi antar-toko? | Tidak — per toko. Laporan gabungan cukup |
 | Q6 | Nomor invoice diberi kode toko? | Ya untuk laporan gabungan (mis. `INV-A-20261102-0001`) — perubahan di aplikasi |
+| Q7 | Saldo **Poin Sirko** (PPOB, rencana terpisah) per toko atau per akun owner? Rencana PPOB saat ini: kunci `business_id`, tanpa transfer antar-toko → owner 5 toko = 5 saldo poin terpisah | Putuskan sebelum tabel poin dibuat. Bila per akun: kunci `account_id` + catat toko pemakai di setiap order PPOB |
