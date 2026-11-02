@@ -3,7 +3,7 @@
 App = **local-first** (Drift/SQLite). Cloud = cadangan & sinkronisasi antar-device,
 **per toko**. Mesin sync = endpoint **Backup** (sudah live). Auth per-toko = JWT.
 
-- Base URL: `https://sirko-be-hono-supabase.vercel.app` · semua di `/v1`.
+- Base URL: `https://sirko.vercel.app` · semua di `/v1`. (URL lama `sirko-be-hono-supabase.vercel.app` tidak dipakai lagi oleh app.)
 - Header: `Authorization: Bearer <accessToken>`.
 - Uang integer rupiah · waktu **epoch ms UTC** · id **UUID (digenerate device)**.
 - Server SELALU ambil `businessId` dari JWT; `business_id` di body **diabaikan**.
@@ -129,3 +129,98 @@ Untuk panel "terakhir tersinkron" / jumlah data di cloud.
 - **Katalog umum** (`public_products`) = referensi global, **bukan** data toko → tidak lewat backup. Didapat dari **seed** (`catalog_seed.sqlite`) + endpoint katalog (`/v1/catalog/*`). Lihat `spec/13-seed-catalog.md` & `API.md`.
 
 Kontrak detail push/pull per baris: `spec/10-api-contract.md` §2. Ringkasan endpoint: `API.md`.
+
+---
+
+## 8. Implementasi klien Flutter (Sirko app) — keputusan detail
+
+Bagian ini melengkapi §0–§7 dengan aturan yang **wajib** diikuti klien agar
+konvergen & tidak merusak data lokal. Kode: `sirko/lib/features/sync/`.
+
+### 8.1 Pelacakan perubahan (dirty tracking) — di level database
+- Semua tabel tenant memakai `StandardColumns` (`is_dirty` default `true`).
+- Agar tidak bergantung pada disiplin ratusan titik tulis di repository, app
+  memasang **TEMP TRIGGER** SQLite (`AFTER UPDATE`, dibuat ulang tiap DB dibuka,
+  **tanpa migrasi skema**) di tiap tabel yang disinkron:
+  - set `is_dirty = 1`;
+  - bila `updated_at` **tidak** dinaikkan oleh penulis → trigger menaikkannya ke
+    `max(updated_at lama + 1, now)` (tanpa ini server akan menilai `STALE`).
+- Trigger **tidak aktif** saat engine sync sendiri menulis (apply hasil pull /
+  menandai bersih setelah push) — dikendalikan flag di tabel TEMP `sync_ctl`.
+- INSERT baru otomatis dirty (default kolom).
+
+### 8.2 Apa yang di-push
+| Tabel lokal | Perlakuan |
+|---|---|
+| 24 tabel tenant di §2 | push bila `is_dirty = 1` |
+| `held_sales`, `held_sale_items` | **lokal saja** (Tunda) |
+| `public_products`, `public_product_thumbs` | **lokal saja** (katalog global) |
+| `receipt_presets`, `discounts` | belum ada di app → tidak dikirim |
+| `app_settings` | hanya kunci **toko** (whitelist): `allow_negative_stock`, `require_open_bill`, `costing_method`, `default_cash_wallet_id`. Kunci perangkat (`invoice_seq_*`, `sync_*`, `catalog_*`, seed, dsb.) **lokal saja** |
+| `stock_opname_items` | hanya bila opname induknya sudah `finalized` (server = append-only, sedangkan item draft masih diedit) |
+
+- Urutan kirim = urutan registry backend (master → header → detail), maks
+  **500 baris/tabel/request**; diulang sampai tak ada baris dirty (maks 20 putaran).
+- Header `Idempotency-Key: <uuid>` per request (aman retry).
+- `clientInfo.schemaVersion` = **versi kontrak wire (10)**, bukan versi DB lokal.
+- Konversi lokal→wire: `bool` SQLite 0/1 → `true/false`; `users.permissions`
+  (teks JSON) → objek JSON; uang/waktu tetap integer.
+- **Menandai bersih:** baris yang terkirim & tidak `rejected` →
+  `UPDATE … SET is_dirty = 0 WHERE id = ? AND updated_at = <yang dikirim>`.
+  Guard `updated_at` mencegah perubahan yang terjadi *selama* request ikut
+  dianggap terkirim. Baris `rejected` ditandai bersih + dicatat di status sync
+  (tidak diulang tanpa akhir); perbaikan data → baris dirty lagi → terkirim ulang.
+
+### 8.3 Menerapkan hasil PULL (cloud → lokal)
+Semua penerapan per halaman dalam **satu transaksi** dengan trigger nonaktif
+dan `PRAGMA foreign_keys = OFF` (baris anak bisa tiba sebelum induknya; FK
+konsisten setelah semua halaman diterapkan).
+- **LWW** (master & header): `INSERT … ON CONFLICT(id) DO UPDATE … WHERE
+  excluded.updated_at > lokal.updated_at`, `is_dirty = 0`. Versi lokal yang lebih
+  baru (belum ter-push) **dipertahankan**. `deletedAt` ikut → tombstone.
+- **Append** (ledger): `INSERT … ON CONFLICT(id) DO NOTHING`.
+- **`business` (singleton):** id server ≠ id lokal → perbarui **satu-satunya**
+  baris `businesses` lokal bila lebih baru; bila belum ada, sisipkan.
+- **`app_settings`:** dicocokkan per **`key`** (unik lokal), hanya kunci whitelist.
+- Kolom yang tak dikenal server (kolom khusus lokal) tidak disentuh; baris yang
+  melanggar constraint lokal (mis. kolom wajib `null`) **dilewati & dihitung**
+  sebagai konflik di status — tidak menggagalkan halaman.
+- `createdAt` null → pakai `updatedAt`.
+- Cursor disimpan di `app_settings.sync_cursor` (lokal saja) **setelah** halaman
+  diterapkan → aman bila app mati di tengah.
+
+### 8.4 Kapan sync berjalan (app)
+- `push` lalu `pull` dalam satu siklus (`syncNow`), dijaga mutex (tak paralel).
+- Otomatis: tiap **60 dtk** selama app aktif & terhubung cloud; saat app
+  kembali ke foreground; ±5 dtk setelah ada perubahan data lokal (debounce);
+  langsung setelah login/daftar/pulihkan.
+- Gagal jaringan → status **Offline**, coba lagi di siklus berikutnya
+  (push idempoten → aman). Semua transaksi tetap jalan offline.
+- Manual: tombol **Sinkronkan sekarang** (Lainnya → Sinkronisasi Cloud).
+
+### 8.5 Alur akun
+- **Toko yang sudah berjalan di HP ini, belum punya akun:** *Daftar akun cloud*
+  (`register-business`, nama toko dari data lokal) → push seluruh data lokal.
+- **Sudah punya akun:** *Masuk* → push data lokal + pull.
+- **HP baru / instal ulang:** di layar onboarding pilih **Pulihkan dari Cloud**
+  → login → pull penuh (toko, pengguna + PIN, produk, transaksi, dst.) → layar
+  PIN. Tidak membuat toko/pemilik baru (mencegah pemilik ganda).
+- **Pengaman ganti toko:** `sync_business_id` disimpan lokal; login ke toko
+  (`businessId`) yang berbeda dari data lokal yang sudah tersinkron **ditolak**
+  (mencegah data dua toko tercampur).
+- Logout cloud: sync berhenti; data lokal tetap.
+
+### 8.6 Batasan yang diketahui (fase berikutnya)
+- **Saldo turunan** (`products.stock`, `product_variants.stock`,
+  `customers.debtBalance`, `suppliers.debtBalance`, `wallets.balance`) ikut LWW
+  sebagai kolom master. Bila **dua perangkat mengubah saldo yang sama secara
+  bersamaan saat offline**, perubahan yang kalah LWW hilang (ledger-nya tetap
+  lengkap di `stock_logs` / `wallet_transactions` / `credit_payments`).
+  Pola aman saat ini: satu perangkat kasir aktif per toko; perangkat lain untuk
+  melihat laporan / backup. Solusi lanjutan: hitung ulang saldo dari ledger
+  setelah pull.
+- **Nomor invoice** dihitung per perangkat (`invoice_seq_<tgl>` lokal) → dua
+  kasir aktif bisa menghasilkan nomor sama. Solusi lanjutan: kode perangkat di
+  nomor invoice.
+- **Foto produk** (`imagePath`) = path file lokal; foto tidak ikut tersinkron.
+- Opname **draft** tidak terlihat di perangkat lain sampai difinalisasi.
