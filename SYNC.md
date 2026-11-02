@@ -186,6 +186,10 @@ konsisten setelah semua halaman diterapkan).
   melanggar constraint lokal (mis. kolom wajib `null`) **dilewati & dihitung**
   sebagai konflik di status — tidak menggagalkan halaman.
 - `createdAt` null → pakai `updatedAt`.
+- **`users` tanpa `username`/`pinHash`** (owner versi cloud yang dibuat server
+  saat `register-business`; login-nya email+password, bukan PIN) **diabaikan** —
+  bukan data perangkat & tak bisa dipakai login PIN. Pemilik di HP tetap user
+  perangkat (ber-PIN) yang ikut tersinkron dari HP pertama.
 - Cursor disimpan di `app_settings.sync_cursor` (lokal saja) **setelah** halaman
   diterapkan → aman bila app mati di tengah.
 
