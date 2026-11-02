@@ -67,7 +67,8 @@ Output diharapkan:
 → apply  0003_catalog ...     ✓ done
 → apply  0004_catalog_contributions ...  ✓ done
 → apply  0005_schema_v10 ...  ✓ done
-Selesai: 5 migrasi diterapkan.
+→ apply  0006_feedback ...  ✓ done
+Selesai: 6 migrasi diterapkan.
 ```
 Idempotent — aman diulang (migrasi yang sudah ada di-skip). **Hapus `.env.production.local`** setelah selesai bila tak ingin menyimpan kredensial DB di disk.
 

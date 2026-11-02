@@ -165,7 +165,14 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 | `/dashboard/login` | Halaman login (`POST /dashboard/login`, `POST /dashboard/logout`) |
 | `/dashboard` | **Ringkasan**: KPI + kategori katalog (tiap kategori = link ke katalog terfilter) + 20 katalog terbaru + tombol "Lihat semua" |
 | `/dashboard/catalog?page=&q=&category=&source=&verified=` | Katalog **berpaginasi** (24/hal) + foto + **cari** (nama/brand/barcode) + **scan barcode/QR** (kamera atau foto, html5-qrcode dari cdnjs) + filter chip **kategori** / **sumber** (`admin`\|`crowdsource`) / **status** (`verified=1\|0`). Semua filter di query URL → aman di-reload/dibagikan. `category=Lainnya` juga mencakup produk tanpa kategori |
-| `/dashboard/businesses?page=` | Daftar toko berpaginasi (20/hal) |
+| `/dashboard/catalog/new`, `/dashboard/catalog/:id` | **Tambah / edit** produk katalog (semua field + upload foto ke bucket, maks 4 MB) · `POST …/:id/delete` (ke Sampah) · `POST …/:id/restore` |
+| `/dashboard/catalog?trash=1` | **Sampah**: produk terhapus (soft delete) — tak muncul di app; bisa dipulihkan (dilewati bila barcode-nya sudah dipakai produk aktif lain) |
+| `POST /dashboard/catalog/bulk` | Aksi massal dari checkbox: `delete` / `restore` / `verify` / `unverify` (maks 500 id) |
+| `/dashboard/businesses?page=` | Daftar toko berpaginasi (20/hal) — klik baris → detail |
+| `/dashboard/businesses/:id?tab=report&preset=\|from=&to=` | **Laporan toko**: laba rugi (rumus §9 sama dengan app: pendapatan = Σ lineTotal − diskon nota, HPP = Σ modal-saat-transaksi × qty, void dikecualikan), status pembayaran & piutang, uang masuk per metode + pelunasan, produk terlaris, per hari. Periode WIB: preset `today/7d/30d/month/lastmonth/year` atau `from`/`to` |
+| `/dashboard/businesses/:id/transactions/:txId` | **Detail nota**: item (modal & laba), pembayaran saat transaksi, jadwal cicilan, pelunasan hutang, sisa tagihan |
+| `/dashboard/feedback?status=&category=&business=` | **Saran** pengguna (dari `POST /v1/feedback`): filter status/jenis/toko, ubah status + catatan admin (`POST /dashboard/feedback/:id`). Badge jumlah saran baru di menu |
+| `/dashboard/businesses/:id?tab=&page=&deleted=1` | **Detail toko**: profil + akun pemilik + jumlah data per jenis; tab per tabel backup (generik dari registry) dengan relasi tampil sebagai nama; `deleted=1` = data yang dihapus di app. Hanya-baca, `pinHash` tak ditampilkan |
 | `/dashboard/transactions?page=` | Daftar transaksi berpaginasi (20/hal) |
 | `/` | redirect ke `/dashboard` |
 

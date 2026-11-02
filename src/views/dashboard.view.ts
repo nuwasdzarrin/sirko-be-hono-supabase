@@ -7,8 +7,18 @@ import type {
   BusinessItem,
   TxItem,
   ContribPage,
+  BusinessDetail,
+  BusinessTablePage,
 } from '../services/dashboard.service.js';
-import { UNCATEGORIZED } from '../services/dashboard.service.js';
+import { UNCATEGORIZED, BUSINESS_TABS } from '../services/dashboard.service.js';
+import type { CatalogDetail } from '../services/catalog-admin.service.js';
+import type { Col } from '../db/backup-tables.js';
+
+/** Pesan sekali-tampil setelah redirect (disisipkan route di marker `<!--flash-->`). */
+export interface Flash {
+  type: 'ok' | 'error';
+  msg: string;
+}
 
 /**
  * View dashboard (EJS di-embed sebagai string → aman di serverless). Terdiri
@@ -22,8 +32,8 @@ const RP = new Intl.NumberFormat('id-ID');
 const DT = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
 const D = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' });
 
-const helpers = {
-  fmtRp: (v: number) => 'Rp ' + RP.format(v || 0),
+export const helpers = {
+  fmtRp: (v: number) => (v < 0 ? '−Rp ' : 'Rp ') + RP.format(Math.abs(v || 0)),
   fmtDateTime: (ms: number) => (ms ? DT.format(new Date(ms)) : '—'),
   fmtDate: (ms: number) => (ms ? D.format(new Date(ms)) : '—'),
   fmtNum: (v: number) => RP.format(v || 0),
@@ -165,7 +175,73 @@ const CSS = `
   .scan-ft{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;padding:0 16px 16px}
   .scan-ft label{cursor:pointer}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .flash{margin:0 0 16px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--ok-line);color:var(--ok);background:var(--card)}
+  .flash.err{border-color:var(--bad-line);color:var(--bad)}
+  .titlebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .titlebar h1{margin:0}
+  .titlebar .acts{display:flex;flex-wrap:wrap;gap:8px}
+  .btn-link.danger{color:var(--bad);border-color:var(--bad-line)}
+  .notice{background:var(--card);border:1px solid var(--warn-line);color:var(--tx);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+  .notice b{color:var(--warn)}
+  td.chk,th.chk{width:36px;padding-right:0}
+  td.chk input,th.chk input{width:16px;height:16px;accent-color:var(--acc);cursor:pointer}
+  tr.sel td{background:var(--acc-soft)}
+  td.acts-col{white-space:nowrap;text-align:right}
+  .mini{display:inline-flex;align-items:center;padding:4px 10px;border-radius:7px;border:1px solid var(--line);color:var(--tx);font-size:12px;font-weight:600;background:var(--bg)}
+  .mini:hover{border-color:var(--acc);color:var(--acc)}
+  .bulkbar{position:sticky;bottom:12px;z-index:5;display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding:10px 14px;background:var(--card);border:1px solid var(--acc);border-radius:12px;box-shadow:var(--shadow)}
+  .bulkbar.on{display:flex}
+  .bulkbar .cnt{font-weight:700;margin-right:auto}
+  .form-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .panel h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+  .fields .full{grid-column:1/-1}
+  .f label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+  .f label .req{color:var(--bad)}
+  .f input[type=text],.f input[type=url],.f input[type=number],.f select,.f textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px}
+  .f textarea{min-height:72px;resize:vertical}
+  .f input:focus,.f select:focus,.f textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  .f .hint{font-size:11px;color:var(--mut);margin-top:4px}
+  .check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+  .check input{width:16px;height:16px;accent-color:var(--acc)}
+  .photo-box{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px}
+  .photo-box img{width:100%;height:100%;object-fit:contain}
+  .photo-box .none{color:var(--mut);font-size:12px}
+  .photo-box:has(.none){background:var(--sunk)}
+  .meta-list{font-size:12px;color:var(--mut);display:grid;gap:4px;margin-top:12px}
+  .meta-list code{font-size:11px}
+  .form-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+  .form-actions .spacer{flex:1}
+  .crumb{font-size:13px;margin-bottom:10px;display:inline-block}
+  .biz-head{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;font-size:13px}
+  .biz-head b{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+  .tabs-wrap{position:relative;display:flex;align-items:center;gap:6px;margin:16px 0 12px}
+  .tabs{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;flex:1;min-width:0;padding:2px;
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%)}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{flex:0 0 auto;white-space:nowrap;display:inline-flex;gap:6px;align-items:center;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--tx);font-size:13px;background:var(--card)}
+  .tabs a.special{border-color:var(--acc);color:var(--acc);font-weight:600}
+  .tabs-arrow{flex:0 0 auto;width:30px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .tabs-arrow:hover{border-color:var(--acc);color:var(--acc)}
+  .tabs-arrow[hidden]{display:none}
+  .tabs a .c{color:var(--mut);font-size:11px}
+  .tabs a.on{background:var(--acc);border-color:var(--acc);color:var(--acc-tx)}
+  .tabs a.on .c{color:var(--acc-tx)}
+  .tabs a.zero{opacity:.55}
+  .counts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .counts a{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--tx)}
+  .counts a:hover{border-color:var(--acc)}
+  .counts a .n{font-size:20px;font-weight:800}
+  .counts a .l{font-size:12px;color:var(--mut)}
+  .counts a.zero{opacity:.55}
+  tr.rowlink{cursor:pointer}
+  .biztable td{white-space:nowrap}
+  tr.rowlink:hover td{background:var(--acc-soft)}
+  @media (max-width:860px){.form-grid{grid-template-columns:1fr}}
   @media (max-width:640px){
+    .fields{grid-template-columns:1fr}
     .frow{flex-direction:column;gap:6px}
     .flabel{flex:none;padding:0}
     nav.top .st,nav.top .badge{display:none}
@@ -185,7 +261,7 @@ document.addEventListener('click',function(e){
   try{localStorage.setItem('sirko-theme',nx)}catch(e){}
 });`;
 
-const ICONS = {
+export const ICONS = {
   sun: `<svg class="theme-ico-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
   moon: `<svg class="theme-ico-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`,
   search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
@@ -209,6 +285,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
     <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
     <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
+    <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     <span class="spacer"></span>
     <span class="badge">lintas-tenant</span>
     <span class="st"><%= fmtDateTime(serverTime) %> WIB</span>
@@ -217,13 +294,14 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
       <button class="icon-btn" type="submit" title="Keluar" aria-label="Keluar"><%- icons.logout %><span>Keluar</span></button>
     </form>
   </nav>
+  <!--flash-->
   <%- body %>
 </div>
 <script><%- themeJs %></script>
 <%- extraJs %>
 </body></html>`;
 
-function renderLayout(opts: {
+export function renderLayout(opts: {
   title: string;
   active: string;
   body: string;
@@ -245,7 +323,7 @@ function renderLayout(opts: {
 }
 
 /** Bangun HTML paginasi (jendela ±2 + ujung). mkUrl(p) → URL halaman p. */
-function pagerHtml(page: number, pages: number, total: number, mkUrl: (p: number) => string): string {
+export function pagerHtml(page: number, pages: number, total: number, mkUrl: (p: number) => string): string {
   if (pages <= 1) return `<div class="pager"><span class="info">${total} data</span></div>`;
   const parts: string[] = [];
   const prev = page > 1 ? `<a href="${mkUrl(page - 1)}">‹ Sebelumnya</a>` : `<span class="dis">‹ Sebelumnya</span>`;
@@ -358,6 +436,7 @@ export function catalogUrl(f: Partial<CatalogFilters>, page?: number): string {
   if (f.category) p.set('category', f.category);
   if (f.source) p.set('source', f.source);
   if (f.verified !== undefined) p.set('verified', f.verified ? '1' : '0');
+  if (f.trash) p.set('trash', '1');
   if (page && page > 1) p.set('page', String(page));
   const qs = p.toString();
   return '/dashboard/catalog' + (qs ? `?${qs}` : '');
@@ -490,7 +569,20 @@ export function renderContributions(pg: ContribPage): string {
 // ── Katalog (foto + filter + cari + scan) ────────────────────────────────────
 
 const CATALOG_TPL = `
-<h1>Katalog Produk Umum</h1>
+<div class="titlebar">
+  <h1><%= f.trash ? 'Sampah Katalog' : 'Katalog Produk Umum' %></h1>
+  <div class="acts">
+    <% if (f.trash) { %>
+      <a class="btn-link" href="<%= url({ ...f, trash: undefined }) %>">← Kembali ke katalog</a>
+    <% } else { %>
+      <a class="btn-link" href="<%= url({ ...f, trash: true }) %>">🗑 Sampah (<%= fmtNum(pg.trashCount) %>)</a>
+      <a class="btn-link primary" href="/dashboard/catalog/new?back=<%= encodeURIComponent(self) %>">+ Tambah produk</a>
+    <% } %>
+  </div>
+</div>
+<% if (f.trash) { %>
+<div class="notice"><b>Sampah:</b> produk di sini tidak muncul di aplikasi (pencarian &amp; scan). Centang lalu <b>Pulihkan</b> bila terhapus tidak sengaja.</div>
+<% } %>
 <form class="search" method="get" action="/dashboard/catalog" id="cat-search">
   <div class="search-box">
     <%- icons.search %>
@@ -500,6 +592,7 @@ const CATALOG_TPL = `
   <% if (f.category) { %><input type="hidden" name="category" value="<%= f.category %>"><% } %>
   <% if (f.source) { %><input type="hidden" name="source" value="<%= f.source %>"><% } %>
   <% if (f.verified !== undefined) { %><input type="hidden" name="verified" value="<%= f.verified ? '1' : '0' %>"><% } %>
+  <% if (f.trash) { %><input type="hidden" name="trash" value="1"><% } %>
   <button type="button" class="btn ghost" id="scan-open" title="Scan barcode / QR code dengan kamera"><%- icons.scan %>Scan</button>
   <button type="submit" class="btn primary">Cari</button>
 </form>
@@ -535,32 +628,47 @@ const CATALOG_TPL = `
 <% if (hasFilter) { %>
 <div class="active-filters">
   <span><b><%= fmtNum(pg.total) %></b> produk cocok</span>
-  <a href="/dashboard/catalog">✕ Reset semua filter</a>
+  <a href="<%= f.trash ? '/dashboard/catalog?trash=1' : '/dashboard/catalog' %>">✕ Reset semua filter</a>
 </div>
 <% } %>
 
+<form method="post" action="/dashboard/catalog/bulk" id="bulk-form">
+<input type="hidden" name="back" value="<%= self %>">
 <div class="tablewrap">
   <% if (pg.items.length === 0) { %>
-    <div class="empty">Tidak ada produk<%= f.q ? ' untuk "'+f.q+'"' : '' %> dengan filter ini.</div>
+    <div class="empty"><%= f.trash ? 'Sampah kosong' : 'Tidak ada produk' %><%= f.q ? ' untuk "'+f.q+'"' : '' %> dengan filter ini.</div>
   <% } else { %>
   <table>
-    <thead><tr><th>Foto</th><th>Nama</th><th>Brand</th><th>Kategori</th><th>Ukuran</th><th>Verified</th><th>Sumber</th></tr></thead>
+    <thead><tr><th class="chk"><input type="checkbox" id="chk-all" aria-label="Pilih semua di halaman ini"></th><th>Foto</th><th>Nama</th><th>Brand</th><th>Kategori</th><th>Ukuran</th><th>Verified</th><th>Sumber</th><th></th></tr></thead>
     <tbody>
-    <% pg.items.forEach(function(it){ %>
+    <% pg.items.forEach(function(it){ var edit = '/dashboard/catalog/' + it.id + '?back=' + encodeURIComponent(self); %>
       <tr>
+        <td class="chk"><input type="checkbox" name="ids" value="<%= it.id %>" class="chk-row" aria-label="Pilih <%= it.name || 'produk' %>"></td>
         <td><% if (it.photoUrl) { %><img class="thumb" src="<%= it.photoUrl %>" alt="" loading="lazy" onerror="this.style.display='none'"><% } else { %><div class="thumb ph">?</div><% } %></td>
-        <td><%= it.name || '—' %><br><span class="mut" style="font-size:11px"><code><%= it.barcode || '—' %></code></span></td>
+        <td><a href="<%= edit %>" style="color:var(--tx)"><%= it.name || '—' %></a><br><span class="mut" style="font-size:11px"><code><%= it.barcode || '—' %></code></span></td>
         <td class="mut"><%= it.brand || '—' %></td>
         <td><a class="catlink" href="<%= url({ ...f, category: it.category || uncategorized }) %>"><%= it.category || '—' %></a></td>
         <td class="mut"><%= it.netSize ? (it.netSize + ' ' + (it.netUnit||'')) : '—' %></td>
         <td><span class="pill <%= it.verified?'ok':'warn' %>"><%= it.verified?'ya':'belum' %></span></td>
         <td class="mut"><%= it.source %></td>
+        <td class="acts-col"><a class="mini" href="<%= edit %>"><%= f.trash ? 'Lihat' : 'Edit' %></a></td>
       </tr>
     <% }) %>
     </tbody>
   </table>
   <% } %>
 </div>
+<div class="bulkbar" id="bulkbar">
+  <span class="cnt"><span id="bulk-n">0</span> dipilih</span>
+  <% if (f.trash) { %>
+    <button class="btn primary" name="action" value="restore">↺ Pulihkan</button>
+  <% } else { %>
+    <button class="btn ghost" name="action" value="verify">✓ Tandai terverifikasi</button>
+    <button class="btn ghost" name="action" value="unverify">Tandai belum</button>
+    <button class="btn bad" name="action" value="delete" data-confirm="Pindahkan produk terpilih ke Sampah? Produk tak akan muncul di aplikasi (bisa dipulihkan).">🗑 Hapus</button>
+  <% } %>
+</div>
+</form>
 <%- pager %>
 
 <dialog class="scan" id="scan-dlg" aria-labelledby="scan-title">
@@ -576,6 +684,27 @@ const CATALOG_TPL = `
   </div>
 </dialog>
 `;
+
+/** Pilih-semua, hitung terpilih, & konfirmasi aksi berbahaya (hapus). */
+const BULK_JS = `<script>
+(function(){
+  var form=document.getElementById('bulk-form'); if(!form) return;
+  var all=document.getElementById('chk-all'), bar=document.getElementById('bulkbar'), n=document.getElementById('bulk-n');
+  function rows(){return Array.prototype.slice.call(form.querySelectorAll('.chk-row'))}
+  function sync(){
+    var on=rows().filter(function(c){c.closest('tr').classList.toggle('sel',c.checked);return c.checked}).length;
+    n.textContent=on; bar.classList.toggle('on',on>0);
+    if(all){all.checked=on>0&&on===rows().length;all.indeterminate=on>0&&on<rows().length}
+  }
+  if(all) all.addEventListener('change',function(){rows().forEach(function(c){c.checked=all.checked});sync()});
+  form.addEventListener('change',function(e){if(e.target.classList.contains('chk-row'))sync()});
+  form.addEventListener('submit',function(e){
+    var b=e.submitter; var msg=b&&b.getAttribute('data-confirm');
+    if(msg&&!confirm(msg)) e.preventDefault();
+  });
+  sync();
+})();
+</script>`;
 
 /** Scanner kamera (html5-qrcode, dimuat malas). Hasil → isi kotak cari & submit (filter tetap). */
 const SCAN_JS = `<script>
@@ -627,17 +756,19 @@ export function renderCatalog(pg: CatalogPage): string {
   const f = pg.filters;
   const pager = pagerHtml(pg.page, pg.pages, pg.total, (p) => catalogUrl(f, p));
   const hasFilter = Boolean(f.q || f.category || f.source || f.verified !== undefined);
+  const self = catalogUrl(f, pg.page);
   const body = ejs.render(CATALOG_TPL, {
     pg,
     f,
     url: (x: Partial<CatalogFilters>) => catalogUrl(x),
     hasFilter,
+    self,
     pager,
     uncategorized: UNCATEGORIZED,
     icons: ICONS,
     ...helpers,
   });
-  return renderLayout({ title: 'Katalog', active: 'catalog', body, serverTime: pg.serverTime, extraJs: SCAN_JS });
+  return renderLayout({ title: 'Katalog', active: 'catalog', body, serverTime: pg.serverTime, extraJs: SCAN_JS + BULK_JS });
 }
 
 // ── Toko ──────────────────────────────────────────────────────────────────────
@@ -649,11 +780,11 @@ const BUSINESSES_TPL = `
     <div class="empty">Belum ada toko terdaftar.</div>
   <% } else { %>
   <table>
-    <thead><tr><th>Nama</th><th>Jenis</th><th class="num">User</th><th class="num">Produk</th><th class="num">Transaksi</th><th>Dibuat</th><th>Backup terakhir</th></tr></thead>
+    <thead><tr><th>Nama</th><th>Jenis</th><th class="num">User</th><th class="num">Produk</th><th class="num">Transaksi</th><th>Dibuat</th><th>Transaksi terakhir masuk</th></tr></thead>
     <tbody>
     <% pg.items.forEach(function(b){ %>
-      <tr>
-        <td><%= b.name %><br><span class="mut" style="font-size:11px"><code><%= b.id.slice(0,8) %></code></span></td>
+      <tr class="rowlink" onclick="location.href='/dashboard/businesses/<%= b.id %>'">
+        <td><a href="/dashboard/businesses/<%= b.id %>" style="color:var(--tx);font-weight:600"><%= b.name %></a><br><span class="mut" style="font-size:11px"><code><%= b.id.slice(0,8) %></code></span></td>
         <td class="mut"><%= b.businessType || '—' %></td>
         <td class="num"><%= b.users %></td>
         <td class="num"><%= b.products %></td>
@@ -688,9 +819,9 @@ const TRANSACTIONS_TPL = `
     <thead><tr><th>Invoice</th><th>Toko</th><th class="num">Total</th><th>Status</th><th>Waktu</th></tr></thead>
     <tbody>
     <% pg.items.forEach(function(t){ %>
-      <tr>
-        <td><code><%= t.invoiceNo || t.id.slice(0,8) %></code></td>
-        <td><%= t.businessName || '—' %></td>
+      <tr class="rowlink" onclick="location.href='/dashboard/businesses/<%= t.businessId %>/transactions/<%= t.id %>'">
+        <td><a href="/dashboard/businesses/<%= t.businessId %>/transactions/<%= t.id %>"><code><%= t.invoiceNo || t.id.slice(0,8) %></code></a></td>
+        <td><a href="/dashboard/businesses/<%= t.businessId %>" style="color:var(--tx)" onclick="event.stopPropagation()"><%= t.businessName || '—' %></a></td>
         <td class="num"><%= fmtRp(t.grandTotal) %></td>
         <td><span class="pill <%= t.status==='paid'?'ok':(t.status==='void'?'bad':'warn') %>"><%= t.status || '—' %></span></td>
         <td class="mut"><%= t.datetime ? fmtDateTime(t.datetime) : '—' %></td>
@@ -708,4 +839,330 @@ export function renderTransactions(pg: Page<TxItem>): string {
   const pager = pagerHtml(pg.page, pg.pages, pg.total, mkUrl);
   const body = ejs.render(TRANSACTIONS_TPL, { pg, pager, ...helpers });
   return renderLayout({ title: 'Transaksi', active: 'transactions', body, serverTime: pg.serverTime });
+}
+
+// ── Tidak ditemukan ──────────────────────────────────────────────────────────
+
+export function renderNotFound(message: string, back: string): string {
+  const body = `<h1>Tidak ditemukan</h1><div class="empty">${esc(message)}</div><p><a class="btn-link" href="${esc(back)}">← Kembali</a></p>`;
+  return renderLayout({ title: 'Tidak ditemukan', active: '', body, serverTime: Date.now() });
+}
+
+// ── Form produk katalog (tambah / edit) ──────────────────────────────────────
+
+const CATALOG_FORM_TPL = `
+<a class="crumb" href="<%= back %>">← Kembali ke katalog</a>
+<div class="titlebar">
+  <h1><%= mode === 'new' ? 'Tambah produk katalog' : (p.name || 'Edit produk') %></h1>
+  <% if (mode === 'edit' && !p.deletedAt) { %><span class="pill <%= p.verified ? 'ok' : 'warn' %>"><%= p.verified ? 'terverifikasi' : 'belum verifikasi' %></span><% } %>
+</div>
+<% if (error) { %><div class="flash err" role="alert"><%= error %></div><% } %>
+<% if (p.deletedAt) { %>
+<div class="notice"><b>Produk ini di Sampah</b> sejak <%= fmtDateTime(p.deletedAt) %> — tidak muncul di aplikasi. Pulihkan dulu untuk mengedit.
+  <form method="post" action="/dashboard/catalog/<%= p.id %>/restore" style="display:inline;margin-left:8px">
+    <input type="hidden" name="back" value="<%= back %>"><button class="btn primary" type="submit">↺ Pulihkan</button>
+  </form>
+</div>
+<% } %>
+<form method="post" enctype="multipart/form-data" action="<%= mode === 'new' ? '/dashboard/catalog/new' : '/dashboard/catalog/' + p.id %>" id="prod-form">
+<input type="hidden" name="back" value="<%= back %>">
+<fieldset style="border:0;padding:0;margin:0" <%= p.deletedAt ? 'disabled' : '' %>>
+<div class="form-grid">
+  <div class="panel">
+    <h3>Data produk</h3>
+    <div class="fields">
+      <div class="f full"><label for="name">Nama produk <span class="req">*</span></label><input type="text" id="name" name="name" required maxlength="200" value="<%= p.name || '' %>"></div>
+      <div class="f"><label for="barcode">Barcode</label><input type="text" id="barcode" name="barcode" maxlength="64" inputmode="numeric" value="<%= p.barcode || '' %>"><div class="hint">Unik di antara produk aktif.</div></div>
+      <div class="f"><label for="barcodeType">Jenis barcode</label>
+        <select id="barcodeType" name="barcodeType"><option value="">—</option>
+          <% ['EAN13','EAN8','UPC','QR','other'].forEach(function(t){ %><option value="<%= t %>" <%= p.barcodeType === t ? 'selected' : '' %>><%= t %></option><% }) %>
+        </select></div>
+      <div class="f"><label for="brand">Brand</label><input type="text" id="brand" name="brand" maxlength="120" value="<%= p.brand || '' %>"></div>
+      <div class="f"><label for="category">Kategori</label><input type="text" id="category" name="category" maxlength="120" list="cat-list" value="<%= p.category || '' %>" placeholder="Pilih atau ketik baru">
+        <datalist id="cat-list"><% categories.forEach(function(c){ if (c.category !== uncategorized) { %><option value="<%= c.category %>"><% } }) %></datalist></div>
+      <div class="f"><label for="manufacturer">Produsen</label><input type="text" id="manufacturer" name="manufacturer" maxlength="120" value="<%= p.manufacturer || '' %>"></div>
+      <div class="f"><label for="variant">Varian / rasa</label><input type="text" id="variant" name="variant" maxlength="120" value="<%= p.variant || '' %>"></div>
+      <div class="f"><label for="netSize">Ukuran bersih</label><input type="number" step="any" min="0" id="netSize" name="netSize" value="<%= p.netSize == null ? '' : p.netSize %>"></div>
+      <div class="f"><label for="netUnit">Satuan ukuran</label><input type="text" id="netUnit" name="netUnit" maxlength="40" list="unit-list" value="<%= p.netUnit || '' %>" placeholder="g, ml, kg, l, pcs">
+        <datalist id="unit-list"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="pcs"></datalist></div>
+      <div class="f"><label for="defaultUnit">Satuan jual default</label><input type="text" id="defaultUnit" name="defaultUnit" maxlength="40" value="<%= p.defaultUnit || '' %>" placeholder="pcs, bungkus, botol"></div>
+      <div class="f"><label for="packaging">Kemasan</label><input type="text" id="packaging" name="packaging" maxlength="80" value="<%= p.packaging || '' %>"></div>
+      <div class="f"><label for="countryOfOrigin">Negara asal</label><input type="text" id="countryOfOrigin" name="countryOfOrigin" maxlength="80" value="<%= p.countryOfOrigin || '' %>"></div>
+      <div class="f full"><label for="shortDescription">Deskripsi singkat</label><textarea id="shortDescription" name="shortDescription" maxlength="500"><%= p.shortDescription || '' %></textarea></div>
+      <div class="f full"><label for="keywords">Kata kunci pencarian</label><input type="text" id="keywords" name="keywords" value="<%= (p.keywords || []).join(', ') %>"><div class="hint">Pisahkan dengan koma. Membantu pencarian di aplikasi.</div></div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <h3>Foto</h3>
+      <div class="photo-box" id="photo-box"><% if (p.photoUrl) { %><img src="<%= p.photoUrl %>" alt="" id="photo-img"><% } else { %><span class="none" id="photo-none">Belum ada foto</span><% } %></div>
+      <div class="f"><label for="photo">Unggah foto baru</label><input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"><div class="hint">JPG/PNG/WebP, maks 4 MB. Menggantikan foto lama saat disimpan.</div></div>
+      <div class="f" style="margin-top:10px"><label for="photoUrl">atau URL foto</label><input type="url" id="photoUrl" name="photoUrl" maxlength="1000" value="<%= p.photoUrl || '' %>"></div>
+    </div>
+    <div class="panel" style="margin-top:12px">
+      <h3>Status</h3>
+      <label class="check"><input type="checkbox" name="verified" <%= p.verified ? 'checked' : '' %>> Terverifikasi</label>
+      <div class="f" style="margin-top:12px"><label for="source">Sumber data</label>
+        <select id="source" name="source"><option value="admin" <%= p.source === 'admin' ? 'selected' : '' %>>admin</option><option value="crowdsource" <%= p.source === 'crowdsource' ? 'selected' : '' %>>crowdsource</option></select></div>
+      <% if (mode === 'edit') { %>
+      <div class="meta-list">
+        <span>ID: <code><%= p.id %></code></span>
+        <span>Dibuat: <%= fmtDateTime(p.createdAt) %></span>
+        <span>Diubah: <%= fmtDateTime(p.updatedAt) %></span>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<div class="form-actions">
+  <button class="btn primary" type="submit"><%= mode === 'new' ? 'Tambah produk' : 'Simpan perubahan' %></button>
+  <a class="btn-link" href="<%= back %>">Batal</a>
+  <span class="spacer"></span>
+  <% if (mode === 'edit') { %><button class="btn-link danger" type="submit" form="del-form">🗑 Hapus produk</button><% } %>
+</div>
+</fieldset>
+</form>
+<% if (mode === 'edit' && !p.deletedAt) { %>
+<form method="post" action="/dashboard/catalog/<%= p.id %>/delete" id="del-form" onsubmit="return confirm('Pindahkan produk ini ke Sampah? Produk tak akan muncul di aplikasi (bisa dipulihkan).')">
+  <input type="hidden" name="back" value="<%= back %>">
+</form>
+<% } %>
+`;
+
+const CATALOG_FORM_JS = `<script>
+(function(){
+  var f=document.getElementById('photo'), box=document.getElementById('photo-box'); if(!f) return;
+  f.addEventListener('change',function(){
+    var file=f.files&&f.files[0]; if(!file) return;
+    if(file.size>4*1024*1024){alert('Foto maksimal 4 MB');f.value='';return}
+    var img=document.getElementById('photo-img');
+    if(!img){box.innerHTML='';img=document.createElement('img');img.id='photo-img';box.appendChild(img)}
+    img.src=URL.createObjectURL(file);
+  });
+  var form=document.getElementById('prod-form');
+  form.addEventListener('submit',function(e){
+    if(e.submitter&&e.submitter.getAttribute('form')==='del-form') return;
+    var b=form.querySelector('.btn.primary'); b.disabled=true; b.textContent='Menyimpan…';
+  });
+})();
+</script>`;
+
+export function renderCatalogForm(opts: {
+  mode: 'new' | 'edit';
+  product: Partial<CatalogDetail>;
+  back: string;
+  categories: Array<{ category: string; n: number }>;
+  error: string | null;
+}): string {
+  const body = ejs.render(CATALOG_FORM_TPL, {
+    mode: opts.mode,
+    p: opts.product,
+    back: opts.back,
+    categories: opts.categories,
+    error: opts.error,
+    uncategorized: UNCATEGORIZED,
+    ...helpers,
+  });
+  return renderLayout({
+    title: opts.mode === 'new' ? 'Tambah produk' : opts.product.name || 'Edit produk',
+    active: 'catalog',
+    body,
+    serverTime: Date.now(),
+    extraJs: CATALOG_FORM_JS,
+  });
+}
+
+// ── Detail toko ──────────────────────────────────────────────────────────────
+
+export function esc(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+}
+
+/** Nama tabel backup → label Indonesia. */
+export const TABLE_LABELS: Record<string, string> = {
+  users: 'User/Staff', categories: 'Kategori', units: 'Satuan', customers: 'Pelanggan',
+  products: 'Produk', product_variants: 'Varian', wholesale_prices: 'Harga Grosir',
+  suppliers: 'Supplier', wallets: 'Dompet/Kas', receipt_presets: 'Template Struk',
+  discounts: 'Diskon', app_settings: 'Pengaturan', bills: 'Shift Kasir',
+  transactions: 'Transaksi', installments: 'Cicilan', purchases: 'Pembelian',
+  stock_opnames: 'Stok Opname', transaction_items: 'Item Transaksi', payments: 'Pembayaran',
+  stock_logs: 'Riwayat Stok', wallet_transactions: 'Mutasi Kas', credit_payments: 'Bayar Hutang',
+  purchase_items: 'Item Pembelian', stock_opname_items: 'Item Opname',
+};
+
+/** Label kolom umum; sisanya camelCase → kata. */
+const COL_LABELS: Record<string, string> = {
+  name: 'Nama', barcode: 'Barcode', phone: 'Telepon', address: 'Alamat', note: 'Catatan',
+  costPrice: 'Harga Modal', sellingPrice: 'Harga Jual', stock: 'Stok', minStock: 'Stok Min',
+  expiryDate: 'Kedaluwarsa', isActive: 'Aktif', hasVariants: 'Ada Varian', needsPrice: 'Perlu Harga',
+  categoryId: 'Kategori', unitId: 'Satuan', productId: 'Produk', variantId: 'Varian',
+  customerId: 'Pelanggan', cashierId: 'Kasir', supplierId: 'Supplier', transactionId: 'Transaksi',
+  billId: 'Shift', walletId: 'Dompet', employeeId: 'Karyawan', invoiceNo: 'Invoice',
+  datetime: 'Waktu', subtotal: 'Subtotal', discountTotal: 'Diskon', taxTotal: 'Pajak',
+  grandTotal: 'Total', paidTotal: 'Dibayar', changeTotal: 'Kembalian', status: 'Status',
+  isCredit: 'Kredit', debtBalance: 'Saldo Hutang', balance: 'Saldo', type: 'Jenis',
+  amount: 'Jumlah', method: 'Metode', qty: 'Qty', unitPrice: 'Harga Satuan',
+  lineTotal: 'Total Baris', nameSnapshot: 'Nama (saat itu)', role: 'Peran', username: 'Username',
+  birthdate: 'Tgl Lahir', minQty: 'Min Qty', price: 'Harga', value: 'Nilai', key: 'Kunci',
+  dueDate: 'Jatuh Tempo', amountDue: 'Tagihan', amountPaid: 'Terbayar', openedAt: 'Dibuka',
+  closedAt: 'Ditutup', openingCash: 'Kas Awal', closingCash: 'Kas Akhir',
+  expectedCash: 'Kas Seharusnya', variance: 'Selisih', cashSalesTotal: 'Penjualan Tunai',
+  roundingAdjustment: 'Pembulatan', refNo: 'No. Ref', systemQty: 'Stok Sistem',
+  physicalQty: 'Stok Fisik', diff: 'Selisih', reason: 'Alasan', permissions: 'Izin',
+};
+
+const HIDDEN_COLS = new Set(['pinHash']);
+
+const label = (wire: string) =>
+  COL_LABELS[wire] ?? wire.replace(/([A-Z])/g, ' $1').replace(/^./, (ch) => ch.toUpperCase());
+
+const isTimeCol = (wire: string) => /(At|Date|datetime|birthdate)$/.test(wire);
+
+function cell(col: Col, v: unknown, refs?: Record<string, string>): string {
+  if (v === null || v === undefined || v === '') return '<span class="mut">—</span>';
+  const ref = refs?.[String(v)];
+  if (ref) return `<span title="${esc(v)}">${esc(ref)}</span>`;
+  switch (col.type) {
+    case 'money':
+      return `<span style="font-variant-numeric:tabular-nums">${esc(helpers.fmtRp(Number(v)))}</span>`;
+    case 'int':
+      return isTimeCol(col.wire) ? esc(helpers.fmtDateTime(Number(v))) : esc(helpers.fmtNum(Number(v)));
+    case 'bool':
+      return v ? '<span class="pill ok">ya</span>' : '<span class="pill">tidak</span>';
+    case 'uuid':
+      return `<code title="${esc(v)}">${esc(String(v).slice(0, 8))}</code>`;
+    case 'json': {
+      const t = JSON.stringify(v);
+      return `<code>${esc(t.length > 60 ? t.slice(0, 60) + '…' : t)}</code>`;
+    }
+    case 'enum':
+      return `<span class="pill">${esc(v)}</span>`;
+    default: {
+      const t = String(v);
+      return t.length > 80 ? `<span title="${esc(t)}">${esc(t.slice(0, 80))}…</span>` : esc(t);
+    }
+  }
+}
+
+export function bizUrl(id: string, q: Record<string, string | number | undefined>): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) {
+    if (v === undefined || v === '' || (k === 'page' && v === 1)) continue;
+    p.set(k, String(v));
+  }
+  const qs = p.toString();
+  return `/dashboard/businesses/${id}` + (qs ? `?${qs}` : '');
+}
+
+const TABS_JS = `<script>
+(function(){
+  var t=document.getElementById('biz-tabs'); if(!t) return;
+  var l=document.getElementById('tabs-l'), r=document.getElementById('tabs-r');
+  function upd(){
+    var max=t.scrollWidth-t.clientWidth-1;
+    l.hidden=t.scrollLeft<=0; r.hidden=t.scrollLeft>=max;
+    t.style.setProperty('--fl', t.scrollLeft>0?'28px':'0px');
+    t.style.setProperty('--fr', t.scrollLeft<max?'28px':'0px');
+  }
+  function by(d){t.scrollBy({left:d*t.clientWidth*0.7,behavior:'smooth'})}
+  l.addEventListener('click',function(){by(-1)}); r.addEventListener('click',function(){by(1)});
+  t.addEventListener('scroll',upd,{passive:true}); window.addEventListener('resize',upd);
+  t.addEventListener('wheel',function(e){ if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&t.scrollWidth>t.clientWidth){t.scrollLeft+=e.deltaY;e.preventDefault()} },{passive:false});
+  var on=t.querySelector('a.on');
+  if(on){t.scrollTo({left:on.offsetLeft-(t.clientWidth-on.offsetWidth)/2,behavior:'instant'})}
+  upd(); requestAnimationFrame(upd);
+})();
+</script>`;
+
+/**
+ * Kerangka halaman detail toko: profil + tab (sebaris, bisa digeser) + isi.
+ * `active` = '' (ringkasan) | 'report' | wire tabel backup.
+ */
+export function renderBusinessShell(d: BusinessDetail, active: string, main: string, title?: string, extraJs = ''): string {
+  const b = d.business;
+  const id = String(b.id);
+  const total = BUSINESS_TABS.reduce((s, x) => s + (d.counts[x.wire] ?? 0), 0);
+  const tax = b.tax_enabled ? `${esc(b.tax_percent)}%${b.tax_inclusive ? ' (termasuk harga)' : ''}` : 'tidak';
+  const head = `
+<a class="crumb" href="/dashboard/businesses">← Semua toko</a>
+<div class="titlebar"><h1>${esc(b.name)}</h1>${b.deleted_at ? '<span class="pill bad">dihapus</span>' : ''}</div>
+<div class="panel">
+  <div class="biz-head">
+    <div><b>ID toko</b><code>${esc(id)}</code></div>
+    <div><b>Pemilik</b>${esc(d.owner?.name ?? '—')}</div>
+    <div><b>Login pemilik</b>${esc(d.owner?.email ?? d.owner?.phone ?? '—')}</div>
+    <div><b>Jenis usaha</b>${esc(b.business_type ?? '—')}</div>
+    <div><b>Telepon</b>${esc(b.phone ?? '—')}</div>
+    <div><b>Alamat</b>${esc(b.address ?? '—')}</div>
+    <div><b>Pajak</b>${tax}</div>
+    <div><b>Pembulatan</b>${esc(b.rounding_mode ?? '—')}</div>
+    <div><b>Terdaftar</b>${esc(helpers.fmtDateTime(Number(b.created_at)))}</div>
+    <div><b>Data terakhir masuk</b>${esc(d.lastBackupAt ? helpers.fmtDateTime(d.lastBackupAt) : 'belum pernah backup')}</div>
+    <div><b>Saran dari toko ini</b><a href="/dashboard/feedback?status=semua&amp;business=${esc(id)}">${helpers.fmtNum(d.feedbackCount)} saran →</a></div>
+  </div>
+</div>`;
+
+  const tabs = `<div class="tabs-wrap">
+<button type="button" class="tabs-arrow" id="tabs-l" aria-label="Geser menu ke kiri" hidden>‹</button>
+<nav class="tabs" id="biz-tabs" aria-label="Data toko">
+  <a class="${active === '' ? 'on' : ''}" href="${bizUrl(id, {})}">Ringkasan <span class="c">${helpers.fmtNum(total)}</span></a>
+  <a class="special ${active === 'report' ? 'on' : ''}" href="${bizUrl(id, { tab: 'report' })}">📊 Laporan</a>
+  ${BUSINESS_TABS.map((x) => {
+    const n = d.counts[x.wire] ?? 0;
+    const cls = [active === x.wire ? 'on' : '', n === 0 ? 'zero' : ''].join(' ').trim();
+    return `<a class="${cls}" href="${bizUrl(id, { tab: x.wire })}">${esc(TABLE_LABELS[x.wire] ?? x.wire)} <span class="c">${helpers.fmtNum(n)}</span></a>`;
+  }).join('')}
+</nav>
+<button type="button" class="tabs-arrow" id="tabs-r" aria-label="Geser menu ke kanan">›</button>
+</div>`;
+
+  return renderLayout({
+    title: title ?? String(b.name ?? 'Toko'),
+    active: 'businesses',
+    body: head + tabs + main,
+    serverTime: d.serverTime,
+    extraJs: TABS_JS + extraJs,
+  });
+}
+
+export function renderBusinessDetail(d: BusinessDetail, t: BusinessTablePage | null): string {
+  const id = String(d.business.id);
+  let main: string;
+  if (!t) {
+    main = `<h2>Data tersimpan di server</h2>
+<div class="counts">${BUSINESS_TABS.map((x) => {
+      const n = d.counts[x.wire] ?? 0;
+      return `<a class="${n === 0 ? 'zero' : ''}" href="${bizUrl(id, { tab: x.wire })}"><div class="n">${helpers.fmtNum(n)}</div><div class="l">${esc(TABLE_LABELS[x.wire] ?? x.wire)}</div></a>`;
+    }).join('')}</div>
+<p class="mut" style="font-size:12px;margin-top:14px">Hitungan = baris aktif (tidak termasuk yang dihapus di aplikasi). Data ini cermin cadangan dari aplikasi toko — hanya-baca.</p>`;
+  } else {
+    const cols = t.table.cols.filter((c) => !HIDDEN_COLS.has(c.wire));
+    const timeCol: Col = { wire: 'updatedAt', db: 'updated_at', type: 'int' };
+    const delCol: Col = { wire: 'deletedAt', db: 'deleted_at', type: 'int' };
+    const shown = [...cols, t.deleted ? delCol : timeCol];
+    const isTx = t.table.wire === 'transactions';
+    const txUrl = (r: Record<string, unknown>) => `/dashboard/businesses/${id}/transactions/${esc(r.id)}`;
+    const rows = t.items
+      .map((r) => {
+        const idCell = cell({ wire: 'id', db: 'id', type: 'uuid' }, r.id);
+        const tds = shown.map((c) => `<td>${cell(c, r[c.db], t.refs[c.wire])}</td>`).join('');
+        return isTx
+          ? `<tr class="rowlink" onclick="location.href='${txUrl(r)}'"><td><a class="mini" href="${txUrl(r)}">Detail →</a></td><td><a href="${txUrl(r)}">${idCell}</a></td>${tds}</tr>`
+          : `<tr><td>${idCell}</td>${tds}</tr>`;
+      })
+      .join('');
+    const name = TABLE_LABELS[t.table.wire] ?? t.table.wire;
+    const toggle = t.deleted
+      ? `<a class="btn-link" href="${bizUrl(id, { tab: t.table.wire })}">← Data aktif</a>`
+      : `<a class="btn-link" href="${bizUrl(id, { tab: t.table.wire, deleted: 1 })}">🗑 Lihat yang dihapus</a>`;
+    main = `<div class="h2row"><h2>${esc(name)}${t.deleted ? ' — dihapus' : ''}</h2>${toggle}</div>
+<div class="tablewrap biztable">${
+      t.items.length === 0
+        ? `<div class="empty">${t.deleted ? 'Tidak ada data terhapus.' : 'Belum ada data.'}</div>`
+        : `<table><thead><tr>${isTx ? '<th></th>' : ''}<th>ID</th>${shown.map((c) => `<th>${esc(c === delCol ? 'Dihapus' : c === timeCol ? 'Diubah' : label(c.wire))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`
+    }</div>
+${pagerHtml(t.page, t.pages, t.total, (pg) => bizUrl(id, { tab: t.table.wire, deleted: t.deleted ? 1 : undefined, page: pg }))}`;
+  }
+
+  return renderBusinessShell(d, t ? t.table.wire : '', main);
 }

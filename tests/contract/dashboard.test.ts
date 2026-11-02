@@ -134,6 +134,138 @@ suite('Dashboard contract', () => {
     expect(r.html).toContain('Lihat semua produk');
   });
 
+  async function post(path: string, data: Record<string, string | string[]>) {
+    const body = new URLSearchParams();
+    for (const [k, v] of Object.entries(data)) for (const x of [v].flat()) body.append(k, x);
+    const res = await app.request(path, {
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    return { status: res.status, location: res.headers.get('location'), html: await res.text() };
+  }
+
+  async function idsByName(prefix: string): Promise<string[]> {
+    const rows = await sql<{ id: string }[]>`SELECT id FROM public_products WHERE name LIKE ${prefix + '%'} ORDER BY name`;
+    return rows.map((r) => r.id);
+  }
+
+  it('edit produk via form: simpan, validasi, barcode duplikat', async () => {
+    const id = (await idsByName(`${tag} belum`))[0]!;
+    const form = await get(`/dashboard/catalog/${id}`, cookie);
+    expect(form.status).toBe(200);
+    expect(form.html).toContain(`value="${tag} belum"`);
+
+    const back = `/dashboard/catalog?category=${encodeURIComponent(catA)}`;
+    const ok = await post(`/dashboard/catalog/${id}`, {
+      back, name: `${tag} belum EDIT`, brand: 'BrandX', category: catA, netSize: '250', netUnit: 'ml',
+      keywords: 'a, b, a', verified: 'on', source: 'admin',
+    });
+    expect(ok.status).toBe(302);
+    expect(ok.location).toBe(back);
+    const [row] = await sql<Record<string, unknown>[]>`SELECT * FROM public_products WHERE id = ${id}`;
+    expect(row).toMatchObject({ name: `${tag} belum EDIT`, brand: 'BrandX', net_unit: 'ml', verified: true, keywords: ['a', 'b'] });
+
+    const bad = await post(`/dashboard/catalog/${id}`, { back, name: '' });
+    expect(bad.status).toBe(422);
+    expect(bad.html).toContain('flash err');
+
+    const [other] = await sql<{ barcode: string }[]>`SELECT barcode FROM public_products WHERE name = ${`${tag} verified`}`;
+    const dup = await post(`/dashboard/catalog/${id}`, { back, name: 'x', barcode: other!.barcode });
+    expect(dup.status).toBe(422);
+    expect(dup.html).toContain('Barcode sudah dipakai');
+  });
+
+  it('back URL di luar katalog ditolak (tetap ke /dashboard/catalog)', async () => {
+    const id = (await idsByName(`${tag} lain`))[0]!;
+    const r = await post(`/dashboard/catalog/${id}`, { back: 'https://evil.example', name: `${tag} lain` });
+    expect(r.location).toBe('/dashboard/catalog');
+  });
+
+  it('hapus massal → Sampah → pulihkan; tandai verified massal', async () => {
+    const ids = await idsByName(tag);
+    const back = `/dashboard/catalog?q=${tag}`;
+    const del = await post('/dashboard/catalog/bulk', { action: 'delete', ids, back });
+    expect(del.location).toBe(back);
+
+    const live = await get(`/dashboard/catalog?q=${tag}`, cookie);
+    expect(live.html).not.toContain(`${tag} lain`);
+    const [{ c }] = (await sql<{ c: number }[]>`SELECT count(*)::int c FROM public_products WHERE name LIKE ${tag + '%'} AND deleted_at IS NULL`) as unknown as [{ c: number }];
+    expect(c).toBe(0);
+
+    const trash = await get(`/dashboard/catalog?q=${tag}&trash=1`, cookie);
+    expect(trash.html).toContain('Sampah Katalog');
+    expect(trash.html).toContain(`${tag} lain`);
+
+    const res = await post('/dashboard/catalog/bulk', { action: 'restore', ids, back });
+    expect(res.status).toBe(302);
+    const [{ c: c2 }] = (await sql<{ c: number }[]>`SELECT count(*)::int c FROM public_products WHERE name LIKE ${tag + '%'} AND deleted_at IS NULL`) as unknown as [{ c: number }];
+    expect(c2).toBe(ids.length);
+
+    await post('/dashboard/catalog/bulk', { action: 'unverify', ids, back });
+    const [{ v }] = (await sql<{ v: number }[]>`SELECT count(*)::int v FROM public_products WHERE name LIKE ${tag + '%'} AND verified`) as unknown as [{ v: number }];
+    expect(v).toBe(0);
+  });
+
+  it('flash tampil sekali setelah aksi', async () => {
+    const id = (await idsByName(`${tag} lain`))[0]!;
+    const body = new URLSearchParams({ back: '/dashboard/catalog' }).toString();
+    const r = await app.request(`/dashboard/catalog/${id}/delete`, {
+      method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' }, body,
+    });
+    const flashCookie = (r.headers.get('set-cookie') ?? '').split(';')[0]!;
+    const next = await get('/dashboard/catalog', `${cookie}; ${flashCookie}`);
+    expect(next.html).toContain('Produk dipindah ke Sampah.');
+  });
+
+  it('detail toko: ringkasan jumlah data + tab tabel (aktif & dihapus)', async () => {
+    const reg = await app.request('/v1/auth/register-business', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business: { name: `Toko ${tag}` }, owner: { name: 'Bu Tini', email: `o-${tag.slice(2)}@toko.id`, password: 'rahasia123' } }),
+    });
+    const { data } = (await reg.json()) as { data: { accessToken: string; business: { id: string } } };
+    const ts = Date.now();
+    const catId = uuid();
+    await app.request('/v1/backup/push', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${data.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tables: {
+        categories: [{ id: catId, name: `Minuman ${tag}`, updatedAt: ts }],
+        products: [
+          { id: uuid(), name: `Kopi ${tag}`, categoryId: catId, sellingPrice: 3500, stock: 12, pinHash: 'x', updatedAt: ts },
+          { id: uuid(), name: `Lama ${tag}`, updatedAt: ts, deletedAt: ts },
+        ],
+        customers: [{ id: uuid(), name: `Pak Budi ${tag}`, debtBalance: 25000, updatedAt: ts }],
+      } }),
+    });
+    const bid = data.business.id;
+
+    const list = await get('/dashboard/businesses', cookie);
+    expect(list.html).toContain(`/dashboard/businesses/${bid}`);
+
+    const sum = await get(`/dashboard/businesses/${bid}`, cookie);
+    expect(sum.status).toBe(200);
+    expect(sum.html).toContain('Bu Tini');
+    expect(sum.html).toContain(`?tab=products`);
+
+    const prod = await get(`/dashboard/businesses/${bid}?tab=products`, cookie);
+    expect(prod.html).toContain(`Kopi ${tag}`);
+    expect(prod.html).toContain('Rp 3.500');
+    expect(prod.html).toContain(`Minuman ${tag}`); // kolom relasi tampil sebagai nama
+    expect(prod.html).not.toContain(`Lama ${tag}`);
+
+    const gone = await get(`/dashboard/businesses/${bid}?tab=products&deleted=1`, cookie);
+    expect(gone.html).toContain(`Lama ${tag}`);
+
+    const users = await get(`/dashboard/businesses/${bid}?tab=users`, cookie);
+    expect(users.html).not.toContain('pin_hash');
+    expect(users.html).not.toContain('Pin Hash');
+
+    expect((await get(`/dashboard/businesses/${uuid()}`, cookie)).status).toBe(404);
+    await sql`DELETE FROM businesses WHERE id = ${bid}`;
+  });
+
   it('logout menghapus cookie', async () => {
     const res = await app.request('/dashboard/logout', { method: 'POST', headers: { Cookie: cookie } });
     expect(res.status).toBe(302);

@@ -117,6 +117,18 @@ Detail payload push/pull (per tabel, LWW vs append-only, tombstone) ada di `spec
 
 ---
 
+## 4b. Saran pengguna (Bearer + konteks toko)
+
+```
+POST /v1/feedback   { category?: "saran"|"masalah"|"pertanyaan"|"lainnya" (default saran),
+                      message: string (3–2000), contact?: string, appVersion?: string, platform?: string }
+→ 201 { data: { id, category, message, contact, status: "baru", adminNote: null, createdAt, updatedAt } }
+GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riwayat + status & balasan admin
+```
+- `business_id` & pengirim diambil dari JWT. Maks **20 saran / toko / 24 jam** → lebih dari itu `429 RATE_LIMITED`.
+- `status`: `baru` → `dibaca` / `diproses` → `selesai` / `ditolak` (diubah admin di dashboard). `adminNote` = balasan admin, boleh ditampilkan di app.
+- Online-only (tak lewat backup/sync).
+
 ## 5. Health
 `GET /v1/health` (tanpa auth) → `{ data:{ status:"ok", db:"ok", serverTime } }`.
 
