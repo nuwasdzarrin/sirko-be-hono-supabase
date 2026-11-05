@@ -138,3 +138,25 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 - **Katalog default (offline):** gunakan bundel `assets/seed/catalog_seed.sqlite` (1.751 produk + thumbnail) — lihat `spec/13-seed-catalog.md`. API katalog di atas untuk lookup/update online (delta).
 - **Auth:** simpan `accessToken` (umur `expiresIn` detik) + `refreshToken`; perbarui via `/v1/auth/refresh`.
 - Semua waktu epoch ms UTC; uang integer rupiah; id UUID digenerate device.
+
+---
+
+## Langganan & multi-toko (Paket Juragan)
+Spesifikasi lengkap: [JURAGAN.md](JURAGAN.md). Paket melekat ke **akun** pemilik,
+bukan ke toko; server = sumber kebenaran, app meng-cache untuk offline.
+
+### Objek `plan`
+Ada di respons `POST /v1/auth/login` dan `GET /v1/me` (field lama tetap ada →
+app lama tak terpengaruh).
+```json
+"plan": {
+  "name": "juragan",            // "warung" | "juragan"
+  "period": "monthly",          // "monthly" | "yearly" | null (warung)
+  "expiresAt": 1796000000000,   // ujung langganan (sudah termasuk perpanjangan); null untuk warung
+  "maxStores": 3,               // warung = 1
+  "features": ["multi_store", "staff", "advanced_reports", "receipt_branding"],
+  "serverTime": 1793900000000   // jangkar jam untuk keputusan offline
+}
+```
+- Warung: `features: []`, `maxStores: 1`. Aktif bila `starts_at <= now < expiresAt`.
+- Status paket **tidak pernah** memblok sync (`/v1/backup/*`) maupun pencatatan.

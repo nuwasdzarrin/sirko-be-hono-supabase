@@ -15,6 +15,8 @@ import { nowMs } from '../lib/time.js';
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '../config/env.js';
 import { conflict, unauthenticated } from '../lib/errors.js';
 import type { RegisterBusinessInput, LoginInput } from '../schemas/auth.schema.js';
+import * as plans from './plan.service.js';
+import type { EffectivePlan } from './plan.service.js';
 
 /** Bentuk respons auth (register/login) — sesuai kontrak 10 §1.1/§1.2. */
 export interface AuthPayload {
@@ -23,6 +25,8 @@ export interface AuthPayload {
   expiresIn: number;
   user: { id: string; name: string; role: Role; businessId: string | null };
   business: { id: string; name: string; businessType: string | null } | null;
+  /** Paket efektif akun (Juragan K7). Opsional di tipe: register tak menyertakannya. */
+  plan?: EffectivePlan;
 }
 
 const accounts = new AccountRepository();
@@ -135,11 +139,15 @@ export async function login(input: LoginInput): Promise<AuthPayload> {
     role: user.role,
   });
 
-  const business = user.business_id ? await loadBusinessSummary(user.business_id) : null;
+  const [business, plan] = await Promise.all([
+    user.business_id ? loadBusinessSummary(user.business_id) : Promise.resolve(null),
+    plans.effective(account.id),
+  ]);
   return {
     ...tokens,
     user: { id: user.id, name: user.name, role: user.role, businessId: user.business_id },
     business,
+    plan,
   };
 }
 
@@ -170,6 +178,7 @@ export async function me(auth: {
   user: { id: string; name: string; role: Role; businessId: string | null };
   business: { id: string; name: string; businessType: string | null } | null;
   permissions: string[];
+  plan: EffectivePlan;
 }> {
   // sirko_admin (businessId null) tak punya toko; user biasa dibaca tenant-scoped.
   if (!auth.businessId) {
@@ -179,6 +188,7 @@ export async function me(auth: {
       user: { id: user.id, name: user.name, role: user.role, businessId: null },
       business: null,
       permissions: effectivePermissions(user.role, user.permissions),
+      plan: await plans.effective(user.account_id),
     };
   }
 
@@ -186,6 +196,7 @@ export async function me(auth: {
   const businessRepo = new BusinessRepository(auth.businessId);
   const [user, business] = await Promise.all([userRepo.getById(auth.userId), businessRepo.getSelf()]);
   if (!user) throw unauthenticated('User tidak ditemukan');
+  const plan = await plans.effective(user.account_id);
 
   return {
     user: { id: user.id, name: user.name, role: user.role, businessId: auth.businessId },
@@ -193,6 +204,7 @@ export async function me(auth: {
       ? { id: business.id, name: business.name, businessType: business.business_type }
       : null,
     permissions: effectivePermissions(user.role, user.permissions),
+    plan,
   };
 }
 
