@@ -33,6 +33,7 @@ Aturan pemilik produk:
 - **Pencatatan oleh owner tidak pernah diblok** (kasir, stok, kasbon, sync) —
   apa pun status langganannya.
 - **Poin Sirko terpisah**: hanya untuk PPOB, tidak untuk membayar langganan.
+  Saldo Poin per **akun pemilik** (satu saldo untuk semua tokonya).
 - Pembayaran langganan = **QRIS statis + konfirmasi admin**, bulanan atau tahunan.
 
 ---
@@ -106,11 +107,14 @@ sebagian dan saat ini gratis**:
 Kode `feature` di atas = string yang dikirim server di `plan.features` (§3.3)
 supaya aplikasi tak perlu di-update bila isi paket berubah.
 
-### 3.1 Migrasi `00NN_juragan.sql`
+### 3.1 Migrasi `0007_juragan.sql`
 
-> **Penomoran:** rancangan PPOB sudah memakai `0007_ppob_points.sql`. Pakai
-> nomor berikutnya yang kosong saat dibangun (mis. `0008_juragan.sql`) — jangan
-> bentrok.
+> **Penomoran:** `0007` **dicadangkan untuk Juragan**; Poin memakai
+> `0008_points.sql` dan PPOB `0009_ppob.sql` (dok PPOB rev. 2026-11-05).
+> Runner (`src/db/migrate.ts`) menerapkan setiap file yang belum tercatat di
+> `schema_migrations`, jadi `0007` tetap jalan walau `0008` sudah lebih dulu
+> diterapkan di produksi. Karena itu `0007` **tidak boleh** bergantung pada
+> tabel Poin/PPOB.
 
 ```sql
 -- K3: satu akun boleh punya baris users di BANYAK toko, maksimal satu per toko.
@@ -351,7 +355,10 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 7. **Status langganan tidak pernah memblok push/pull sync** maupun pencatatan
    owner. Data tidak pernah dihapus karena langganan habis.
 8. Poin Sirko (PPOB) dan langganan **tidak saling terhubung**: tak ada
-   pemotongan Poin untuk langganan.
+   pemotongan Poin untuk langganan. Keduanya sama-sama dikunci ke `account_id`
+   pemilik (= `users.account_id` baris `role='owner'` di toko itu), jadi
+   perubahan unique index K3 harus tetap menjaga satu baris owner per
+   (akun, toko).
 
 ---
 
@@ -408,7 +415,7 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 | J2 | Harga Juragan **Rp49.000/bulan**; tersedia juga **tahunan**. Harga disimpan di `plan_prices`, bukan di kode. |
 | J3 | Juragan maksimal **3 toko** per akun (termasuk toko utama). |
 | J4 | Bayar via **QRIS statis + konfirmasi admin** (bukan Poin, bukan payment gateway). |
-| J5 | **Poin Sirko hanya untuk PPOB**, per toko, tidak bisa dipindah antar-toko (aturan dok PPOB tetap). |
+| J5 | **Poin Sirko hanya untuk PPOB**, saldo per **akun pemilik** (dipakai bersama semua tokonya; dok PPOB rev. 2026-11-05). Tidak terhubung dengan langganan. |
 | J6 | Paket Warung: keempat fitur bundle **dikunci semua** — termasuk karyawan yang sudah ada dan ekspor yang dulu gratis — dan diarahkan ke layar berlangganan. Pencatatan owner tidak diblok. |
 | J10 | Karyawan per toko (PIN lokal), tidak lintas toko. |
 | J7 | Langganan habis saat punya >1 toko: semua toko tetap bisa mencatat & sync **di HP yang sudah login ke toko itu**; fitur bundle terkunci (termasuk pindah toko dari satu HP, tambah toko, laporan gabungan). Data tak pernah dihapus; aktif lagi begitu diperpanjang. |
