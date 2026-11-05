@@ -12,6 +12,8 @@ import { catalogPublicRoutes } from './routes/catalog-public.js';
 import { mediaRoutes } from './routes/media.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { pointsRoutes } from './routes/points.js';
+import { ppobRoutes, webhookRoutes } from './routes/ppob.js';
 
 /**
  * Aplikasi Hono inti + middleware global. Modul ini melakukan kerja berat saat
@@ -34,6 +36,9 @@ export function createApp() {
   v1.route('/catalog', catalogRoutes);
   v1.route('/media', mediaRoutes);
   v1.route('/feedback', feedbackRoutes);
+  v1.route('/points', pointsRoutes);
+  v1.route('/ppob', ppobRoutes);
+  v1.route('/webhooks', webhookRoutes);
   v1.route('/', meRoutes);
   v1.route('/', healthRoutes);
 

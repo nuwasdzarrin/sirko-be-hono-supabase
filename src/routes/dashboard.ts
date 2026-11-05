@@ -38,6 +38,11 @@ import * as feedback from '../services/feedback.service.js';
 import { getStoreReport, getTransactionDetail, resolveRange } from '../services/store-report.service.js';
 import { renderStoreReport, renderTransactionDetail } from '../views/business.view.js';
 import { renderFeedback } from '../views/feedback.view.js';
+import * as points from '../services/points.service.js';
+import { renderPointsPage, renderBusinessPoints } from '../views/points.view.js';
+import * as ppob from '../services/ppob.service.js';
+import { digiflazzConfigured } from '../ppob/digiflazz.js';
+import { renderPpobOrders, renderPpobOrderDetail, renderPpobProducts, renderPpobSettings } from '../views/ppob.view.js';
 import * as contributions from '../services/catalog-contribution.service.js';
 
 /**
@@ -123,8 +128,14 @@ dashboardRoutes.use('*', async (c, next) => {
 
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {
-  const fbNew = await feedback.countNew().catch(() => 0);
+  const [fbNew, ptPending, ppAttention] = await Promise.all([
+    feedback.countNew().catch(() => 0),
+    points.countPendingTopups().catch(() => 0),
+    ppob.countNeedsAttention().catch(() => 0),
+  ]);
+  html = html.replace('<!--pp-badge-->', ppAttention > 0 ? ` <span class="nb">${ppAttention}</span>` : '');
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
+  html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
   const f = c.get('flash');
   const toast = f
     ? `<div class="flash ${f.type === 'error' ? 'err' : 'ok'}" role="status">${escapeHtml(f.msg)}</div>`
@@ -302,6 +313,9 @@ dashboardRoutes.get('/businesses/:id', async (c) => {
   const detail = await getBusinessDetail(id);
   if (!detail) return sendPage(c, renderNotFound('Toko tidak ditemukan.', '/dashboard/businesses'), 404);
   const tab = c.req.query('tab') ?? '';
+  if (tab === 'points') {
+    return sendPage(c, renderBusinessPoints(detail, await points.adminPointsForBusiness(id)));
+  }
   if (tab === 'report') {
     const range = resolveRange({ preset: c.req.query('preset'), from: c.req.query('from'), to: c.req.query('to') });
     return sendPage(c, renderStoreReport(detail, await getStoreReport(id, range)));
@@ -324,6 +338,201 @@ dashboardRoutes.get('/businesses/:id/transactions/:txId', async (c) => {
     return sendPage(c, renderNotFound('Transaksi tidak ditemukan.', back), 404);
   }
   return sendPage(c, renderTransactionDetail(detail, tx));
+});
+
+// ── Poin Sirko ───────────────────────────────────────────────────────────────
+
+const TOPUP_STATUSES = ['pending', 'paid', 'rejected', 'expired', 'cancelled', 'semua'] as const;
+
+/** Kembali hanya ke halaman Poin / tab Poin toko. */
+function safePointsBack(v: unknown, fallback = '/dashboard/points?tab=topups'): string {
+  const s = typeof v === 'string' ? v : '';
+  return /^\/dashboard\/(points|businesses\/[0-9a-f-]{36})(\?[^\\]*)?$/.test(s) ? s : fallback;
+}
+
+dashboardRoutes.get('/points', async (c) => {
+  const tab = (['topups', 'accounts', 'settings'] as const).find((t) => t === c.req.query('tab')) ?? 'topups';
+  const page = intParam(c.req.query('page'), 1);
+  if (tab === 'accounts') {
+    const [accounts, total] = await Promise.all([
+      points.adminListAccounts({ page, limit: 25, q: c.req.query('q') }),
+      points.totalOutstanding(),
+    ]);
+    return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), accounts: { ...accounts, totalBalance: total } }));
+  }
+  if (tab === 'settings') {
+    return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), config: await points.getConfig() }));
+  }
+  const s = c.req.query('status') ?? 'pending';
+  const status = (TOPUP_STATUSES as readonly string[]).includes(s) ? (s as points.TopupStatus | 'semua') : 'pending';
+  const topups = await points.adminListTopups({ status, page, limit: 20 });
+  return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), topups: { ...topups, status } }));
+});
+
+dashboardRoutes.post('/points/topups/:id/confirm', async (c) => {
+  const body = await c.req.parseBody();
+  const r = await points.adminConfirmTopup(c.req.param('id'), c.get('admin'));
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(safePointsBack(body.back));
+});
+
+dashboardRoutes.post('/points/topups/:id/reject', async (c) => {
+  const body = await c.req.parseBody();
+  const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 200) : null;
+  const r = await points.adminRejectTopup(c.req.param('id'), c.get('admin'), note);
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(safePointsBack(body.back));
+});
+
+dashboardRoutes.post('/points/accounts/:accountId/adjust', async (c) => {
+  const body = await c.req.parseBody();
+  const back = safePointsBack(body.back, '/dashboard/points?tab=accounts');
+  const amount = Number(body.amount);
+  const note = typeof body.note === 'string' ? body.note.slice(0, 200) : '';
+  const bid = typeof body.businessId === 'string' && UUID_RE.test(body.businessId) ? body.businessId : null;
+  try {
+    const r = await points.adminAdjust(c.req.param('accountId'), amount, note, c.get('admin'), bid);
+    flash(c, 'ok', `Koreksi ${amount > 0 ? '+' : ''}${amount} Poin disimpan. Saldo sekarang ${r.balanceAfter}.`);
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect(back);
+});
+
+dashboardRoutes.post('/points/settings', async (c) => {
+  const body = await c.req.parseBody();
+  try {
+    await points.saveConfig(body, c.get('admin'));
+    flash(c, 'ok', 'Pengaturan Poin disimpan.');
+    return c.redirect('/dashboard/points?tab=settings');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    const config = { ...(await points.getConfig()), ...(body as Partial<points.PointsConfig>) };
+    return sendPage(c, renderPointsPage({ tab: 'settings', serverTime: Date.now(), config, configError: msg }), 422);
+  }
+});
+
+// ── PPOB ─────────────────────────────────────────────────────────────────────
+
+const PPOB_STATUSES = ['semua', 'success', 'pending', 'processing', 'waiting_admin', 'failed'];
+
+dashboardRoutes.get('/ppob', async (c) => {
+  const tab = c.req.query('tab') ?? 'orders';
+  const page = intParam(c.req.query('page'), 1);
+  const attention = await ppob.countNeedsAttention();
+  if (tab === 'products') {
+    const category = ['pulsa', 'data'].includes(c.req.query('category') ?? '') ? c.req.query('category')! : '';
+    const brand = (c.req.query('brand') ?? '').slice(0, 30);
+    const q = (c.req.query('q') ?? '').slice(0, 60);
+    const d = await ppob.adminListProducts({ category: category || undefined, brand: brand || undefined, q: q || undefined, page, limit: 50 });
+    const pln = await ppob.adminListPlnProducts();
+    return sendPage(c, renderPpobProducts({ ...d, category, brand, q }, { attention, serverTime: Date.now(), configured: digiflazzConfigured(), pln }));
+  }
+  if (tab === 'settings') {
+    return sendPage(c, renderPpobSettings(await ppob.getConfig(), { attention, serverTime: Date.now(), error: null }));
+  }
+  const s = c.req.query('status') ?? 'semua';
+  const status = PPOB_STATUSES.includes(s) ? s : 'semua';
+  const category = ['pulsa', 'data', 'pln'].includes(c.req.query('category') ?? '') ? c.req.query('category')! : '';
+  const q = (c.req.query('q') ?? '').trim().slice(0, 60);
+  const [d, deposit] = await Promise.all([
+    ppob.adminListOrders({ status, category: category || undefined, page, limit: 25, q: q || undefined }),
+    ppob.depositBalance(),
+  ]);
+  return sendPage(c, renderPpobOrders({ ...d, status, category, q }, { deposit, enabled: ppob.ppobEnabled(), attention, serverTime: Date.now() }));
+});
+
+dashboardRoutes.get('/ppob/orders/:id', async (c) => {
+  const d = await ppob.adminOrderDetail(c.req.param('id'));
+  if (!d) return sendPage(c, renderNotFound('Order PPOB tidak ditemukan.', '/dashboard/ppob'), 404);
+  return sendPage(c, renderPpobOrderDetail(d, { attention: await ppob.countNeedsAttention(), serverTime: Date.now() }));
+});
+
+dashboardRoutes.post('/ppob/orders/:id/check', async (c) => {
+  const id = c.req.param('id');
+  const r = await ppob.checkStatus(id, { source: 'admin_check' });
+  flash(c, r.checked ? 'ok' : 'error', r.checked ? 'Status dicek ulang ke Digiflazz.' : `Tidak dicek: ${r.reason}`);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/fulfill', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  const str = (k: string) => (typeof body[k] === 'string' ? (body[k] as string) : '');
+  const r = await ppob.adminFulfillPln(id, str('token'), c.get('admin'), { plnName: str('plnName'), plnInfo: str('plnInfo') });
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/fail', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  const r = await ppob.adminFailPln(id, typeof body.reason === 'string' ? body.reason : '', c.get('admin'));
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/resend-email', async (c) => {
+  const id = c.req.param('id');
+  const r = await ppob.adminResendPlnEmail(id);
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/pln-products', async (c) => {
+  try {
+    await ppob.adminSavePlnProduct(await c.req.parseBody());
+    flash(c, 'ok', 'Produk token PLN disimpan.');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect('/dashboard/ppob?tab=products');
+});
+
+dashboardRoutes.post('/ppob/sync', async (c) => {
+  try {
+    const r = await ppob.syncDigiflazzProducts(c.get('admin'));
+    flash(c, 'ok', `Sinkron selesai: ${r.received} produk diterima, ${r.upserted} pulsa/data disimpan, ${r.deactivated} dinonaktifkan.`);
+  } catch (e) {
+    flash(c, 'error', `Sinkron gagal: ${(e as Error).message}`);
+  }
+  return c.redirect('/dashboard/ppob?tab=products');
+});
+
+dashboardRoutes.post('/ppob/products/:id', async (c) => {
+  const body = await c.req.parseBody();
+  const back = typeof body.back === 'string' && /^\/dashboard\/ppob\?tab=products[^\\]*$/.test(body.back) ? body.back : '/dashboard/ppob?tab=products';
+  const op = String(body.op ?? '');
+  try {
+    if (op === 'price') await ppob.adminUpdateProduct(c.req.param('id'), { price: Number(body.price) });
+    else if (op === 'unlock') await ppob.adminUpdateProduct(c.req.param('id'), { unlock: true });
+    else if (op === 'hide' || op === 'show') await ppob.adminUpdateProduct(c.req.param('id'), { active: op === 'show' });
+    flash(c, 'ok', 'Produk diperbarui.');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect(back);
+});
+
+dashboardRoutes.post('/ppob/settings', async (c) => {
+  const body = await c.req.parseBody();
+  try {
+    await ppob.saveConfig(body, c.get('admin'));
+    flash(c, 'ok', 'Pengaturan PPOB disimpan; harga produk tak terkunci dihitung ulang.');
+    return c.redirect('/dashboard/ppob?tab=settings');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    const cfg = { ...(await ppob.getConfig()), ...(body as Record<string, never>) };
+    return sendPage(c, renderPpobSettings(cfg, { attention: await ppob.countNeedsAttention(), serverTime: Date.now(), error: msg }), 422);
+  }
 });
 
 // ── Saran pengguna ───────────────────────────────────────────────────────────

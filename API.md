@@ -138,3 +138,65 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 - **Katalog default (offline):** gunakan bundel `assets/seed/catalog_seed.sqlite` (1.751 produk + thumbnail) — lihat `spec/13-seed-catalog.md`. API katalog di atas untuk lookup/update online (delta).
 - **Auth:** simpan `accessToken` (umur `expiresIn` detik) + `refreshToken`; perbarui via `/v1/auth/refresh`.
 - Semua waktu epoch ms UTC; uang integer rupiah; id UUID digenerate device.
+
+---
+
+## Poin & PPOB
+
+### Poin Sirko (Bearer + konteks toko) — saldo prabayar untuk PPOB
+
+Saldo milik **akun pemilik** toko (dipakai bersama semua toko milik akun itu). Server = sumber kebenaran:
+**jangan** simpan saldo sebagai data lokal yang di-sync/backup — selalu baca dari server. Online-only.
+
+```
+GET  /v1/points            → { balance, ledger:[20 terakhir], nextCursor, pendingTopups:[{topup, instructions}], limits:{minTopup,maxTopup} }
+GET  /v1/points/ledger?cursor=&limit=   → data:[mutasi], meta:{nextCursor, hasMore}
+GET  /v1/points/topups     → riwayat top-up
+POST /v1/points/topups     { amount }   (hanya role owner/admin) → 201 { topup, instructions }
+POST /v1/points/topups/:id/cancel       → batalkan top-up yang masih menunggu
+```
+- Mutasi: `{ id, type: topup|purchase|refund|adjustment, amount (±), balanceAfter, businessId, businessName, note, createdAt }`.
+- `instructions`: `{ transferAmount, bankName, accountNo, accountName, qrisImageUrl, note, expiresAt }` — pengguna
+  transfer **tepat** `transferAmount` (nominal + 3 digit kode unik); Poin yang masuk = `transferAmount`.
+- Status top-up: `pending` → `paid` (dikonfirmasi admin) / `rejected` / `expired` (lewat batas) / `cancelled`.
+- Error: `OWNER_ACCOUNT_MISSING` (409, toko tanpa akun pemilik cloud), `VALIDATION` (nominal di luar batas),
+  `CONFLICT` (masih ada top-up menunggu melebihi batas), `FORBIDDEN` (bukan owner/admin).
+- Poin tidak bisa ditarik maupun ditransfer ke akun lain.
+
+### PPOB — pulsa & paket data (Bearer + konteks toko, online-only)
+
+Dibayar dengan **Poin Sirko** (bagian di atas). Harga di sini = harga Poin yang dipotong; harga jual ke pembeli
+ditentukan toko sendiri di aplikasi.
+
+```
+GET  /v1/ppob/products?category=pulsa|data&customerNo=08…   → data:[{id, category, brand, name, description, price, available, unavailableReason}]
+                                                              meta:{operator, enabled}   (difilter operator dari nomor)
+POST /v1/ppob/orders  { clientRef, productId, customerNo }     → 201 order
+GET  /v1/ppob/orders/:id                                       → order (server cek ulang ke penyedia bila masih pending)
+GET  /v1/ppob/orders?cursor=&limit=                            → riwayat, meta:{nextCursor, hasMore}
+```
+- **`clientRef` wajib unik per pembelian** (mis. UUID dibuat app saat tombol Bayar ditekan). Kirim ulang
+  dengan `clientRef` sama (timeout/klik ganda) → server mengembalikan order yang sama, Poin tidak terpotong lagi.
+- Order: `{ id, clientRef, category, brand, productName, customerNo, price, status, refunded, sn, message, createdAt, completedAt }`.
+- `status`: `success` (tampilkan `sn`) · `failed` (Poin **sudah dikembalikan** otomatis, `refunded: true`) ·
+  `pending`/`processing` (tampilkan "sedang diproses", polling `GET /orders/:id` tiap ±10–15 dtk).
+- Error: `INSUFFICIENT_POINTS` (409, `details.balance`/`required`), `PRODUCT_UNAVAILABLE` (409, nonaktif/cut-off),
+  `PPOB_UNAVAILABLE` (503), `VALIDATION` (422, nomor tak valid / operator tak cocok), `OWNER_ACCOUNT_MISSING`.
+
+### Token listrik PLN prabayar (diproses MANUAL oleh admin Sirko)
+
+```
+GET  /v1/ppob/products?category=pln          → produk token (nominal), price = Poin
+POST /v1/ppob/pln/inquiry { meterNo }        → { ok, meterNo, name, segmentPower, message, cached }
+POST /v1/ppob/orders { clientRef, productId, customerNo: <no meter 11–12 digit>, notifyEmail? }
+                                             → 201 order status `waiting_admin`
+GET  /v1/ppob/orders/:id                     → setelah admin memproses: status `success`, `sn` = token
+```
+- Tampilkan nama dari `pln/inquiry` sebelum bayar agar tak salah meter. `ok:false` (nomor tak ditemukan /
+  batas cek tercapai) → tampilkan peringatan, pengguna tetap boleh lanjut.
+- Setelah bayar: Poin terpotong, order `waiting_admin` (pesan: sedang diproses admin). App polling
+  `GET /orders/:id` (mis. tiap 30 dtk saat layar terbuka) atau buka dari riwayat.
+- Admin menempel token → `status: success`, `sn` = token format `1234-5678-9012-3456-7890`, `plnName`;
+  token juga dikirim **email** ke email akun pemilik + `notifyEmail` (bila diisi).
+- Tak bisa diproses (meter salah, gangguan) → `status: failed`, `refunded: true` (Poin kembali) + email.
+
