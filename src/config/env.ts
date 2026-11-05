@@ -36,6 +36,22 @@ const rawSchema = z.object({
   TELEGRAM_ADMIN_CHAT_ID: z.string().optional(),
   // URL publik dashboard untuk tautan di notifikasi (mis. https://sirko.produkdesa.com).
   PUBLIC_BASE_URL: z.string().optional(),
+
+  // PPOB (Digiflazz). Dipanggil langsung dari VPS (IP di-whitelist di Digiflazz).
+  PPOB_ENABLED: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  DIGIFLAZZ_USERNAME: z.string().optional(),
+  DIGIFLAZZ_API_KEY: z.string().optional(),
+  DIGIFLAZZ_WEBHOOK_SECRET: z.string().optional(),
+  // true = kirim `testing: true` ke Digiflazz (mode uji, tak memotong deposit).
+  DIGIFLAZZ_TESTING: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  // 0 = matikan tugas berkala PPOB (cek order pending) di proses ini.
+  PPOB_JOBS: z.string().optional(),
 });
 
 const parsed = rawSchema.safeParse(process.env);

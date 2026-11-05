@@ -12,6 +12,8 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'OWNER_ACCOUNT_MISSING'
   | 'INSUFFICIENT_POINTS'
+  | 'PPOB_UNAVAILABLE'
+  | 'PRODUCT_UNAVAILABLE'
   | 'INTERNAL';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
@@ -24,6 +26,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   OWNER_ACCOUNT_MISSING: 409, // toko tanpa akun pemilik cloud → Poin tak tersedia
   INSUFFICIENT_POINTS: 409, // saldo Poin kurang untuk pembelian
+  PPOB_UNAVAILABLE: 503, // PPOB dimatikan / belum dikonfigurasi
+  PRODUCT_UNAVAILABLE: 409, // produk nonaktif / cut-off / bukan jalur otomatis
   INTERNAL: 500,
 };
 
