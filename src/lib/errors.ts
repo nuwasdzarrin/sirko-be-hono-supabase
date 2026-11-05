@@ -10,11 +10,12 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'UPGRADE_REQUIRED'
   | 'RATE_LIMITED'
+  | 'INTERNAL'
+  // ── PPOB ──
   | 'OWNER_ACCOUNT_MISSING'
   | 'INSUFFICIENT_POINTS'
   | 'PPOB_UNAVAILABLE'
-  | 'PRODUCT_UNAVAILABLE'
-  | 'INTERNAL';
+  | 'PRODUCT_UNAVAILABLE';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   VALIDATION: 422,
@@ -24,11 +25,12 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   CONFLICT: 409,
   UPGRADE_REQUIRED: 409, // client schemaVersion lebih baru dari yang didukung server
   RATE_LIMITED: 429,
+  INTERNAL: 500,
+  // ── PPOB ──
   OWNER_ACCOUNT_MISSING: 409, // toko tanpa akun pemilik cloud → Poin tak tersedia
   INSUFFICIENT_POINTS: 409, // saldo Poin kurang untuk pembelian
   PPOB_UNAVAILABLE: 503, // PPOB dimatikan / belum dikonfigurasi
   PRODUCT_UNAVAILABLE: 409, // produk nonaktif / cut-off / bukan jalur otomatis
-  INTERNAL: 500,
 };
 
 /** Error domain terkendali — dibawa apa adanya ke envelope error. */

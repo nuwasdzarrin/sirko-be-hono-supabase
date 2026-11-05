@@ -529,7 +529,7 @@ export async function adminListAccounts(opts: { page: number; limit: number; q?:
   const rows = await sql<Row[]>`
     SELECT a.id, a.email::text AS email, a.phone, coalesce(pa.balance, 0) AS balance,
       (SELECT max(created_at) FROM point_ledger l WHERE l.account_id = a.id) AS last_ms,
-      (SELECT u.name FROM users u WHERE u.account_id = a.id AND u.role = 'owner' ORDER BY u.created_at LIMIT 1) AS owner_name,
+      (SELECT u.name FROM users u WHERE u.account_id = a.id AND u.role = 'owner' AND u.deleted_at IS NULL ORDER BY u.created_at LIMIT 1) AS owner_name,
       (SELECT coalesce(json_agg(json_build_object('id', b.id, 'name', b.name) ORDER BY b.name), '[]')
          FROM users u JOIN businesses b ON b.id = u.business_id
         WHERE u.account_id = a.id AND u.role = 'owner' AND u.deleted_at IS NULL AND b.deleted_at IS NULL) AS stores

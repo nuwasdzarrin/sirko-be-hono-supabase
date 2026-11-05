@@ -129,7 +129,21 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 - `status`: `baru` → `dibaca` / `diproses` → `selesai` / `ditolak` (diubah admin di dashboard). `adminNote` = balasan admin, boleh ditampilkan di app.
 - Online-only (tak lewat backup/sync).
 
-## 4c. Poin Sirko (Bearer + konteks toko) — saldo prabayar untuk PPOB
+## 5. Health
+`GET /v1/health` (tanpa auth) → `{ data:{ status:"ok", db:"ok", serverTime } }`.
+
+---
+
+## Catatan untuk Mobile
+- **Katalog default (offline):** gunakan bundel `assets/seed/catalog_seed.sqlite` (1.751 produk + thumbnail) — lihat `spec/13-seed-catalog.md`. API katalog di atas untuk lookup/update online (delta).
+- **Auth:** simpan `accessToken` (umur `expiresIn` detik) + `refreshToken`; perbarui via `/v1/auth/refresh`.
+- Semua waktu epoch ms UTC; uang integer rupiah; id UUID digenerate device.
+
+---
+
+## Poin & PPOB
+
+### Poin Sirko (Bearer + konteks toko) — saldo prabayar untuk PPOB
 
 Saldo milik **akun pemilik** toko (dipakai bersama semua toko milik akun itu). Server = sumber kebenaran:
 **jangan** simpan saldo sebagai data lokal yang di-sync/backup — selalu baca dari server. Online-only.
@@ -149,9 +163,9 @@ POST /v1/points/topups/:id/cancel       → batalkan top-up yang masih menunggu
   `CONFLICT` (masih ada top-up menunggu melebihi batas), `FORBIDDEN` (bukan owner/admin).
 - Poin tidak bisa ditarik maupun ditransfer ke akun lain.
 
-## 4d. PPOB — pulsa & paket data (Bearer + konteks toko, online-only)
+### PPOB — pulsa & paket data (Bearer + konteks toko, online-only)
 
-Dibayar dengan **Poin Sirko** (§4c). Harga di sini = harga Poin yang dipotong; harga jual ke pembeli
+Dibayar dengan **Poin Sirko** (bagian di atas). Harga di sini = harga Poin yang dipotong; harga jual ke pembeli
 ditentukan toko sendiri di aplikasi.
 
 ```
@@ -168,13 +182,3 @@ GET  /v1/ppob/orders?cursor=&limit=                            → riwayat, meta
   `pending`/`processing` (tampilkan "sedang diproses", polling `GET /orders/:id` tiap ±10–15 dtk).
 - Error: `INSUFFICIENT_POINTS` (409, `details.balance`/`required`), `PRODUCT_UNAVAILABLE` (409, nonaktif/cut-off),
   `PPOB_UNAVAILABLE` (503), `VALIDATION` (422, nomor tak valid / operator tak cocok), `OWNER_ACCOUNT_MISSING`.
-
-## 5. Health
-`GET /v1/health` (tanpa auth) → `{ data:{ status:"ok", db:"ok", serverTime } }`.
-
----
-
-## Catatan untuk Mobile
-- **Katalog default (offline):** gunakan bundel `assets/seed/catalog_seed.sqlite` (1.751 produk + thumbnail) — lihat `spec/13-seed-catalog.md`. API katalog di atas untuk lookup/update online (delta).
-- **Auth:** simpan `accessToken` (umur `expiresIn` detik) + `refreshToken`; perbarui via `/v1/auth/refresh`.
-- Semua waktu epoch ms UTC; uang integer rupiah; id UUID digenerate device.
