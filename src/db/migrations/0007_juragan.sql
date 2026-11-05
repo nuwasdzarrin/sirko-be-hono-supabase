@@ -29,7 +29,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   payment_id  uuid UNIQUE,                     -- → subscription_payments (null = manual admin)
   created_by  text,                            -- 'payment' | 'admin:<nama>'
   note        text,
-  created_at  bigint NOT NULL
+  created_at  bigint NOT NULL,
+  -- Potong manual admin: baris tak lagi dihitung (riwayat tetap utuh, tak dihapus).
+  cancelled_at bigint,
+  cancelled_by text
 );
 CREATE INDEX IF NOT EXISTS idx_subscriptions_account
   ON subscriptions (account_id, ends_at DESC);

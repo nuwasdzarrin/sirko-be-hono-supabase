@@ -34,6 +34,7 @@ import {
   type Flash,
 } from '../views/dashboard.view.js';
 import * as catalogAdmin from '../services/catalog-admin.service.js';
+import { subscriptionRoutes } from './dashboard-subscriptions.js';
 import * as feedback from '../services/feedback.service.js';
 import { getStoreReport, getTransactionDetail, resolveRange } from '../services/store-report.service.js';
 import { renderStoreReport, renderTransactionDetail } from '../views/business.view.js';
@@ -120,6 +121,8 @@ dashboardRoutes.use('*', async (c, next) => {
   c.set('flash', f);
   await next();
 });
+
+dashboardRoutes.route('/subscriptions', subscriptionRoutes); // Juragan — setelah sesi & flash
 
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {

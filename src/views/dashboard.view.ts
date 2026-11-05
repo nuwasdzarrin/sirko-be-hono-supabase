@@ -286,6 +286,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
     <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
     <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
+    <a class="tab <%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--></a>
     <span class="spacer"></span>
     <span class="badge">lintas-tenant</span>
     <span class="st"><%= fmtDateTime(serverTime) %> WIB</span>

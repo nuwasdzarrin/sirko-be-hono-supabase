@@ -50,6 +50,7 @@ export async function effective(
   const rows = await client<SubRow[]>`
     SELECT period, starts_at, ends_at FROM subscriptions
     WHERE account_id = ${accountId} AND plan = 'juragan' AND ends_at > ${now}
+      AND cancelled_at IS NULL
     ORDER BY starts_at, ends_at`;
   const subs = rows.map((r) => ({ period: r.period, start: Number(r.starts_at), end: Number(r.ends_at) }));
   const active = subs.find((s) => s.start <= now && now < s.end);

@@ -233,7 +233,8 @@ export async function confirmPayment(id: string, admin: string): Promise<{ start
     const accountId = p.account_id as string;
     await tx`SELECT id FROM accounts WHERE id = ${accountId} FOR UPDATE`;
     const [last] = await tx<{ ends_at: string | null }[]>`
-      SELECT max(ends_at) AS ends_at FROM subscriptions WHERE account_id = ${accountId} AND ends_at > ${now}`;
+      SELECT max(ends_at) AS ends_at FROM subscriptions
+      WHERE account_id = ${accountId} AND ends_at > ${now} AND cancelled_at IS NULL`;
     const startsAt = Math.max(now, Number(last?.ends_at ?? 0));
     const endsAt = addPeriod(startsAt, p.period as PlanPeriod);
     await tx`UPDATE subscription_payments
