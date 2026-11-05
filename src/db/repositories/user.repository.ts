@@ -77,6 +77,66 @@ export class UserRepository extends TenantRepository {
     return rows[0];
   }
 
+  /**
+   * Keanggotaan aktif akun (Juragan K3): baris users per toko + nama toko,
+   * urut nama toko. Toko terhapus & user nonaktif tak ikut.
+   */
+  static async listMembershipsForAuth(
+    accountId: string,
+    client: Sql = defaultSql,
+  ): Promise<Array<UserRow & { business_name: string }>> {
+    return client<Array<UserRow & { business_name: string }>>`
+      SELECT u.id, u.business_id, u.account_id, u.name, u.username, u.role, u.permissions,
+             u.is_active, u.created_at, u.updated_at, u.deleted_at, b.name AS business_name
+      FROM users u JOIN businesses b ON b.id = u.business_id
+      WHERE u.account_id = ${accountId} AND u.deleted_at IS NULL AND u.is_active
+        AND b.deleted_at IS NULL
+      ORDER BY b.name, b.id
+    `;
+  }
+
+  /** Satu keanggotaan (akun, toko) — null bila bukan anggota aktif. */
+  static async findMembershipForAuth(
+    accountId: string,
+    businessId: string,
+    client: Sql = defaultSql,
+  ): Promise<UserRow | undefined> {
+    const rows = await client<UserRow[]>`
+      SELECT u.id, u.business_id, u.account_id, u.name, u.username, u.role, u.permissions,
+             u.is_active, u.created_at, u.updated_at, u.deleted_at
+      FROM users u JOIN businesses b ON b.id = u.business_id
+      WHERE u.account_id = ${accountId} AND u.business_id = ${businessId}
+        AND u.deleted_at IS NULL AND u.is_active AND b.deleted_at IS NULL
+      LIMIT 1
+    `;
+    return rows[0];
+  }
+
+  /**
+   * Toko UTAMA akun = toko pertama yang ia miliki (owner, terlama). Paket warung
+   * hanya boleh membuka toko ini (JURAGAN.md §3.3 switch-business, J7).
+   */
+  static async primaryBusinessIdOfAccount(accountId: string, client: Sql = defaultSql): Promise<string | null> {
+    const rows = await client<{ business_id: string }[]>`
+      SELECT u.business_id FROM users u JOIN businesses b ON b.id = u.business_id
+      WHERE u.account_id = ${accountId} AND u.role = 'owner' AND u.deleted_at IS NULL
+        AND b.deleted_at IS NULL
+      ORDER BY u.created_at, u.business_id
+      LIMIT 1
+    `;
+    return rows[0]?.business_id ?? null;
+  }
+
+  /** Jumlah toko (hidup) yang DIMILIKI akun (role owner) — untuk kuota maxStores. */
+  static async countOwnedBusinesses(accountId: string, client: DbClient = defaultSql): Promise<number> {
+    const rows: { c: number }[] = await client`
+      SELECT count(*)::int c FROM users u JOIN businesses b ON b.id = u.business_id
+      WHERE u.account_id = ${accountId} AND u.role = 'owner' AND u.deleted_at IS NULL
+        AND b.deleted_at IS NULL
+    `;
+    return rows[0]?.c ?? 0;
+  }
+
   /** Refresh: petakan user_id → user untuk menerbitkan access token baru. */
   static async findByIdForAuth(
     userId: string,

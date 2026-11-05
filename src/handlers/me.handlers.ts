@@ -13,3 +13,8 @@ export async function handleMe(c: Context<AppEnv>) {
   });
   return c.json(ok(payload), 200);
 }
+
+/** GET /v1/me/businesses — daftar toko akun + paket (Juragan). */
+export async function handleMyBusinesses(c: Context<AppEnv>) {
+  return c.json(ok(await authService.myBusinesses(c.get('auth'))), 200);
+}

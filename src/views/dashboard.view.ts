@@ -289,6 +289,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='points'?'active':'' %>" href="/dashboard/points">Poin<!--pt-badge--></a>
     <a class="tab <%= active==='ppob'?'active':'' %>" href="/dashboard/ppob">PPOB<!--pp-badge--></a>
     <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
+    <a class="tab <%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--></a>
     <span class="spacer"></span>
     <span class="badge">lintas-tenant</span>
     <span class="st"><%= fmtDateTime(serverTime) %> WIB</span>

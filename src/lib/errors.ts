@@ -15,7 +15,11 @@ export type ErrorCode =
   | 'OWNER_ACCOUNT_MISSING'
   | 'INSUFFICIENT_POINTS'
   | 'PPOB_UNAVAILABLE'
-  | 'PRODUCT_UNAVAILABLE';
+  | 'PRODUCT_UNAVAILABLE'
+  // ── Juragan ──
+  | 'PLAN_REQUIRED'
+  | 'PLAN_LIMIT'
+  | 'PLAN_UNAVAILABLE';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   VALIDATION: 422,
@@ -31,6 +35,10 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   INSUFFICIENT_POINTS: 409, // saldo Poin kurang untuk pembelian
   PPOB_UNAVAILABLE: 503, // PPOB dimatikan / belum dikonfigurasi
   PRODUCT_UNAVAILABLE: 409, // produk nonaktif / cut-off / bukan jalur otomatis
+  // ── Juragan ──
+  PLAN_REQUIRED: 403, // fitur butuh Paket Juragan
+  PLAN_LIMIT: 403, // sudah mencapai maxStores
+  PLAN_UNAVAILABLE: 503, // harga/pembayaran langganan belum diatur
 };
 
 /** Error domain terkendali — dibawa apa adanya ke envelope error. */

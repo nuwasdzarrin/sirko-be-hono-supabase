@@ -31,6 +31,8 @@ export type RegisterBusinessInput = z.infer<typeof registerBusinessSchema>;
 export const loginSchema = z.object({
   emailOrPhone: z.string().trim().min(1).max(255),
   password: z.string().min(1).max(200),
+  /** Juragan: toko yang ingin dibuka (harus anggota). Opsional. */
+  businessId: z.string().uuid().optional().nullable(),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -38,3 +40,16 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 export type RefreshInput = z.infer<typeof refreshSchema>;
+
+// ── Juragan (multi-toko) ──
+
+export const switchBusinessSchema = z.object({
+  businessId: z.string().uuid(),
+});
+export type SwitchBusinessInput = z.infer<typeof switchBusinessSchema>;
+
+export const createBusinessSchema = z.object({
+  name: z.string().trim().min(1, 'Nama toko wajib diisi').max(120),
+  businessType: z.string().trim().max(60).optional().nullable(),
+});
+export type CreateBusinessInput = z.infer<typeof createBusinessSchema>;

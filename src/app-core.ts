@@ -14,6 +14,7 @@ import { dashboardRoutes } from './routes/dashboard.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { pointsRoutes } from './routes/points.js';
 import { ppobRoutes, webhookRoutes } from './routes/ppob.js';
+import { juraganRoutes } from './routes/juragan.js';
 
 /**
  * Aplikasi Hono inti + middleware global. Modul ini melakukan kerja berat saat
@@ -39,6 +40,7 @@ export function createApp() {
   v1.route('/points', pointsRoutes);
   v1.route('/ppob', ppobRoutes);
   v1.route('/webhooks', webhookRoutes);
+  v1.route('/', juraganRoutes); // /v1/businesses, /v1/plans, /v1/plan/*
   v1.route('/', meRoutes);
   v1.route('/', healthRoutes);
 

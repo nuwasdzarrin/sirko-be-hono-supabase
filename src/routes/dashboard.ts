@@ -34,6 +34,7 @@ import {
   type Flash,
 } from '../views/dashboard.view.js';
 import * as catalogAdmin from '../services/catalog-admin.service.js';
+import { subscriptionRoutes, withSubscriptionBadge } from './dashboard-subscriptions.js';
 import * as feedback from '../services/feedback.service.js';
 import { getStoreReport, getTransactionDetail, resolveRange } from '../services/store-report.service.js';
 import { renderStoreReport, renderTransactionDetail } from '../views/business.view.js';
@@ -126,6 +127,8 @@ dashboardRoutes.use('*', async (c, next) => {
   await next();
 });
 
+dashboardRoutes.route('/subscriptions', subscriptionRoutes); // Juragan — setelah sesi & flash
+
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {
   const [fbNew, ptPending, ppAttention] = await Promise.all([
@@ -133,6 +136,7 @@ async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 4
     points.countPendingTopups().catch(() => 0),
     ppob.countNeedsAttention().catch(() => 0),
   ]);
+  html = await withSubscriptionBadge(html); // Juragan
   html = html.replace('<!--pp-badge-->', ppAttention > 0 ? ` <span class="nb">${ppAttention}</span>` : '');
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
   html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
