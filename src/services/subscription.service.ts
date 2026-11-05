@@ -4,6 +4,7 @@ import { uuid } from '../lib/uuid.js';
 import { nowMs } from '../lib/time.js';
 import { AppError, forbidden, notFound, validation } from '../lib/errors.js';
 import * as plans from './plan.service.js';
+import { notifyAdmin, tgEsc } from '../lib/notify.js';
 import type { EffectivePlan, PlanPeriod } from './plan.service.js';
 
 /**
@@ -46,18 +47,32 @@ export interface Checkout {
   plan: EffectivePlan | null;
 }
 
-// ── Notifikasi admin ─────────────────────────────────────────────────────────
+// ── Notifikasi admin ──────────────────────────────────────────────────────────
 
-/**
- * Pembungkus sementara (brief §5.2): `notifyAdmin()` Telegram dibuat agen PPOB
- * di `src/lib/notify.ts` dan belum ada di main. Setelah ter-merge, ganti isi
- * fungsi ini menjadi `notifyAdmin(...)` — pemanggil tak perlu berubah.
- */
-export async function notifyPaymentPending(info: { amount: number; period: string; accountId: string; businessName: string | null }) {
-  console.log(
-    `[langganan] pembayaran pending Rp${info.amount} (${info.period}) — akun ${info.accountId}` +
-      (info.businessName ? ` · ${info.businessName}` : ''),
-  );
+const rupiah = (v: number) => 'Rp' + new Intl.NumberFormat('id-ID').format(v);
+
+/** Telegram ke admin saat ada permintaan bayar baru (notifyAdmin tak pernah melempar). */
+export async function notifyPaymentPending(info: {
+  amount: number;
+  uniqueCode: number;
+  period: string;
+  accountLabel: string | null;
+  businessName: string | null;
+}) {
+  await notifyAdmin({
+    text:
+      `👑 <b>Langganan Juragan — pembayaran baru</b>
+` +
+      `Toko: <b>${tgEsc(info.businessName ?? '—')}</b>${info.accountLabel ? ` (${tgEsc(info.accountLabel)})` : ''}
+` +
+      `Periode: ${info.period === 'yearly' ? 'Tahunan' : 'Bulanan'}
+` +
+      `Nominal QRIS: <b>${rupiah(info.amount)}</b> (kode unik ${info.uniqueCode})
+` +
+      `Cek mutasi lalu konfirmasi di dashboard.`,
+    linkPath: '/dashboard/subscriptions',
+    linkLabel: 'Buka antrian langganan',
+  });
 }
 
 // ── Harga & konfigurasi ──────────────────────────────────────────────────────
@@ -173,10 +188,19 @@ export async function checkout(
   }
   if (!row) throw planUnavailable();
 
-  const [biz] = auth.businessId
-    ? await sql<{ name: string }[]>`SELECT name FROM businesses WHERE id = ${auth.businessId}`
-    : [];
-  await notifyPaymentPending({ amount: Number(row.amount), period, accountId, businessName: biz?.name ?? null });
+  const [[biz], [acc]] = await Promise.all([
+    auth.businessId
+      ? sql<{ name: string }[]>`SELECT name FROM businesses WHERE id = ${auth.businessId}`
+      : Promise.resolve([] as { name: string }[]),
+    sql<{ label: string | null }[]>`SELECT coalesce(email::text, phone) AS label FROM accounts WHERE id = ${accountId}`,
+  ]);
+  await notifyPaymentPending({
+    amount: Number(row.amount),
+    uniqueCode: Number(row.unique_code),
+    period,
+    accountLabel: acc?.label ?? null,
+    businessName: biz?.name ?? null,
+  });
   return toCheckout(row, payment.qrisUrl);
 }
 

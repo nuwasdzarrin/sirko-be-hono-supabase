@@ -2,6 +2,8 @@ import { Hono, type Context } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { AppError } from '../lib/errors.js';
 import * as feedback from '../services/feedback.service.js';
+import * as points from '../services/points.service.js';
+import * as ppob from '../services/ppob.service.js';
 import * as subscriptions from '../services/subscription.service.js';
 import * as admin from '../services/subscription-admin.service.js';
 import { renderNotFound, type Flash } from '../views/dashboard.view.js';
@@ -41,17 +43,27 @@ function flash(c: Context, type: Flash['type'], msg: string) {
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
+const badge = (n: number) => (n > 0 ? ` <span class="nb">${n}</span>` : '');
+
+/** Badge nav Langganan — dipakai juga oleh sendPage di routes/dashboard.ts. */
+export async function withSubscriptionBadge(html: string): Promise<string> {
+  return html.replace('<!--sub-badge-->', badge(await admin.countPending().catch(() => 0)));
+}
+
 async function sendPage(c: Context<Env>, html: string, status: 200 | 404 = 200) {
-  const [fbNew, counts] = await Promise.all([feedback.countNew().catch(() => 0), admin.statusCounts()]);
+  const [fbNew, ptPending, ppAttention] = await Promise.all([
+    feedback.countNew().catch(() => 0),
+    points.countPendingTopups().catch(() => 0),
+    ppob.countNeedsAttention().catch(() => 0),
+  ]);
   const f = c.get('flash');
   const toast = f ? `<div class="flash ${f.type === 'error' ? 'err' : 'ok'}" role="status">${escapeHtml(f.msg)}</div>` : '';
-  return c.html(
-    html
-      .replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '')
-      .replace('<!--sub-badge-->', counts.pending > 0 ? ` <span class="nb">${counts.pending}</span>` : '')
-      .replace('<!--flash-->', toast),
-    status,
-  );
+  html = (await withSubscriptionBadge(html))
+    .replace('<!--fb-badge-->', badge(fbNew))
+    .replace('<!--pt-badge-->', badge(ptPending))
+    .replace('<!--pp-badge-->', badge(ppAttention))
+    .replace('<!--flash-->', toast);
+  return c.html(html, status);
 }
 
 const intParam = (v: string | undefined, def: number) => {

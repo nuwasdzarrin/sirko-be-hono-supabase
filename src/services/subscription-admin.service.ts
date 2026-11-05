@@ -63,6 +63,13 @@ async function expireStale(now: number) {
   await sql`UPDATE subscription_payments SET status = 'expired' WHERE status = 'pending' AND expires_at <= ${now}`;
 }
 
+/** Jumlah pembayaran menunggu konfirmasi (untuk badge nav; hanya baca). */
+export async function countPending(): Promise<number> {
+  const r = await sql<{ c: number }[]>`
+    SELECT count(*)::int c FROM subscription_payments WHERE status = 'pending' AND expires_at > ${nowMs()}`;
+  return r[0]?.c ?? 0;
+}
+
 export async function statusCounts(): Promise<Record<PaymentStatus, number>> {
   await expireStale(nowMs());
   const rows = await sql<{ status: PaymentStatus; c: number }[]>`

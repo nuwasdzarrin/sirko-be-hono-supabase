@@ -4,6 +4,7 @@ import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import * as subscriptions from '../../src/services/subscription.service.js';
 import { req, register } from './juragan-helpers.js';
+import { sentNotices } from '../../src/lib/notify.js';
 
 /**
  * Contract test dashboard admin Langganan (/dashboard/subscriptions):
@@ -67,6 +68,13 @@ suite('Juragan — dashboard admin langganan', () => {
   it('antrian menampilkan pending; konfirmasi lewat form → Juragan aktif + flash', async () => {
     const a = await register('jd');
     const co = (await req('POST', '/v1/plan/checkout', { period: 'monthly' }, a.token)).json.data;
+    // Admin dinotifikasi (Telegram via notifyAdmin) dengan nominal & tautan antrian.
+    const notice = [...sentNotices].reverse().find((n) => n.text.includes('Langganan Juragan'));
+    expect(notice?.text).toContain(new Intl.NumberFormat('id-ID').format(co.amount));
+    expect(notice?.text).toContain(a.email);
+    expect(notice?.linkPath).toBe('/dashboard/subscriptions');
+    // Badge nav Langganan tampil juga di halaman dashboard lain.
+    expect((await page('/dashboard')).html).toMatch(/Langganan <span class="nb">\d+<\/span>/);
     const q = await page('/dashboard/subscriptions');
     expect(q.status).toBe(200);
     expect(q.html).toContain(a.email);
