@@ -239,6 +239,7 @@ const CSS = `
   tr.rowlink{cursor:pointer}
   .biztable td{white-space:nowrap}
   tr.rowlink:hover td{background:var(--acc-soft)}
+  @media (max-width:1400px){nav.top .badge,nav.top .st{display:none} nav.top a.tab{padding:6px 9px}}
   @media (max-width:860px){.form-grid{grid-template-columns:1fr}}
   @media (max-width:640px){
     .fields{grid-template-columns:1fr}
@@ -285,6 +286,8 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
     <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
     <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
+    <a class="tab <%= active==='points'?'active':'' %>" href="/dashboard/points">Poin<!--pt-badge--></a>
+    <a class="tab <%= active==='ppob'?'active':'' %>" href="/dashboard/ppob">PPOB<!--pp-badge--></a>
     <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     <a class="tab <%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--></a>
     <span class="spacer"></span>
@@ -1108,6 +1111,7 @@ export function renderBusinessShell(d: BusinessDetail, active: string, main: str
 <nav class="tabs" id="biz-tabs" aria-label="Data toko">
   <a class="${active === '' ? 'on' : ''}" href="${bizUrl(id, {})}">Ringkasan <span class="c">${helpers.fmtNum(total)}</span></a>
   <a class="special ${active === 'report' ? 'on' : ''}" href="${bizUrl(id, { tab: 'report' })}">📊 Laporan</a>
+  <a class="special ${active === 'points' ? 'on' : ''}" href="${bizUrl(id, { tab: 'points' })}">🪙 Poin</a>
   ${BUSINESS_TABS.map((x) => {
     const n = d.counts[x.wire] ?? 0;
     const cls = [active === x.wire ? 'on' : '', n === 0 ? 'zero' : ''].join(' ').trim();

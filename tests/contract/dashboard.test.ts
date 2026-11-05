@@ -55,7 +55,7 @@ suite('Dashboard contract', () => {
         headers: { Authorization: `Bearer ${admin}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: `${tag} produk`, keywords: [tag], ...over }),
       });
-    await mk({ name: `${tag} verified`, category: catA, verified: true, barcode: `55${Date.now()}`, photoUrl: 'https://example.com/p.jpg' }); // berfoto → muncul di "Katalog terbaru"
+    await mk({ name: `${tag} verified`, category: catA, verified: true, barcode: `55${Date.now()}`, photoUrl: `https://example.com/${tag}.jpg` });
     await mk({ name: `${tag} belum`, category: catA, verified: false });
     await mk({ name: `${tag} lain`, category: `Lain ${tag}`, verified: true });
     cookie = await login();

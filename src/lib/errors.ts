@@ -11,6 +11,11 @@ export type ErrorCode =
   | 'UPGRADE_REQUIRED'
   | 'RATE_LIMITED'
   | 'INTERNAL'
+  // ── PPOB ──
+  | 'OWNER_ACCOUNT_MISSING'
+  | 'INSUFFICIENT_POINTS'
+  | 'PPOB_UNAVAILABLE'
+  | 'PRODUCT_UNAVAILABLE'
   // ── Juragan ──
   | 'PLAN_REQUIRED'
   | 'PLAN_LIMIT'
@@ -25,6 +30,11 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   UPGRADE_REQUIRED: 409, // client schemaVersion lebih baru dari yang didukung server
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  // ── PPOB ──
+  OWNER_ACCOUNT_MISSING: 409, // toko tanpa akun pemilik cloud → Poin tak tersedia
+  INSUFFICIENT_POINTS: 409, // saldo Poin kurang untuk pembelian
+  PPOB_UNAVAILABLE: 503, // PPOB dimatikan / belum dikonfigurasi
+  PRODUCT_UNAVAILABLE: 409, // produk nonaktif / cut-off / bukan jalur otomatis
   // ── Juragan ──
   PLAN_REQUIRED: 403, // fitur butuh Paket Juragan
   PLAN_LIMIT: 403, // sudah mencapai maxStores
