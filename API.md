@@ -272,6 +272,37 @@ Toko utama = toko pertama yang dimiliki akun (owner, terlama).
   bayar sebelum habis menyambung, tidak menghanguskan sisa hari. Periode = +1 bulan /
   +1 tahun kalender (tanggal dijepit ke akhir bulan, mis. 31 Jan → 28/29 Feb).
 
+### Lintas-toko (Bearer, butuh `multi_store`)
+Semua endpoint memverifikasi: paket akun pelaku Juragan (else 403 `PLAN_REQUIRED`) **dan**
+akun = **owner** di setiap toko yang disentuh (else 403 `FORBIDDEN`). `auth.businessId` tidak dipercaya.
+
+| Method | Path | Body / query | Respons |
+|---|---|---|---|
+| GET | `/v1/juragan/reports/summary` | `?preset=today\|7d\|30d\|month\|lastmonth\|year` atau `?from=YYYY-MM-DD&to=YYYY-MM-DD` (WIB; default bulan ini) | 200 `{ range:{from,to,fromMs,toMs}, stores:[StoreSummary], total, plan }` |
+| POST | `/v1/juragan/copy-products` | `{ fromBusinessId, toBusinessId, productIds: uuid[1..200] }` | 201 `{ copied:[{fromProductId,toProductId,variants:[{fromVariantId,toVariantId}]}], skipped:[{fromProductId,reason:"NOT_FOUND"\|"BARCODE_EXISTS",existingProductId?}], createdCategories, createdUnits }` |
+| POST | `/v1/juragan/stock-transfers` | `{ fromBusinessId, toBusinessId, lines:[{productId,toProductId,variantId?,toVariantId?,qty>0}] (1..100), note? }` | 201 `{ transferId, fromBusinessId, toBusinessId, createdAt, lines:[{…, fromStockAfter, toStockAfter}] }` |
+
+```jsonc
+// StoreSummary (semua angka integer rupiah)
+{ "businessId": "uuid", "name": "Cabang Pasar", "txCount": 12, "omzet": 350000,
+  "revenue": 348000, "cogs": 290000, "grossProfit": 58000,   // rumus laba §9 = laporan app
+  "receivables": 20000,   // kasbon pelanggan SAAT INI (semua periode), Σ max(total − dibayar − pelunasan, 0)
+  "cashBalance": 145000 } // saldo kas semua dompet SAAT INI dari ledger wallet_transactions (Σ in − Σ out)
+// total = penjumlahan semua toko (txCount, omzet, revenue, cogs, grossProfit, receivables, cashBalance)
+```
+- Laporan hanya mencakup toko yang akun itu **owner**, dari data yang sudah ter-sync.
+- **Salin produk:** semua baris (produk, varian, harga grosir, kategori/satuan baru) mendapat **UUID baru**;
+  stok salinan **0** (isi lewat mutasi stok). Kategori & satuan dicocokkan **per nama** (tanpa beda huruf
+  besar/kecil) di toko tujuan, dibuat bila belum ada. Produk yang **barcode-nya sudah ada** di toko tujuan
+  dilewati (`BARCODE_EXISTS` + `existingProductId` → pakai untuk mutasi). `image_path` hanya disalin bila URL http(s).
+  Toko tujuan menerima produk baru lewat **pull sync biasa**.
+- **Mutasi stok:** satu transaksi DB; per baris menambah `stock_logs` toko asal (`type:"out"`, `qtyChange:-qty`)
+  dan tujuan (`type:"in"`, `+qty`), `refType:"store_transfer"`, `refId` = `transferId` yang sama, `note`
+  "Mutasi ke/dari <toko>". Server **tidak** mengubah `products.stock`/`updatedAt` — app menghitung ulang stok
+  dari ledger setelah pull (SYNC.md §8.6). Varian asal & tujuan harus sama-sama diisi atau kosong.
+  Stok ledger di server kurang → 422 `VALIDATION` ("… tidak cukup … Sinkronkan toko asal dulu."), tak ada
+  baris yang tertulis.
+
 ### Kode error baru
 | code | HTTP | pesan contoh |
 |---|---|---|
