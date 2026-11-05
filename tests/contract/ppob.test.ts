@@ -378,6 +378,22 @@ suite('PPOB tahap 2 — pulsa & data', () => {
     });
   });
 
+  it('GET /v1/ppob/status: saklar, kategori (+alasan), saldo & hak top-up per peran', async () => {
+    const r = await req('GET', '/v1/ppob/status', token);
+    expect(r.status).toBe(200);
+    const d = r.json.data;
+    expect(d.enabled).toBe(true);
+    expect(d.categories.map((c: { key: string }) => c.key)).toEqual(['pulsa', 'data', 'pln']);
+    const pulsa = d.categories.find((c: { key: string }) => c.key === 'pulsa');
+    expect(pulsa).toMatchObject({ available: true, reason: null });
+    expect(pulsa.productCount).toBeGreaterThan(0);
+    expect(d.points).toMatchObject({ available: true, balance: await balance(), canTopup: true });
+    expect(typeof d.serverTime).toBe('number');
+    const cashier = await signAccessToken({ userId: uuid(), businessId, role: 'cashier' });
+    expect((await req('GET', '/v1/ppob/status', cashier)).json.data.points.canTopup).toBe(false);
+    expect((await req('GET', '/v1/ppob/status')).status).toBe(401);
+  });
+
   it('saldo Poin = Σ ledger setelah semua skenario', async () => {
     const s = await sql<{ s: string }[]>`SELECT coalesce(sum(amount),0) s FROM point_ledger WHERE account_id = ${accountId}`;
     expect(Number(s[0]!.s)).toBe(await balance());

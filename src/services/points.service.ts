@@ -126,7 +126,12 @@ export async function applyLedger(tx: DbClient, e: LedgerEntryInput): Promise<{ 
     RETURNING balance`;
   if (!upd[0]) {
     const cur = await tx<{ balance: string }[]>`SELECT balance FROM point_accounts WHERE account_id = ${e.accountId}`;
-    throw new AppError('INSUFFICIENT_POINTS', 'Poin tidak cukup.', { balance: n(cur[0]?.balance), required: -e.amount });
+    const have = n(cur[0]?.balance);
+    const fmt = (v: number) => new Intl.NumberFormat('id-ID').format(v);
+    throw new AppError('INSUFFICIENT_POINTS', `Poin tidak cukup. Saldo ${fmt(have)}, dibutuhkan ${fmt(-e.amount)}. Silakan top-up Poin.`, {
+      balance: have,
+      required: -e.amount,
+    });
   }
   const id = uuid();
   const balanceAfter = n(upd[0].balance);
@@ -367,6 +372,16 @@ export async function listTopupsForAccount(accountId: string, limit = 30): Promi
   await expireStale();
   const rows = await sql<Row[]>`${topupSelect()} WHERE t.account_id = ${accountId} ORDER BY t.created_at DESC LIMIT ${limit}`;
   return rows.map(topupItem);
+}
+
+/** Detail satu top-up milik akun pemilik toko ini (+ instruksi bila masih menunggu) — untuk polling app. */
+export async function topupForBusiness(businessId: string, id: string): Promise<Topup & { instructions: TopupInstructions['instructions'] | null }> {
+  const accountId = await requireOwnerAccount(businessId);
+  await expireStale();
+  const t = await getTopup(id);
+  if (!t || t.accountId !== accountId) throw notFound('Top-up tidak ditemukan');
+  const cfg = await getConfig();
+  return { ...t, instructions: t.status === 'pending' ? instructionsFor(t, cfg).instructions : null };
 }
 
 /** Pemilik membatalkan top-up miliknya yang masih menunggu. */
