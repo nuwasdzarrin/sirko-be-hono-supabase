@@ -12,3 +12,6 @@ data/backup/
 data/public_product.curated.json
 data/catalog_seed.sqlite
 data/catalog_seed.sqlite-*
+
+# VPS: cadangan DB/.env yang dibuat scripts/update.sh (jangan di-commit)
+backups/

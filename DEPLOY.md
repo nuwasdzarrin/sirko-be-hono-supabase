@@ -1,4 +1,28 @@
-# Deploy — Vercel + Supabase (produksi)
+# Deploy
+
+## Produksi sekarang: VPS Kreatora (pm2 + Cloudflare Tunnel)
+
+> Sejak 2026-11: produksi = `https://sirko.produkdesa.com` → Cloudflare Tunnel →
+> VPS Kreatora `/home/sirko-hono` (git checkout branch `main`), pm2 `sirko-hono`
+> (`ecosystem.config.cjs` → `src/server.ts`, bind `127.0.0.1:$PORT`), DB = Postgres
+> lokal di VPS. Bagian Vercel/Supabase di bawah = cara lama (referensi).
+
+**Deploy rutin** (setelah push ke `main`):
+```bash
+ssh -p 50055 root@151.243.222.93 'cd /home/sirko-hono && bash scripts/update.sh'
+```
+`scripts/update.sh`: cek folder bersih → **backup DB** (`backups/db-*-pre-update-*.sql.gz`,
+15 terakhir) → `git merge --ff-only origin/main` → `npm ci` bila lock berubah →
+`npm run migrate` → `pm2 reload` (stop→start bila `ecosystem.config.cjs` berubah) →
+health check `/v1/health` (`db: ok`). Gagal → mencetak perintah rollback.
+`FORCE=1` = deploy ulang tanpa commit baru.
+
+**Aturan:** server = mirror. Jangan edit/commit di server; `.env` & `backups/` tak
+di-commit. Migrasi baru cukup ditaruh di `src/db/migrations/` — dijalankan update.sh.
+
+---
+
+# (Lama) Deploy — Vercel + Supabase
 
 Runbook produksi backend Sirko. Urutan: **Supabase → migrasi → env Vercel → deploy → verifikasi**.
 Repo GitHub (`nuwasdzarrin/sirko-be-hono-supabase`) **= root backend** (bukan monorepo),
