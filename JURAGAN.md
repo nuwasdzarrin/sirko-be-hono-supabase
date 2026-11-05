@@ -50,7 +50,7 @@ harus difilter; satu yang lupa = data bocor antar-toko).
    data hilang diam-diam). `BackupRepository.foreignIds()` +
    `services/backup.service.ts`; test di `tests/contract/backup.test.ts`;
    didokumentasikan di `SYNC.md` §3/§8.2.
-2. **Aplikasi:** daftar toko di perangkat (`sirko/lib/core/database/store_registry.dart`),
+2. **Aplikasi:** daftar toko di perangkat (`sirko-flutter/lib/core/database/store_registry.dart`, sudah di `main`),
    DB dibuka per toko aktif, toko diikat ke `businessId` setelah sync sukses.
    Belum ada UI pemilih toko.
 
@@ -231,16 +231,26 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
   `products.updated_at` tidak berubah.
 - Regresi: semua test `backup.test.ts` & `auth.test.ts` tetap lulus.
 
-**Keamanan kerja (PENTING):**
-- `.env` lokal menunjuk **database produksi**. `npm test` aman (setup memaksa
-  `sirko_test` lokal), tetapi `npm run dev` / `npm run migrate` memakai `.env`
-  = produksi. Untuk server lokal pakai `DATABASE_URL=...localhost:5432/sirko_test`
-  eksplisit.
-- Push ke `main` = deploy produksi (Vercel). Migrasi produksi
-  (`migrate:prod`) hanya setelah test lulus dan dengan persetujuan pemilik
-  produk; cek `schema_migrations` produksi lebih dulu.
-- Folder `sirko-backend` dipakai bersama sesi lain: stage file secara
-  eksplisit, jangan pindah branch di folder bersama.
+**Keamanan kerja (PENTING — diperbarui 2026-11-05):**
+- **Produksi** = VPS Kreatora: `https://sirko.produkdesa.com` → Cloudflare
+  Tunnel → `/home/sirko-hono` (pm2 `sirko-hono`, port 47321, Postgres lokal
+  server). Lihat `DEPLOY.md` di `main`.
+- **Deploy** = push ke `main`, lalu di server jalankan `bash scripts/update.sh`
+  (backup DB → `git pull --ff-only` → `npm ci` bila perlu → **migrasi** →
+  reload pm2 → health check, plus perintah rollback bila gagal). Jadi migrasi
+  `0007_juragan.sql` ikut jalan otomatis saat deploy → pastikan test lulus,
+  idempoten (`IF NOT EXISTS`), dan **minta persetujuan pemilik produk** sebelum
+  menjalankan `update.sh`. Jangan edit/commit di server (server = mirror).
+- **Lokal:** kerja di `c:\project\sirko\sirko-hono` (worktree). `.env` di sana
+  menunjuk DB dev lokal `sirko_dev` (port 47321); `npm test` selalu ke
+  `sirko_test` lokal (`tests/setup/env.setup.ts`, menolak host Supabase).
+  `.env` di worktree lama `KasirWarung\sirko-backend` masih menunjuk Supabase
+  produksi LAMA — jangan dipakai.
+- **Server lama** `sirko.vercel.app` + Supabase masih hidup (dipakai APK
+  ≤ 1.2.0+15). Jangan jadikan acuan; aplikasi berikutnya memakai
+  `sirko.produkdesa.com` (`CloudConfig.baseUrl`).
+- Worktree dipakai bergantian dengan sesi lain: stage file secara eksplisit,
+  jangan pindah branch di worktree orang lain.
 
 ---
 
