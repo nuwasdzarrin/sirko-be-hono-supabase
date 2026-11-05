@@ -1,7 +1,7 @@
 import { sql } from '../db/client.js';
 import { AccountRepository } from '../db/repositories/account.repository.js';
 import { BusinessRepository } from '../db/repositories/business.repository.js';
-import { UserRepository } from '../db/repositories/user.repository.js';
+import { UserRepository, type UserRow } from '../db/repositories/user.repository.js';
 import { RefreshTokenRepository } from '../db/repositories/refresh_token.repository.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import {
@@ -13,24 +13,44 @@ import { effectivePermissions, type Role } from '../lib/permissions.js';
 import { uuid } from '../lib/uuid.js';
 import { nowMs } from '../lib/time.js';
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '../config/env.js';
-import { conflict, unauthenticated } from '../lib/errors.js';
-import type { RegisterBusinessInput, LoginInput } from '../schemas/auth.schema.js';
+import { AppError, conflict, forbidden, unauthenticated } from '../lib/errors.js';
+import type {
+  RegisterBusinessInput,
+  LoginInput,
+  CreateBusinessInput,
+} from '../schemas/auth.schema.js';
 import * as plans from './plan.service.js';
 import type { EffectivePlan } from './plan.service.js';
 
-/** Bentuk respons auth (register/login) — sesuai kontrak 10 §1.1/§1.2. */
+/** Ringkasan keanggotaan toko (kontrak app §1.2). */
+export interface BusinessSummary {
+  id: string;
+  name: string;
+  role: Role;
+}
+
+/**
+ * Bentuk respons sesi — SAMA untuk register, login, switch-business, dan
+ * POST /v1/businesses (kontrak app §2, §6.8). Field lama (`user.businessId`,
+ * `business`) dipertahankan untuk app ≤ 1.2.0+15.
+ */
 export interface AuthPayload {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
   user: { id: string; name: string; role: Role; businessId: string | null };
   business: { id: string; name: string; businessType: string | null } | null;
-  /** Paket efektif akun (Juragan K7). Opsional di tipe: register tak menyertakannya. */
-  plan?: EffectivePlan;
+  businesses: BusinessSummary[];
+  plan: EffectivePlan;
 }
 
 const accounts = new AccountRepository();
 const refreshTokens = new RefreshTokenRepository();
+
+export const planRequired = (message = 'Fitur ini butuh Paket Juragan.') =>
+  new AppError('PLAN_REQUIRED', message);
+export const planLimit = (max: number) =>
+  new AppError('PLAN_LIMIT', `Paket Juragan maksimal ${max} toko.`);
 
 /** Terbitkan pasangan token & catat jti refresh untuk rotasi/revoke. */
 async function issueTokens(user: {
@@ -53,14 +73,42 @@ async function issueTokens(user: {
   return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL_SECONDS };
 }
 
+async function listBusinessSummaries(accountId: string | null): Promise<BusinessSummary[]> {
+  if (!accountId) return [];
+  const rows = await UserRepository.listMembershipsForAuth(accountId);
+  return rows.map((r) => ({ id: r.business_id as string, name: r.business_name, role: r.role }));
+}
+
+/**
+ * SATU-SATUNYA pembentuk respons sesi: terbitkan token untuk baris `users` toko
+ * tujuan, catat `last_business_id`, sertakan daftar toko & paket.
+ */
+async function buildSession(user: Pick<UserRow, 'id' | 'name' | 'role' | 'business_id' | 'account_id'>): Promise<AuthPayload> {
+  const [tokens, business, businesses, plan] = await Promise.all([
+    issueTokens({ id: user.id, businessId: user.business_id, role: user.role }),
+    user.business_id ? loadBusinessSummary(user.business_id) : Promise.resolve(null),
+    listBusinessSummaries(user.account_id),
+    plans.forBusiness(user.business_id, user.account_id),
+  ]);
+  if (user.account_id && user.business_id) {
+    await sql`UPDATE accounts SET last_business_id = ${user.business_id} WHERE id = ${user.account_id}`;
+  }
+  return {
+    ...tokens,
+    user: { id: user.id, name: user.name, role: user.role, businessId: user.business_id },
+    business,
+    businesses,
+    plan,
+  };
+}
+
 /** POST /v1/auth/register-business — buat business + account owner + user owner (atomik). */
 export async function registerBusiness(input: RegisterBusinessInput): Promise<AuthPayload> {
   const email = input.owner.email ?? null;
   const phone = input.owner.phone ?? null;
+  const taken = () => conflict('Email atau nomor telepon sudah terdaftar. Masuk lalu tambah toko (Paket Juragan).');
 
-  if (await accounts.existsByEmailOrPhone(email, phone)) {
-    throw conflict('Email atau nomor telepon sudah terdaftar');
-  }
+  if (await accounts.existsByEmailOrPhone(email, phone)) throw taken();
 
   const ts = nowMs();
   const businessId = uuid();
@@ -101,23 +149,18 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Au
     });
   } catch (err) {
     // Balapan unik email/phone (23505) → CONFLICT alih-alih 500.
-    if (isUniqueViolation(err)) throw conflict('Email atau nomor telepon sudah terdaftar');
+    if (isUniqueViolation(err)) throw taken();
     throw err;
   }
 
-  const tokens = await issueTokens({ id: userId, businessId, role: 'owner' });
-  return {
-    ...tokens,
-    user: { id: userId, name: input.owner.name, role: 'owner', businessId },
-    business: {
-      id: businessId,
-      name: input.business.name,
-      businessType: input.business.businessType ?? null,
-    },
-  };
+  return buildSession({ id: userId, name: input.owner.name, role: 'owner', business_id: businessId, account_id: accountId });
 }
 
-/** POST /v1/auth/login — verifikasi kredensial, terbitkan token. */
+/**
+ * POST /v1/auth/login — verifikasi kredensial lalu pilih toko:
+ * `businessId` body (harus anggota, else 403) → `last_business_id` → toko utama.
+ * Paket warung hanya boleh membuka toko utama (sama dengan switch-business).
+ */
 export async function login(input: LoginInput): Promise<AuthPayload> {
   const account = await accounts.findByEmailOrPhone(input.emailOrPhone);
   // Pesan seragam untuk cegah user-enumeration (akun tak ada vs password salah).
@@ -130,25 +173,117 @@ export async function login(input: LoginInput): Promise<AuthPayload> {
   const passwordOk = await verifyPassword(input.password, account.password_hash);
   if (!passwordOk) throw invalid();
 
-  const user = await UserRepository.findByAccountIdForAuth(account.id);
-  if (!user || !user.is_active) throw invalid();
+  const memberships = await UserRepository.listMembershipsForAuth(account.id);
+  if (memberships.length === 0) {
+    // Akun tanpa toko (mis. sirko_admin): perilaku lama.
+    const user = await UserRepository.findByAccountIdForAuth(account.id);
+    if (!user || !user.is_active || user.business_id) throw invalid();
+    return buildSession(user);
+  }
 
-  const tokens = await issueTokens({
-    id: user.id,
-    businessId: user.business_id,
-    role: user.role,
+  const [plan, primaryId, last] = await Promise.all([
+    plans.effective(account.id),
+    UserRepository.primaryBusinessIdOfAccount(account.id),
+    sql<{ last_business_id: string | null }[]>`SELECT last_business_id FROM accounts WHERE id = ${account.id}`,
+  ]);
+  const multi = plans.hasFeature(plan, 'multi_store');
+  const byId = (id: string | null | undefined) => memberships.find((m) => m.business_id === id);
+  const allowed = (id: string | null | undefined) => multi || !primaryId || id === primaryId || memberships.length === 1;
+
+  let chosen: UserRow | undefined;
+  if (input.businessId) {
+    chosen = byId(input.businessId);
+    if (!chosen) throw forbidden('Anda bukan anggota toko ini.');
+    if (!allowed(chosen.business_id)) throw planRequired('Pindah toko butuh Paket Juragan.');
+  } else {
+    const lastId = last[0]?.last_business_id;
+    chosen = (allowed(lastId) ? byId(lastId) : undefined) ?? byId(primaryId) ?? memberships[0];
+  }
+  return buildSession(chosen!);
+}
+
+/**
+ * POST /v1/auth/switch-business — token baru untuk toko lain milik akun yang sama.
+ * Bukan anggota → 403 FORBIDDEN (tanpa membocorkan keberadaan toko). Paket
+ * warung & bukan toko utama → 403 PLAN_REQUIRED. Token toko asal tak dicabut.
+ */
+export async function switchBusiness(auth: { userId: string }, businessId: string): Promise<AuthPayload> {
+  const accountId = await plans.accountIdOfUser(auth.userId);
+  if (!accountId) throw forbidden('Anda bukan anggota toko ini.');
+  const target = await UserRepository.findMembershipForAuth(accountId, businessId);
+  if (!target) throw forbidden('Anda bukan anggota toko ini.');
+
+  const [plan, primaryId] = await Promise.all([
+    plans.effective(accountId),
+    UserRepository.primaryBusinessIdOfAccount(accountId),
+  ]);
+  if (!plans.hasFeature(plan, 'multi_store') && primaryId && businessId !== primaryId) {
+    throw planRequired('Pindah toko butuh Paket Juragan.');
+  }
+  return buildSession(target);
+}
+
+/**
+ * POST /v1/businesses — owner menambah toko (butuh multi_store, kuota maxStores).
+ * Akun dikunci (FOR UPDATE) selama transaksi → dua permintaan bersamaan tak
+ * bisa melampaui kuota. Respons = sesi untuk toko baru (token langsung bisa push).
+ */
+export async function createBusiness(
+  auth: { userId: string; role: Role },
+  input: CreateBusinessInput,
+): Promise<AuthPayload> {
+  if (auth.role !== 'owner') throw forbidden('Hanya pemilik toko yang bisa menambah toko.');
+  const accountId = await plans.accountIdOfUser(auth.userId);
+  if (!accountId) throw forbidden('Hanya pemilik toko yang bisa menambah toko.');
+
+  const plan = await plans.effective(accountId);
+  if (!plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko butuh Paket Juragan.');
+
+  const [me] = await sql<{ name: string }[]>`SELECT name FROM users WHERE id = ${auth.userId}`;
+  const ts = nowMs();
+  const businessId = uuid();
+  const userId = uuid();
+  const ownerName = me?.name ?? 'Pemilik';
+
+  await sql.begin(async (tx) => {
+    await tx`SELECT id FROM accounts WHERE id = ${accountId} FOR UPDATE`;
+    const owned = await UserRepository.countOwnedBusinesses(accountId, tx);
+    if (owned >= plan.maxStores) throw planLimit(plan.maxStores);
+    await BusinessRepository.create(
+      { id: businessId, name: input.name, businessType: input.businessType ?? null, createdAt: ts, updatedAt: ts },
+      tx,
+    );
+    // Owner versi cloud: tanpa username/PIN (app mengabaikannya saat pull, SYNC.md §8.3).
+    await UserRepository.create(
+      {
+        id: userId,
+        businessId,
+        accountId,
+        name: ownerName,
+        username: null,
+        role: 'owner',
+        permissions: [],
+        createdAt: ts,
+        updatedAt: ts,
+      },
+      tx,
+    );
   });
 
-  const [business, plan] = await Promise.all([
-    user.business_id ? loadBusinessSummary(user.business_id) : Promise.resolve(null),
-    plans.effective(account.id),
+  return buildSession({ id: userId, name: ownerName, role: 'owner', business_id: businessId, account_id: accountId });
+}
+
+/** GET /v1/me/businesses — daftar toko akun + paket. */
+export async function myBusinesses(auth: { userId: string; businessId: string | null }): Promise<{
+  businesses: BusinessSummary[];
+  plan: EffectivePlan;
+}> {
+  const accountId = await plans.accountIdOfUser(auth.userId);
+  const [businesses, plan] = await Promise.all([
+    listBusinessSummaries(accountId),
+    plans.forBusiness(auth.businessId, accountId),
   ]);
-  return {
-    ...tokens,
-    user: { id: user.id, name: user.name, role: user.role, businessId: user.business_id },
-    business,
-    plan,
-  };
+  return { businesses, plan };
 }
 
 /** POST /v1/auth/refresh — rotasi refresh token, terbitkan access baru. */
@@ -164,12 +299,13 @@ export async function refresh(refreshToken: string): Promise<{
   const user = await UserRepository.findByIdForAuth(userId);
   if (!user || !user.is_active) throw unauthenticated('Akun tidak aktif');
 
-  // Rotasi: cabut jti lama, terbitkan pasangan baru.
+  // Rotasi: cabut jti lama, terbitkan pasangan baru. Token tetap untuk toko
+  // baris users ini (per toko — K3), tak terpengaruh switch-business.
   await refreshTokens.revoke(jti);
   return issueTokens({ id: user.id, businessId: user.business_id, role: user.role });
 }
 
-/** GET /v1/me — profil pengguna + business + permission efektif (kontrak 10 §1.4). */
+/** GET /v1/me — profil pengguna + business + permission efektif + paket + daftar toko. */
 export async function me(auth: {
   userId: string;
   businessId: string | null;
@@ -179,6 +315,7 @@ export async function me(auth: {
   business: { id: string; name: string; businessType: string | null } | null;
   permissions: string[];
   plan: EffectivePlan;
+  businesses: BusinessSummary[];
 }> {
   // sirko_admin (businessId null) tak punya toko; user biasa dibaca tenant-scoped.
   if (!auth.businessId) {
@@ -189,6 +326,7 @@ export async function me(auth: {
       business: null,
       permissions: effectivePermissions(user.role, user.permissions),
       plan: await plans.effective(user.account_id),
+      businesses: await listBusinessSummaries(user.account_id),
     };
   }
 
@@ -196,7 +334,10 @@ export async function me(auth: {
   const businessRepo = new BusinessRepository(auth.businessId);
   const [user, business] = await Promise.all([userRepo.getById(auth.userId), businessRepo.getSelf()]);
   if (!user) throw unauthenticated('User tidak ditemukan');
-  const plan = await plans.effective(user.account_id);
+  const [plan, businesses] = await Promise.all([
+    plans.forBusiness(auth.businessId, user.account_id),
+    listBusinessSummaries(user.account_id),
+  ]);
 
   return {
     user: { id: user.id, name: user.name, role: user.role, businessId: auth.businessId },
@@ -205,6 +346,7 @@ export async function me(auth: {
       : null,
     permissions: effectivePermissions(user.role, user.permissions),
     plan,
+    businesses,
   };
 }
 

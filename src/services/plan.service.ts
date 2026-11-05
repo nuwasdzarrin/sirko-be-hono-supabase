@@ -80,3 +80,26 @@ export async function accountIdOfUser(userId: string, client: Sql = defaultSql):
     SELECT account_id FROM users WHERE id = ${userId} AND deleted_at IS NULL LIMIT 1`;
   return rows[0]?.account_id ?? null;
 }
+
+/**
+ * Akun pemilik toko = `users.account_id` baris `role='owner'` toko itu (brief §5.5).
+ * Tidak mengandalkan "satu akun = satu users".
+ */
+export async function ownerAccountOfBusiness(businessId: string, client: Sql = defaultSql): Promise<string | null> {
+  const rows = await client<{ account_id: string }[]>`
+    SELECT account_id FROM users
+    WHERE business_id = ${businessId} AND role = 'owner'
+      AND account_id IS NOT NULL AND deleted_at IS NULL
+    ORDER BY created_at, id LIMIT 1`;
+  return rows[0]?.account_id ?? null;
+}
+
+/**
+ * Paket yang berlaku di sebuah toko = paket akun pemiliknya. Dipakai untuk
+ * respons sesi (login/me/switch): kasir yang login melihat paket tokonya.
+ * Guard fitur lintas-toko memakai `effective(akunPelaku)` langsung.
+ */
+export async function forBusiness(businessId: string | null, fallbackAccountId: string | null, now = nowMs()) {
+  const owner = businessId ? await ownerAccountOfBusiness(businessId) : null;
+  return effective(owner ?? fallbackAccountId, now);
+}

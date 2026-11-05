@@ -10,7 +10,11 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'UPGRADE_REQUIRED'
   | 'RATE_LIMITED'
-  | 'INTERNAL';
+  | 'INTERNAL'
+  // ── Juragan ──
+  | 'PLAN_REQUIRED'
+  | 'PLAN_LIMIT'
+  | 'PLAN_UNAVAILABLE';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   VALIDATION: 422,
@@ -21,6 +25,10 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   UPGRADE_REQUIRED: 409, // client schemaVersion lebih baru dari yang didukung server
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  // ── Juragan ──
+  PLAN_REQUIRED: 403, // fitur butuh Paket Juragan
+  PLAN_LIMIT: 403, // sudah mencapai maxStores
+  PLAN_UNAVAILABLE: 503, // harga/pembayaran langganan belum diatur
 };
 
 /** Error domain terkendali — dibawa apa adanya ke envelope error. */

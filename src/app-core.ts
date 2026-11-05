@@ -12,6 +12,7 @@ import { catalogPublicRoutes } from './routes/catalog-public.js';
 import { mediaRoutes } from './routes/media.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { juraganRoutes } from './routes/juragan.js';
 
 /**
  * Aplikasi Hono inti + middleware global. Modul ini melakukan kerja berat saat
@@ -34,6 +35,7 @@ export function createApp() {
   v1.route('/catalog', catalogRoutes);
   v1.route('/media', mediaRoutes);
   v1.route('/feedback', feedbackRoutes);
+  v1.route('/', juraganRoutes); // /v1/businesses, /v1/plans, /v1/plan/*
   v1.route('/', meRoutes);
   v1.route('/', healthRoutes);
 

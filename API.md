@@ -142,21 +142,73 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 ---
 
 ## Langganan & multi-toko (Paket Juragan)
-Spesifikasi lengkap: [JURAGAN.md](JURAGAN.md). Paket melekat ke **akun** pemilik,
-bukan ke toko; server = sumber kebenaran, app meng-cache untuk offline.
+Kontrak mengikat app: `KONTRAK-API-juragan-app.md` · desain: [JURAGAN.md](JURAGAN.md).
+Paket melekat ke **akun pemilik** (bukan toko). Server = sumber kebenaran; app
+meng-cache `plan` untuk offline. Status paket **tidak pernah** memblok
+`/v1/backup/*` maupun pencatatan.
 
-### Objek `plan`
-Ada di respons `POST /v1/auth/login` dan `GET /v1/me` (field lama tetap ada →
-app lama tak terpengaruh).
-```json
-"plan": {
-  "name": "juragan",            // "warung" | "juragan"
-  "period": "monthly",          // "monthly" | "yearly" | null (warung)
-  "expiresAt": 1796000000000,   // ujung langganan (sudah termasuk perpanjangan); null untuk warung
-  "maxStores": 3,               // warung = 1
-  "features": ["multi_store", "staff", "advanced_reports", "receipt_branding"],
-  "serverTime": 1793900000000   // jangkar jam untuk keputusan offline
-}
+### Objek bersama
+```jsonc
+// Plan — selalu ada serverTime. Setelah expiresAt server mengirim warung
+// (tenggang offline 3 hari HANYA di app).
+{ "name": "juragan", "period": "monthly", "expiresAt": 1796000000000, "maxStores": 3,
+  "features": ["multi_store", "staff", "advanced_reports", "receipt_branding"], "serverTime": 1793900000000 }
+// warung: { "name":"warung", "period":null, "expiresAt":null, "maxStores":1, "features":[], "serverTime":… }
+
+// BusinessSummary
+{ "id": "uuid", "name": "Warung Bu Sri", "role": "owner" }
 ```
-- Warung: `features: []`, `maxStores: 1`. Aktif bila `starts_at <= now < expiresAt`.
-- Status paket **tidak pernah** memblok sync (`/v1/backup/*`) maupun pencatatan.
+Paket yang ditampilkan di sesi = paket **akun pemilik toko aktif** (kasir melihat paket tokonya).
+
+### Sesi — satu bentuk respons
+`register-business` (201), `login` (200), `switch-business` (200), `POST /v1/businesses` (201)
+mengembalikan `data` berbentuk **identik**:
+```jsonc
+{ "accessToken": "…", "refreshToken": "…", "expiresIn": 900,
+  "user": { "id", "name", "role", "businessId" },        // field lama (app ≤ 1.2.0+15)
+  "business": { "id", "name", "businessType" },           // field lama
+  "businesses": [BusinessSummary…],                       // baru
+  "plan": Plan }                                          // baru
+```
+
+| Method | Path | Auth | Body | Catatan / error |
+|---|---|---|---|---|
+| POST | `/v1/auth/login` | — | `{ emailOrPhone, password, businessId? }` | Toko: `businessId` (harus anggota) → toko terakhir dibuka → toko utama. Bukan anggota → 403 `FORBIDDEN`. Paket warung + `businessId` bukan toko utama → 403 `PLAN_REQUIRED` (tanpa `businessId`, warung selalu masuk toko utama). |
+| POST | `/v1/auth/register-business` | — | (tetap) | Email/telepon terdaftar → 409 `CONFLICT` ("Masuk lalu tambah toko (Paket Juragan).") |
+| POST | `/v1/auth/switch-business` | Bearer | `{ businessId }` | Bukan anggota / tak ada → 403 `FORBIDDEN`. Warung & bukan toko utama → 403 `PLAN_REQUIRED`. Token toko asal tidak dicabut. |
+| POST | `/v1/businesses` | Bearer (owner) | `{ name, businessType? }` | Warung → 403 `PLAN_REQUIRED` · sudah `maxStores` → 403 `PLAN_LIMIT` · 422 `VALIDATION`. Token toko baru langsung bisa push. |
+| GET | `/v1/me` | Bearer | — | + `plan`, `businesses` |
+| GET | `/v1/me/businesses` | Bearer | — | `{ businesses, plan }` |
+| POST | `/v1/auth/refresh` | — | (tetap) | Token tetap untuk toko baris `users`-nya (per toko). |
+
+Toko utama = toko pertama yang dimiliki akun (owner, terlama).
+
+### Langganan (QRIS statis + konfirmasi admin)
+| Method | Path | Auth | Respons / error |
+|---|---|---|---|
+| GET | `/v1/plans` | Bearer (semua role) | `{ prices:[{plan,period,amount,maxStores}], payment:{qrisUrl,bankName,accountNo,accountName,note}, plan }` — harga dari `plan_prices` (tanpa data → `[]`), payment dari `app_config['subscription']` (kosong → null) |
+| POST | `/v1/plan/checkout` | Bearer (**owner**) | Body `{ period: "monthly"\|"yearly" }` → 201 `Checkout`. Non-owner → 403 `FORBIDDEN` · period salah → 422 `VALIDATION` · harga belum diatur → 503 `PLAN_UNAVAILABLE` |
+| GET | `/v1/plan/checkout/:id` | Bearer (akun pemilik checkout) | 200 `Checkout` status terbaru · bukan milik akun / tak ada → 404 `NOT_FOUND` |
+| POST | `/v1/plan/checkout/:id/proof` | Bearer (owner) | Body `{ mediaPath }` (URL dari `/v1/media/sign-upload`) → 200 `Checkout` (hanya saat `pending`) |
+
+```jsonc
+// Checkout
+{ "id": "uuid", "period": "monthly", "amount": 49123, "uniqueCode": 123,
+  "expiresAt": 1793986400000, "qrisUrl": "https://…/qris.png", "status": "pending",
+  "note": null,      // alasan bila rejected
+  "plan": null }     // Plan terbaru HANYA bila status = confirmed
+```
+- `amount` = harga + `uniqueCode` (1–999) → nominal yang **harus** dibayar persis.
+- Satu akun maksimal satu `pending`: checkout baru membuat yang lama `expired`.
+  Pending lewat 24 jam → `expired`. Dua pending aktif tak pernah bernominal sama.
+- Admin dinotifikasi saat checkout dibuat.
+- Konfirmasi admin: langganan baru mulai `max(sekarang, akhir langganan aktif)` →
+  bayar sebelum habis menyambung, tidak menghanguskan sisa hari. Periode = +1 bulan /
+  +1 tahun kalender (tanggal dijepit ke akhir bulan, mis. 31 Jan → 28/29 Feb).
+
+### Kode error baru
+| code | HTTP | pesan contoh |
+|---|---|---|
+| `PLAN_REQUIRED` | 403 | "Fitur ini butuh Paket Juragan." |
+| `PLAN_LIMIT` | 403 | "Paket Juragan maksimal 3 toko." |
+| `PLAN_UNAVAILABLE` | 503 | "Pembayaran langganan belum tersedia. Coba lagi nanti." |
