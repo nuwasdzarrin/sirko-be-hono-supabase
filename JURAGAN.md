@@ -2,7 +2,7 @@
 
 > **Untuk:** agen/engineer backend yang mengerjakan kode backend paket Juragan
 > (bagian aplikasi HP dicatat di §4 sebagai kontrak).
-> **Status:** keputusan produk sudah diambil (§7); kode backend **belum** dikerjakan.
+> **Status:** semua keputusan produk final (§7); kode backend **belum** dikerjakan.
 > **Dokumen terkait:** `SYNC.md` (kontrak sync — wajib dibaca), `API.md`,
 > `docs/superpowers/specs/2026-11-02-ppob-poin-design.md` (PPOB + Poin — pola
 > top-up QRIS & konfirmasi admin dipakai ulang di sini).
@@ -18,7 +18,7 @@ Prinsip: **offline-first, mobile-only, tanpa biaya di depan**.
 | Paket | Harga | Isi |
 |---|---|---|
 | **Warung** | Gratis selamanya | Kasir, stok, katalog barcode bawaan, peringatan stok tipis, kasbon. **Satu toko, hanya owner.** |
-| **Juragan** | **Rp49.000/bulan** atau tahunan (§7 J9) | Semua isi Warung + bundle di bawah (tidak dijual terpisah) |
+| **Juragan** | **Rp49.000/bulan** atau **Rp499.000/tahun** | Semua isi Warung + bundle di bawah (tidak dijual terpisah) |
 
 Isi bundle Juragan:
 1. **Multi-cabang** — maksimal **3 toko** per akun (termasuk toko utama), dipantau owner dari satu aplikasi.
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS plan_prices (
   updated_at  bigint NOT NULL,
   PRIMARY KEY (plan, period)
 );
--- Seed: juragan bulanan 49.000; tahunan lihat §7 J9; max_stores 3.
+-- Seed: ('juragan','monthly',49000,3), ('juragan','yearly',499000,3).
 ```
 
 Catatan:
@@ -400,7 +400,7 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 
 ## 7. Keputusan
 
-**Sudah diputuskan pemilik produk (2026-11-05):**
+**Semua sudah diputuskan pemilik produk (2026-11-05):**
 
 | # | Keputusan |
 |---|---|
@@ -411,14 +411,9 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 | J5 | **Poin Sirko hanya untuk PPOB**, per toko, tidak bisa dipindah antar-toko (aturan dok PPOB tetap). |
 | J6 | Paket Warung: keempat fitur bundle **dikunci semua** — termasuk karyawan yang sudah ada dan ekspor yang dulu gratis — dan diarahkan ke layar berlangganan. Pencatatan owner tidak diblok. |
 | J10 | Karyawan per toko (PIN lokal), tidak lintas toko. |
-
-**Usulan — dipakai sebagai default sampai pemilik mengubah:**
-
-| # | Pertanyaan | Default |
-|---|---|---|
-| J7 | Langganan habis saat punya >1 toko | Semua toko tetap bisa mencatat & sync **di HP yang sudah login ke toko itu**; fitur bundle terkunci (termasuk pindah toko dari satu HP, tambah toko, laporan gabungan). Data tak pernah dihapus; aktif lagi begitu diperpanjang. |
-| J8 | Masa tenggang offline | 3 hari setelah `expiresAt` bila HP belum bisa cek ke server. |
-| J9 | Harga tahunan | **Rp490.000/tahun** (2 bulan gratis) — perlu konfirmasi. |
-| J11 | Pelanggan/supplier dibagi antar-toko? | Tidak — per toko; laporan gabungan cukup. |
-| J12 | Kode toko di nomor invoice | Ya untuk laporan gabungan (mis. `INV-A-20261105-0001`) — perubahan di aplikasi. |
-| J13 | Pengguna yang sudah memakai karyawan/ekspor saat fitur dikunci | Tampilkan pemberitahuan sekali di aplikasi sebelum penguncian berlaku (bukan diam-diam). |
+| J7 | Langganan habis saat punya >1 toko: semua toko tetap bisa mencatat & sync **di HP yang sudah login ke toko itu**; fitur bundle terkunci (termasuk pindah toko dari satu HP, tambah toko, laporan gabungan). Data tak pernah dihapus; aktif lagi begitu diperpanjang. |
+| J8 | Masa tenggang offline: 3 hari setelah `expiresAt` bila HP belum bisa cek ke server. |
+| J9 | Harga tahunan **Rp499.000/tahun**. |
+| J11 | Pelanggan/supplier per toko (tidak dibagi); laporan gabungan cukup. |
+| J12 | Kode toko di nomor invoice (mis. `INV-A-20261105-0001`) — perubahan di aplikasi. |
+| J13 | Pengguna yang sudah memakai karyawan/ekspor diberi pemberitahuan sekali di aplikasi sebelum penguncian berlaku (bukan diam-diam). |
