@@ -1,6 +1,6 @@
 # Rancangan: PPOB + Poin Sirko
 
-Tanggal: 2026-11-02 · Branch: `feature/ppob` · Status: **draf untuk disetujui**
+Tanggal: 2026-11-02 (rev. 2026-11-05) · Branch: `feature/ppob` · Status: **disetujui — tahap 1 dibangun**
 
 Dokumen ini cukup untuk merencanakan & membangun fitur tanpa bertanya ulang.
 Keputusan ditandai: **[pemilik]** = diputuskan pemilik produk; **[keputusan saya]** =
@@ -75,41 +75,38 @@ Sumber produk **[pemilik]**:
 6. **Penyedia di balik adaptor**: `ppob/providers/digiflazz.ts` & `manual.ts`
    dengan antarmuka sama (`purchase`, `checkStatus`). Notifikasi & email juga
    adaptor (`notify/telegram.ts`, `mail/resend.ts`) — bisa diganti lewat env.
-7. **Relay Digiflazz di VPS Kreatora (WAJIB).** Digiflazz hanya menerima
-   panggilan dari **IP yang di-whitelist**, baik mode development maupun produksi
-   (selain itu ditolak RC 45). Vercel tak punya IP keluar tetap, jadi panggilan
-   keluar ke Digiflazz lewat **relay kecil** di VPS Kreatora (IP tetap
-   `151.243.222.93`, dijalankan pm2 seperti app lain di server itu) **[keputusan saya]**:
-   - Relay = app Node mini (Hono) yang **menyimpan kredensial Digiflazz**
-     (username/API key tak perlu ada di Vercel) dan mengekspos 4 endpoint tipis:
-     `cek-saldo`, `price-list`, `transaction`, `inquiry-pln`. Ia menghitung `sign`,
-     meneruskan, lalu mengembalikan JSON Digiflazz apa adanya.
-   - Vercel → relay diautentikasi **HMAC-SHA256** (header `X-Sirko-Sig` atas
-     `timestamp + body`, toleransi 5 menit, rahasia bersama `RELAY_SECRET`) lewat
-     HTTPS (subdomain di Kreatora melalui reverse proxy).
-   - Relay **stateless & tanpa logika bisnis** (tidak menyentuh DB). Semua
-     idempotensi dan ledger tetap di backend. Bila relay mati: pembelian ditolak
-     **sebelum** Poin dipotong (cek kesehatan relay), atau order menjadi `pending`
-     (tidak di-refund sampai statusnya pasti).
-   - **Webhook masuk** dari Digiflazz langsung ke Vercel (lalu lintas masuk tidak
-     kena whitelist) dan diverifikasi tanda tangannya. Opsional: tolak bila bukan
-     dari IP Digiflazz `52.74.250.133`.
-   - Kode relay ditaruh di repo ini (`relay/`) tapi di-deploy terpisah ke Kreatora.
-   - Alternatif yang ditolak: memindah seluruh backend ke VPS (terlalu besar);
-     layanan proxy IP statis berbayar (biaya tambahan + pihak ketiga memegang lalu lintas).
+7. **Digiflazz dipanggil langsung dari VPS Kreatora** (rev. 2026-11-05). Digiflazz
+   mewajibkan whitelist IP pemanggil; produksi kini berjalan di VPS Kreatora
+   (IP tetap `151.243.222.93`, pm2) — bukan Vercel lagi — sehingga **relay tidak
+   diperlukan** **[pemilik: pindah semua ke Kreatora]**. IP itu di-whitelist di
+   dashboard Digiflazz (mode dev & prod). Webhook masuk ke
+   `https://sirko.produkdesa.com/v1/webhooks/digiflazz`. Karena proses berjalan
+   terus (bukan serverless), tugas berkala (cek order pending, pengingat token
+   manual, sinkron harga) memakai **penjadwal di dalam proses** (setInterval/cron
+   ringan) — poin §4.5 tetap berlaku sebagai jaring pengaman.
 8. Tetap portabel (Postgres + HTTP), konsisten dengan prinsip proyek.
 
-## 5. Model data (migrasi `0007_ppob_points.sql`)
+## 5. Model data (migrasi `0008_points.sql`, PPOB menyusul `0009_ppob.sql`)
 
-Semua tabel memakai `business_id` (UUID toko dari server, dari JWT). Uang = bigint
+**Rev. 2026-11-05 — Poin per AKUN PEMILIK [pemilik]** (menjawab JURAGAN.md Q7):
+saldo Poin dikunci ke `account_id` pemilik (tabel `accounts`), bukan ke toko.
+Pemilik beberapa toko (paket Juragan) punya **satu saldo** yang dipakai semua
+tokonya; setiap mutasi/order tetap mencatat `business_id` toko yang memakainya.
+Akun pemilik sebuah toko = `users.account_id` baris ber-`role='owner'` (tak
+terhapus, `account_id` tak null) di toko itu — kolom `account_id` hanya diisi
+server (tak bisa di-push lewat backup). Toko tanpa akun pemilik → fitur Poin
+ditolak (`AKUN_PEMILIK_TIDAK_ADA`). Tetap: tak ada transfer ke akun lain, tak
+bisa ditarik.
+
+Migrasi: **`0008_points.sql`** (0007 dicadangkan untuk Juragan). Uang = bigint
 rupiah; waktu = bigint epoch ms.
 
-**`point_accounts`** — saldo per toko (cache ledger)
-- `business_id` PK → businesses, `balance bigint NOT NULL DEFAULT 0 CHECK (balance >= 0)`,
+**`point_accounts`** — saldo per akun pemilik (cache ledger)
+- `account_id` PK → accounts, `balance bigint NOT NULL DEFAULT 0 CHECK (balance >= 0)`,
   `updated_at`.
 
 **`point_ledger`** — buku besar, append-only
-- `id uuid`, `business_id`, `type` ∈ `topup | purchase | refund | adjustment`,
+- `id uuid`, `account_id`, `business_id` (toko pemakai/pengaju; null untuk koreksi admin tingkat akun), `type` ∈ `topup | purchase | refund | adjustment`,
   `amount bigint` (bertanda: + masuk, − keluar; ≠ 0), `balance_after bigint >= 0`,
   `ref_type` (`topup|ppob_order|manual`), `ref_id uuid`, `note`, `created_by`
   (`app:<userId>` / `admin:<nama>` / `system`), `created_at`.
@@ -117,7 +114,7 @@ rupiah; waktu = bigint epoch ms.
   ganda per order/top-up. Trigger menolak UPDATE/DELETE.
 
 **`point_topups`** — permintaan isi Poin
-- `id`, `business_id`, `amount` (nominal diminta), `unique_code` (1–999),
+- `id`, `account_id`, `business_id` (toko pengaju), `amount` (nominal diminta), `unique_code` (1–999),
   `transfer_amount` (= amount + unique_code), `status` ∈
   `pending | paid | rejected | expired`, `requested_by`, `admin_note`,
   `confirmed_by`, `paid_at`, `expires_at` (24 jam), `created_at`, `updated_at`.
@@ -263,7 +260,7 @@ hanya pemilik boleh top-up" dilakukan di app lewat izin lokal baru
 ## 12. Integrasi Digiflazz (diverifikasi dari dokumentasi resmi, 2026-11-02)
 
 Semua `POST https://api.digiflazz.com/v1/...`, JSON, respons dibungkus `data`.
-Dipanggil **hanya oleh relay** (§4.7).
+Dipanggil langsung dari VPS (§4.7).
 
 | Kebutuhan | Endpoint & body | `sign` |
 |---|---|---|
@@ -274,7 +271,7 @@ Dipanggil **hanya oleh relay** (§4.7).
 
 **Pemetaan status**: pakai field `status`. `Sukses` → `success` (simpan `sn`);
 `Gagal` → `failed` + refund; `Pending` → `pending`. RC `99` (router issue) dan `03`
-= pending, **bukan gagal**. Timeout/error jaringan ke relay = `pending`. RC `44`
+= pending, **bukan gagal**. Timeout/error jaringan = `pending`. RC `44`
 (deposit Digiflazz kurang) → `failed` + refund + **alarm Telegram ke admin**.
 RC `45` (IP) / `41` (signature) → `failed` + refund + alarm (salah konfigurasi).
 
@@ -309,16 +306,15 @@ kena limit, app tetap boleh lanjut dengan peringatan.
 **Mode uji** (`testing: true`, SKU `xld10`): `087800001230` sukses,
 `087800001232` gagal, `087800001233` pending → callback sukses, `087800001234`
 pending → callback gagal. Tidak ada kasus uji untuk `inquiry-pln`. Whitelist IP
-berlaku juga di mode development, jadi relay sudah harus ada sejak tahap uji.
+berlaku juga di mode development → uji dari VPS (atau whitelist IP mesin dev).
 
 ## 13. Konfigurasi & rahasia (env Vercel)
 
-Vercel: `PPOB_ENABLED`, `PPOB_RELAY_URL`, `RELAY_SECRET`,
+`.env` VPS: `PPOB_ENABLED`, `DIGIFLAZZ_USERNAME`, `DIGIFLAZZ_API_KEY`,
 `DIGIFLAZZ_WEBHOOK_SECRET`, `DIGIFLAZZ_TESTING` (true di non-produksi),
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `RESEND_API_KEY`, `MAIL_FROM`,
 `PUBLIC_DASHBOARD_URL` (untuk link di notifikasi).
-Relay (VPS Kreatora): `DIGIFLAZZ_USERNAME`, `DIGIFLAZZ_API_KEY`, `RELAY_SECRET`,
-`PORT`. IP `151.243.222.93` di-whitelist di dashboard Digiflazz (mode dev & prod).
+IP VPS `151.243.222.93` di-whitelist di dashboard Digiflazz (mode dev & prod).
 Tanpa kredensial → fitur
 mati dengan rapi (`PPOB_NONAKTIF`), test memakai adaptor palsu.
 
@@ -333,14 +329,13 @@ mati dengan rapi (`PPOB_NONAKTIF`), test memakai adaptor palsu.
 6. Penjualan PPOB dicatat sebagai transaksi kasir (tahap app); **pemilik toko menentukan sendiri harga jual/labanya** ke pembeli **[pemilik]**.
 7. Poin tidak kedaluwarsa; min top-up 20.000, maks 5.000.000 **[pemilik: setuju]**.
 8. Pengingat order token manual tanpa worker latar (dipicu aktivitas + cron harian).
-9. **Relay Digiflazz di VPS Kreatora** (karena whitelist IP); kredensial Digiflazz
-   hanya ada di relay, dan Vercel bicara ke relay dengan HMAC.
+9. ~~Relay Digiflazz~~ — tak diperlukan lagi (produksi pindah ke VPS Kreatora).
 10. Cek nomor meter PLN via Digiflazz `inquiry-pln` sebelum order token manual.
 
 **Yang perlu Anda siapkan (di luar kode):** akun Digiflazz (username, API key,
-webhook secret) + whitelist IP Kreatora; saldo deposit Digiflazz; bot Telegram
+webhook secret) + whitelist IP Kreatora `151.243.222.93`; saldo deposit Digiflazz; bot Telegram
 (token + chat ID grup admin); akun Resend + domain pengirim terverifikasi;
-rekening/QRIS tujuan top-up; subdomain untuk relay.
+rekening/QRIS tujuan top-up.
 
 ## 15. Pengujian
 
@@ -351,13 +346,11 @@ rekening/QRIS tujuan top-up; subdomain untuk relay.
   webhook sukses/gagal; webhook ganda → idempoten; ledger tak bisa di-UPDATE;
   saldo = Σ ledger; alur token manual (tempel → success → email terkirim di
   adaptor palsu; gagalkan → refund); top-up konfirmasi 2× → sekali kredit.
-- Uji integrasi Digiflazz mode `testing` (4 nomor uji di §12) lewat relay sebelum produksi.
-- Relay: test unit tanda tangan HMAC (tolak body yang diubah dan timestamp kedaluwarsa).
+- Uji integrasi Digiflazz mode `testing` (4 nomor uji di §12) dari VPS sebelum produksi.
 
 ## 16. Urutan pembangunan
 
 1. Migrasi + layanan ledger/Poin + top-up (API & dashboard) + tab Poin toko.
-2. Relay Digiflazz (`relay/`) + deploy ke Kreatora + whitelist IP.
-3. Katalog produk + sinkron harga Digiflazz + adaptor + order pulsa/data + webhook.
-4. Token listrik manual + Telegram + email + menu PPOB dashboard.
-5. Aplikasi Flutter (menu PPOB, top-up, beli, riwayat, catat ke kasir).
+2. Katalog produk + sinkron harga Digiflazz + adaptor + order pulsa/data + webhook.
+3. Token listrik manual + Telegram + email + menu PPOB dashboard.
+4. Aplikasi Flutter (menu PPOB, top-up, beli, riwayat, catat ke kasir).
