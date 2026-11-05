@@ -47,6 +47,10 @@ if (/supabase\.(co|com)/i.test(process.env.DATABASE_URL)) {
 process.env.DASHBOARD_USER ??= 'admin-test';
 process.env.DASHBOARD_PASSWORD ??= 'password-test-123';
 
+// Notifikasi Telegram asli tak boleh terkirim dari test (transport di-mock bila perlu).
+delete process.env.TELEGRAM_BOT_TOKEN;
+delete process.env.TELEGRAM_ADMIN_CHAT_ID;
+
 // S3 dummy agar presigner (Fitur 2 Media) bisa diuji struktur signed URL-nya.
 process.env.S3_ENDPOINT ??= 'https://s3.test.local/storage/v1/s3';
 process.env.S3_REGION ??= 'ap-southeast-1';
