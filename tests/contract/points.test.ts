@@ -236,6 +236,20 @@ suite('Poin Sirko — tahap 1', () => {
     expect(after.json.data.balance).toBe(s1.json.data.balance + t.json.data.topup.transferAmount);
   });
 
+  it('GET /v1/points/topups/:id: instruksi hanya saat menunggu; akun lain → 404', async () => {
+    const r = await req('POST', '/v1/points/topups', A.token, { amount: 21_000 });
+    const id = r.json.data.topup.id;
+    const d = await req('GET', `/v1/points/topups/${id}`, A.token);
+    expect(d.json.data).toMatchObject({ id, status: 'pending', transferAmount: r.json.data.topup.transferAmount });
+    expect(d.json.data.instructions.transferAmount).toBe(r.json.data.topup.transferAmount);
+    await points.adminConfirmTopup(id, 'tester');
+    const after = await req('GET', `/v1/points/topups/${id}`, A.token);
+    expect(after.json.data).toMatchObject({ status: 'paid', instructions: null });
+    const other = await newStore(`x${tag}`.slice(0, 8));
+    createdBiz.push(other.businessId);
+    expect((await req('GET', `/v1/points/topups/${id}`, other.token)).status).toBe(404);
+  });
+
   it('riwayat mutasi berpaginasi (cursor) tanpa dobel/terlewat', async () => {
     const all = new Set<string>();
     let cursor: string | undefined;

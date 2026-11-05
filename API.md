@@ -143,6 +143,13 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 
 ## Poin & PPOB
 
+> **Panduan lengkap untuk aplikasi (alur layar, contoh respons asli, status & polling, idempotensi,
+> pencatatan ke kasir, cara uji): [PPOB-APP.md](PPOB-APP.md).** Bagian di bawah = ringkasan.
+
+Ringkasan endpoint tambahan: `GET /v1/ppob/status` (saklar PPOB, kategori tersedia, saldo & hak
+top-up — untuk layar menu) · `GET /v1/points/topups/:id` (status satu top-up + instruksi bila
+masih menunggu — untuk polling).
+
 ### Poin Sirko (Bearer + konteks toko) — saldo prabayar untuk PPOB
 
 Saldo milik **akun pemilik** toko (dipakai bersama semua toko milik akun itu). Server = sumber kebenaran:
