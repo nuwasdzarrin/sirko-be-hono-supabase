@@ -194,7 +194,7 @@ export async function login(input: LoginInput): Promise<AuthPayload> {
   if (input.businessId) {
     chosen = byId(input.businessId);
     if (!chosen) throw forbidden('Anda bukan anggota toko ini.');
-    if (!allowed(chosen.business_id)) throw planRequired('Pindah toko butuh Paket Juragan.');
+    if (!allowed(chosen.business_id)) throw planRequired('Toko cabang hanya bisa dibuka dengan Paket Juragan.');
   } else {
     const lastId = last[0]?.last_business_id;
     chosen = (allowed(lastId) ? byId(lastId) : undefined) ?? byId(primaryId) ?? memberships[0];
@@ -218,7 +218,7 @@ export async function switchBusiness(auth: { userId: string }, businessId: strin
     UserRepository.primaryBusinessIdOfAccount(accountId),
   ]);
   if (!plans.hasFeature(plan, 'multi_store') && primaryId && businessId !== primaryId) {
-    throw planRequired('Pindah toko butuh Paket Juragan.');
+    throw planRequired('Toko cabang hanya bisa dibuka dengan Paket Juragan.');
   }
   return buildSession(target);
 }
@@ -237,7 +237,7 @@ export async function createBusiness(
   if (!accountId) throw forbidden('Hanya pemilik toko yang bisa menambah toko.');
 
   const plan = await plans.effective(accountId);
-  if (!plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko butuh Paket Juragan.');
+  if (!plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko cabang hanya bisa dengan Paket Juragan.');
 
   const [me] = await sql<{ name: string }[]>`SELECT name FROM users WHERE id = ${auth.userId}`;
   const ts = nowMs();
@@ -301,6 +301,8 @@ export async function refresh(refreshToken: string): Promise<{
 
   // Rotasi: cabut jti lama, terbitkan pasangan baru. Token tetap untuk toko
   // baris users ini (per toko — K3), tak terpengaruh switch-business.
+  // SENGAJA tidak memeriksa paket (J7): HP yang sudah login ke toko cabang
+  // tetap bisa refresh & sync setelah langganan habis. Jangan tambah guard di sini.
   await refreshTokens.revoke(jti);
   return issueTokens({ id: user.id, businessId: user.business_id, role: user.role });
 }

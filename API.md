@@ -173,13 +173,13 @@ mengembalikan `data` berbentuk **identik**:
 
 | Method | Path | Auth | Body | Catatan / error |
 |---|---|---|---|---|
-| POST | `/v1/auth/login` | — | `{ emailOrPhone, password, businessId? }` | Toko: `businessId` (harus anggota) → toko terakhir dibuka → toko utama. Bukan anggota → 403 `FORBIDDEN`. Paket warung + `businessId` bukan toko utama → 403 `PLAN_REQUIRED` (tanpa `businessId`, warung selalu masuk toko utama). |
+| POST | `/v1/auth/login` | — | `{ emailOrPhone, password, businessId? }` | Toko: `businessId` (harus anggota) → toko terakhir dibuka → toko utama. Bukan anggota → 403 `FORBIDDEN`. Paket warung + `businessId` bukan toko utama → 403 `PLAN_REQUIRED` "Toko cabang hanya bisa dibuka dengan Paket Juragan." (tanpa `businessId`, warung selalu masuk toko utama). |
 | POST | `/v1/auth/register-business` | — | (tetap) | Email/telepon terdaftar → 409 `CONFLICT` ("Masuk lalu tambah toko (Paket Juragan).") |
 | POST | `/v1/auth/switch-business` | Bearer | `{ businessId }` | Bukan anggota / tak ada → 403 `FORBIDDEN`. Warung & bukan toko utama → 403 `PLAN_REQUIRED`. Token toko asal tidak dicabut. |
 | POST | `/v1/businesses` | Bearer (owner) | `{ name, businessType? }` | Warung → 403 `PLAN_REQUIRED` · sudah `maxStores` → 403 `PLAN_LIMIT` · 422 `VALIDATION`. Token toko baru langsung bisa push. |
 | GET | `/v1/me` | Bearer | — | + `plan`, `businesses` |
 | GET | `/v1/me/businesses` | Bearer | — | `{ businesses, plan }` |
-| POST | `/v1/auth/refresh` | — | (tetap) | Token tetap untuk toko baris `users`-nya (per toko). |
+| POST | `/v1/auth/refresh` | — | (tetap) | Token tetap untuk toko baris `users`-nya (per toko). **Tidak memeriksa paket** (J7): HP yang sudah login ke toko cabang tetap bisa refresh & sync setelah langganan habis. |
 
 Toko utama = toko pertama yang dimiliki akun (owner, terlama).
 

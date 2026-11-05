@@ -134,6 +134,52 @@ suite('Juragan — sesi & multi-toko', () => {
     expect(stillPush.status).toBe(200);
   });
 
+  it('J7: langganan habis → HP di toko kedua tetap refresh & sync; login ulang ke toko kedua → PLAN_REQUIRED', async () => {
+    const a = await register();
+    await makeJuragan(a.token);
+    const cabang = await req('POST', '/v1/businesses', { name: 'Cabang J7' }, a.token);
+    const cabangId = cabang.json.data.business.id as string;
+
+    // HP kedua login ke toko kedua selagi Juragan aktif.
+    const hp2 = await login(a.email, cabangId);
+    expect(hp2.status).toBe(200);
+    expect(hp2.json.data.user.businessId).toBe(cabangId);
+
+    // Langganan dibuat habis.
+    await sql`UPDATE subscriptions SET starts_at = starts_at - 400::bigint * 86400000, ends_at = ${Date.now() - 1000}
+              WHERE account_id = ${a.accountId}`;
+
+    // Refresh tidak memeriksa paket → tetap 200, token tetap untuk toko kedua.
+    const ref = await req('POST', '/v1/auth/refresh', { refreshToken: hp2.json.data.refreshToken });
+    expect(ref.status).toBe(200);
+    const token = ref.json.data.accessToken as string;
+    expect((await req('GET', '/v1/me', undefined, token)).json.data.user.businessId).toBe(cabangId);
+    // Refresh berantai (rotasi) juga tetap jalan.
+    const ref2 = await req('POST', '/v1/auth/refresh', { refreshToken: ref.json.data.refreshToken });
+    expect(ref2.status).toBe(200);
+
+    // Push & pull tetap jalan di toko kedua.
+    const pid = uuid();
+    const push = await req('POST', '/v1/backup/push', {
+      tables: { products: [{ id: pid, name: 'Dijual setelah habis', updatedAt: Date.now() }] },
+    }, ref2.json.data.accessToken);
+    expect(push.status).toBe(200);
+    expect(push.json.data.applied.products).toBe(1);
+    const pull = await req('GET', '/v1/backup/pull', undefined, ref2.json.data.accessToken);
+    expect(pull.status).toBe(200);
+    expect(pull.json.data.tables.products.map((r: { id: string }) => r.id)).toContain(pid);
+
+    // Login ulang eksplisit ke toko kedua → ditolak dengan pesan siap tampil.
+    const relogin = await login(a.email, cabangId);
+    expect(relogin.status).toBe(403);
+    expect(relogin.json.error).toMatchObject({
+      code: 'PLAN_REQUIRED',
+      message: 'Toko cabang hanya bisa dibuka dengan Paket Juragan.',
+    });
+    // Tanpa businessId → toko utama.
+    expect((await login(a.email)).json.data.user.businessId).toBe(a.businessId);
+  });
+
   it('[8] respons login / switch-business / POST businesses berbentuk identik', async () => {
     const a = await register();
     await makeJuragan(a.token);
