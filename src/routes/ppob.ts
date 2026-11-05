@@ -7,8 +7,10 @@ import * as ppob from '../services/ppob.service.js';
 
 /**
  * PPOB untuk app (Bearer + konteks toko). Base `/v1/ppob`. Online-only.
- *  - GET  /products?category=pulsa|data&customerNo=   produk aktif (difilter operator)
- *  - POST /orders {clientRef, productId, customerNo}  beli (idempoten via clientRef)
+ *  - GET  /products?category=pulsa|data|pln&customerNo=   produk aktif (pulsa/data difilter operator)
+ *  - POST /pln/inquiry {meterNo}                      cek nama pelanggan PLN (cache 24 jam)
+ *  - POST /orders {clientRef, productId, customerNo, notifyEmail?}  beli (idempoten via clientRef);
+ *    token PLN → status `waiting_admin` (diproses admin, token tampil di order & dikirim email)
  *  - GET  /orders/:id                                 status (cek ulang bila pending)
  *  - GET  /orders?cursor=&limit=                      riwayat
  */
@@ -20,6 +22,10 @@ export const ppobRoutes = new Hono<AppEnv>()
       customerNo: c.req.query('customerNo') || undefined,
     });
     return c.json(ok(r.items, { operator: r.operator, enabled: ppob.ppobEnabled() }));
+  })
+  .post('/pln/inquiry', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { meterNo?: unknown };
+    return c.json(ok(await ppob.plnInquiry(String(body.meterNo ?? ''))));
   })
   .post('/orders', async (c) => {
     const input = ppob.orderCreateSchema.parse(await c.req.json());

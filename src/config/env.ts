@@ -52,6 +52,10 @@ const rawSchema = z.object({
     .transform((v) => v === 'true' || v === '1'),
   // 0 = matikan tugas berkala PPOB (cek order pending) di proses ini.
   PPOB_JOBS: z.string().optional(),
+  // Email transaksional (token listrik) via Resend. Kosong → email dilewati (dicatat).
+  RESEND_API_KEY: z.string().optional(),
+  // Pengirim terverifikasi di Resend, mis. "Sirko <noreply@sirko.id>".
+  MAIL_FROM: z.string().optional(),
 });
 
 const parsed = rawSchema.safeParse(process.env);

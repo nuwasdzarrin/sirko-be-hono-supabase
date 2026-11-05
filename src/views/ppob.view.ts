@@ -1,4 +1,4 @@
-import type { PpobConfig } from '../services/ppob.service.js';
+import type { PpobConfig, PlnProductRow } from '../services/ppob.service.js';
 import { esc, helpers, pagerHtml, renderLayout } from './dashboard.view.js';
 
 /** Halaman admin PPOB: order, detail order, produk & harga, pengaturan markup. */
@@ -119,6 +119,8 @@ export interface OrderDetailData {
     productName: string; sku: string; customerNo: string; price: number; cost: number; providerPrice: number | null;
     status: string; refunded: boolean; sn: string | null; rc: string | null; rawMessage: string | null;
     createdAt: number; completedAt: number | null; lastCheckedAt: number | null;
+    provider: string; plnName: string | null; plnInfo: string | null; notifyEmail: string | null;
+    ownerEmail: string | null; fulfilledBy: string | null;
   };
   events: Array<{ event: string; detail: unknown; createdAt: number }>;
   ledger: Array<{ type: string; amount: number; balanceAfter: number; createdAt: number }>;
@@ -127,6 +129,27 @@ export interface OrderDetailData {
 export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: number; serverTime: number }): string {
   const o = d.order;
   const canCheck = (o.status === 'pending' || o.status === 'processing') && o.category !== 'pln';
+  const isPln = o.category === 'pln' && o.provider === 'manual';
+  const recipients = [o.ownerEmail, o.notifyEmail].filter(Boolean).map((x) => esc(x)).join(', ') || '<span style="color:var(--bad)">tidak ada email</span>';
+  const plnPanel = !isPln
+    ? ''
+    : o.status === 'waiting_admin'
+      ? `<div class="panel" style="margin-top:12px;border-color:var(--warn-line)">
+  <h3>⚡ Proses token listrik</h3>
+  <p style="margin:0 0 10px;font-size:13px">Beli <b>${esc(o.productName)}</b> untuk no meter <b><code>${esc(o.customerNo)}</code></b>${o.plnName ? ` (${esc(o.plnName)})` : ''}, lalu tempel tokennya. Email dikirim ke: ${recipients}.</p>
+  <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/fulfill" class="fields" onsubmit="return confirm('Simpan token & kirim email ke pelanggan?')">
+    <div class="f full"><label for="token">Token (20 digit)</label><input id="token" name="token" required inputmode="numeric" autocomplete="off" pattern="[0-9 \-]{20,29}" placeholder="1234 5678 9012 3456 7890" style="font-size:18px;letter-spacing:.06em"></div>
+    <div class="f"><label for="plnName">Nama pelanggan</label><input id="plnName" name="plnName" value="${esc(o.plnName ?? '')}" maxlength="80"></div>
+    <div class="f"><label for="plnInfo">Info (kWh / daya, opsional)</label><input id="plnInfo" name="plnInfo" maxlength="80" placeholder="mis. 32,5 kWh · R1/1300VA"></div>
+    <div class="form-actions full"><button class="btn ok" type="submit">✓ Simpan token &amp; kirim email</button></div>
+  </form>
+  <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/fail" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)" onsubmit="return confirm('Gagalkan order & kembalikan Poin?')">
+    <input name="reason" required maxlength="200" placeholder="Alasan gagal (dikirim ke pelanggan), mis. nomor meter salah" style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px">
+    <button class="btn bad" type="submit">Gagalkan &amp; kembalikan Poin</button>
+  </form>
+</div>`
+      : `<div class="panel" style="margin-top:12px"><h3>Email pelanggan</h3><p style="margin:0 0 10px;font-size:13px">Penerima: ${recipients}${o.fulfilledBy ? ` · diproses oleh ${esc(o.fulfilledBy)}` : ''}</p>
+  <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/resend-email"><button class="btn ghost" type="submit">✉ Kirim ulang email</button></form></div>`;
   const body = `${CSS}<a class="crumb" href="/dashboard/ppob">← Semua order PPOB</a>
 <div class="titlebar"><h1 style="font-size:17px">${esc(o.productName)} → <code>${esc(o.customerNo)}</code></h1>${pill(o.status)}</div>
 <div class="tx-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start">
@@ -142,7 +165,8 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
       <div><b>clientRef</b><code>${esc(o.clientRef)}</code></div>
       ${o.rc || o.rawMessage ? `<div style="grid-column:1/-1"><b>Balasan penyedia</b>RC ${esc(o.rc ?? '—')} · ${esc(o.rawMessage ?? '')}</div>` : ''}
     </div></div>
-    ${o.sn ? `<div class="panel" style="margin-top:12px"><h3>${o.category === 'pln' ? 'Token listrik' : 'Serial number (SN)'}</h3><div class="sn">${esc(o.sn)}</div></div>` : ''}
+    ${o.sn ? `<div class="panel" style="margin-top:12px"><h3>${o.category === 'pln' ? 'Token listrik' : 'Serial number (SN)'}</h3><div class="sn">${esc(o.sn)}</div>${o.plnName || o.plnInfo ? `<div class="mut" style="margin-top:4px">${esc([o.plnName, o.plnInfo].filter(Boolean).join(' · '))}</div>` : ''}</div>` : ''}
+    ${plnPanel}
     <h2>Jejak kejadian</h2>
     <div class="panel"><div class="ev">${d.events.map((e) => `<span class="mut">${dt(e.createdAt)}</span><span><b>${esc(e.event)}</b>${e.detail ? `<br><code>${esc(JSON.stringify(e.detail))}</code>` : ''}</span>`).join('') || '<span class="mut">—</span>'}</div></div>
   </div>
@@ -170,7 +194,36 @@ export interface ProductListData {
   category: string; brand: string; q: string;
 }
 
-export function renderPpobProducts(d: ProductListData, extra: { attention: number; serverTime: number; configured: boolean }): string {
+function plnSection(items: PlnProductRow[]): string {
+  const back = '/dashboard/ppob?tab=products';
+  const rows = items
+    .map(
+      (p) => `<tr class="${p.active ? '' : 'off'}"><td><b>${esc(p.name)}</b></td><td class="num">${rp(p.cost)}</td>
+      <td class="num"><b>${rp(p.price)}</b>${p.locked ? ' <span class="pill warn">kunci</span>' : ''}<br><span class="mut" style="font-size:11px">laba ${rp(p.price - p.cost)}</span></td>
+      <td>${p.active ? '<span class="pill ok">dijual</span>' : '<span class="pill">disembunyikan</span>'}</td>
+      <td><form class="pinline" method="post" action="/dashboard/ppob/products/${esc(p.id)}">
+        <input type="hidden" name="back" value="${back}">
+        <input name="price" type="number" min="${p.cost}" step="1" placeholder="harga" aria-label="Harga Poin baru">
+        <button class="mini" name="op" value="price" type="submit">Set</button>
+        ${p.locked ? '<button class="mini" name="op" value="unlock" type="submit">Auto</button>' : ''}
+        <button class="mini ${p.active ? 'bad' : 'ok'}" name="op" value="${p.active ? 'hide' : 'show'}" type="submit">${p.active ? 'Sembunyikan' : 'Jual'}</button>
+      </form></td></tr>`,
+    )
+    .join('');
+  return `<h2>Token listrik (dibeli manual oleh admin)</h2>
+<div class="tablewrap" style="margin-bottom:10px"><table>
+<thead><tr><th>Produk</th><th class="num">Modal</th><th class="num">Harga Poin</th><th>Status</th><th></th></tr></thead>
+<tbody>${rows || '<tr><td colspan="5" class="empty">Belum ada produk token. Tambahkan nominal di bawah.</td></tr>'}</tbody></table></div>
+<form class="pp-row" method="post" action="/dashboard/ppob/pln-products">
+  <input name="denom" type="number" min="5000" step="1000" required placeholder="Nominal token, mis. 50000" aria-label="Nominal token">
+  <input name="cost" type="number" min="1" step="1" required placeholder="Modal beli, mis. 51500" aria-label="Modal beli">
+  <button class="btn ghost" type="submit">+ Tambah / perbarui nominal</button>
+  <span class="mut" style="font-size:12px">Harga Poin = modal + markup PLN (Pengaturan). Nominal yang sama = perbarui modal.</span>
+</form>
+<h2>Pulsa &amp; paket data (Digiflazz)</h2>`;
+}
+
+export function renderPpobProducts(d: ProductListData, extra: { attention: number; serverTime: number; configured: boolean; pln: PlnProductRow[] }): string {
   const url = (o: Record<string, string | number | undefined>) => {
     const p = new URLSearchParams({ tab: 'products' });
     const v = { category: d.category, brand: d.brand, q: d.q, ...o };
@@ -199,6 +252,7 @@ export function renderPpobProducts(d: ProductListData, extra: { attention: numbe
     .map((b) => `<option value="${esc(b)}" ${d.brand === b ? 'selected' : ''}>${b ? esc(b) : 'Semua operator'}</option>`)
     .join('');
   const body = `${CSS}<div class="titlebar"><h1>PPOB</h1></div>${tabs('products', extra.attention)}
+${plnSection(extra.pln)}
 <div class="pp-row">
   <form method="post" action="/dashboard/ppob/sync" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Menyinkron…'">
     <button class="btn primary" type="submit" ${extra.configured ? '' : 'disabled title="Digiflazz belum dikonfigurasi"'}>⟳ Sinkron harga Digiflazz</button>

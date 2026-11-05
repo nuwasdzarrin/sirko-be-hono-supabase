@@ -20,7 +20,8 @@ health check `/v1/health` (`db: ok`). Gagal → mencetak perintah rollback.
 **Env PPOB & Poin** (`.env` VPS, opsional — tanpa nilai fitur terkait nonaktif/dilewati):
 `PPOB_ENABLED=true`, `DIGIFLAZZ_USERNAME`, `DIGIFLAZZ_API_KEY`, `DIGIFLAZZ_WEBHOOK_SECRET`,
 `DIGIFLAZZ_TESTING=true` (mode uji Digiflazz; hapus saat produksi sungguhan), `PPOB_JOBS=0` (matikan cek
-order pending berkala), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `PUBLIC_BASE_URL=https://sirko.produkdesa.com`.
+order pending berkala), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `PUBLIC_BASE_URL=https://sirko.produkdesa.com`,
+`RESEND_API_KEY` + `MAIL_FROM` (pengirim terverifikasi di Resend, mis. `Sirko <noreply@domainanda>`) untuk email token listrik.
 Di dashboard Digiflazz: whitelist IP `151.243.222.93`, webhook ke `https://sirko.produkdesa.com/v1/webhooks/digiflazz`
 dengan secret = `DIGIFLAZZ_WEBHOOK_SECRET`. Perubahan `.env` → `FORCE=1 bash scripts/update.sh` (restart).
 

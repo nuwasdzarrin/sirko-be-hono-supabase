@@ -428,7 +428,8 @@ dashboardRoutes.get('/ppob', async (c) => {
     const brand = (c.req.query('brand') ?? '').slice(0, 30);
     const q = (c.req.query('q') ?? '').slice(0, 60);
     const d = await ppob.adminListProducts({ category: category || undefined, brand: brand || undefined, q: q || undefined, page, limit: 50 });
-    return sendPage(c, renderPpobProducts({ ...d, category, brand, q }, { attention, serverTime: Date.now(), configured: digiflazzConfigured() }));
+    const pln = await ppob.adminListPlnProducts();
+    return sendPage(c, renderPpobProducts({ ...d, category, brand, q }, { attention, serverTime: Date.now(), configured: digiflazzConfigured(), pln }));
   }
   if (tab === 'settings') {
     return sendPage(c, renderPpobSettings(await ppob.getConfig(), { attention, serverTime: Date.now(), error: null }));
@@ -455,6 +456,42 @@ dashboardRoutes.post('/ppob/orders/:id/check', async (c) => {
   const r = await ppob.checkStatus(id, { source: 'admin_check' });
   flash(c, r.checked ? 'ok' : 'error', r.checked ? 'Status dicek ulang ke Digiflazz.' : `Tidak dicek: ${r.reason}`);
   return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/fulfill', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  const str = (k: string) => (typeof body[k] === 'string' ? (body[k] as string) : '');
+  const r = await ppob.adminFulfillPln(id, str('token'), c.get('admin'), { plnName: str('plnName'), plnInfo: str('plnInfo') });
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/fail', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  const r = await ppob.adminFailPln(id, typeof body.reason === 'string' ? body.reason : '', c.get('admin'));
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/orders/:id/resend-email', async (c) => {
+  const id = c.req.param('id');
+  const r = await ppob.adminResendPlnEmail(id);
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/pln-products', async (c) => {
+  try {
+    await ppob.adminSavePlnProduct(await c.req.parseBody());
+    flash(c, 'ok', 'Produk token PLN disimpan.');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect('/dashboard/ppob?tab=products');
 });
 
 dashboardRoutes.post('/ppob/sync', async (c) => {

@@ -182,3 +182,21 @@ GET  /v1/ppob/orders?cursor=&limit=                            → riwayat, meta
   `pending`/`processing` (tampilkan "sedang diproses", polling `GET /orders/:id` tiap ±10–15 dtk).
 - Error: `INSUFFICIENT_POINTS` (409, `details.balance`/`required`), `PRODUCT_UNAVAILABLE` (409, nonaktif/cut-off),
   `PPOB_UNAVAILABLE` (503), `VALIDATION` (422, nomor tak valid / operator tak cocok), `OWNER_ACCOUNT_MISSING`.
+
+### Token listrik PLN prabayar (diproses MANUAL oleh admin Sirko)
+
+```
+GET  /v1/ppob/products?category=pln          → produk token (nominal), price = Poin
+POST /v1/ppob/pln/inquiry { meterNo }        → { ok, meterNo, name, segmentPower, message, cached }
+POST /v1/ppob/orders { clientRef, productId, customerNo: <no meter 11–12 digit>, notifyEmail? }
+                                             → 201 order status `waiting_admin`
+GET  /v1/ppob/orders/:id                     → setelah admin memproses: status `success`, `sn` = token
+```
+- Tampilkan nama dari `pln/inquiry` sebelum bayar agar tak salah meter. `ok:false` (nomor tak ditemukan /
+  batas cek tercapai) → tampilkan peringatan, pengguna tetap boleh lanjut.
+- Setelah bayar: Poin terpotong, order `waiting_admin` (pesan: sedang diproses admin). App polling
+  `GET /orders/:id` (mis. tiap 30 dtk saat layar terbuka) atau buka dari riwayat.
+- Admin menempel token → `status: success`, `sn` = token format `1234-5678-9012-3456-7890`, `plnName`;
+  token juga dikirim **email** ke email akun pemilik + `notifyEmail` (bila diisi).
+- Tak bisa diproses (meter salah, gangguan) → `status: failed`, `refunded: true` (Poin kembali) + email.
+

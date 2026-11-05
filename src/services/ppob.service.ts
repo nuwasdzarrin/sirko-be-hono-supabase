@@ -5,6 +5,7 @@ import { uuid } from '../lib/uuid.js';
 import { nowMs } from '../lib/time.js';
 import { AppError, notFound, validation } from '../lib/errors.js';
 import { notifyAdmin, tgEsc } from '../lib/notify.js';
+import { sendMail, htmlEsc } from '../lib/mail.js';
 import * as df from '../ppob/digiflazz.js';
 import { applyLedger, ownerAccountId } from './points.service.js';
 
@@ -213,9 +214,9 @@ function productView(r: Row): ProductView {
 }
 
 export async function listProducts(opts: { category: string; customerNo?: string }) {
-  if (!['pulsa', 'data'].includes(opts.category)) throw validation('Kategori harus pulsa atau data');
+  if (!['pulsa', 'data', 'pln'].includes(opts.category)) throw validation('Kategori harus pulsa, data, atau pln');
   let operator: string | null = null;
-  if (opts.customerNo) {
+  if (opts.customerNo && opts.category !== 'pln') {
     if (!df.normalizePhone(opts.customerNo)) throw new AppError('VALIDATION', 'Nomor HP tidak valid.');
     operator = df.detectOperator(opts.customerNo);
     if (!operator) throw new AppError('VALIDATION', 'Operator nomor ini belum dikenali.');
@@ -246,6 +247,8 @@ export interface OrderView {
   status: OrderStatus;
   refunded: boolean;
   sn: string | null;
+  /** Nama pelanggan PLN (token listrik). */
+  plnName: string | null;
   message: string | null;
   createdAt: number;
   completedAt: number | null;
@@ -266,6 +269,7 @@ function orderView(r: Row): OrderView {
     status: r.status as OrderStatus,
     refunded: Boolean(r.refunded),
     sn: (r.sn as string) ?? null,
+    plnName: (r.pln_name as string) ?? null,
     message: friendlyMessage(r),
     createdAt: n(r.created_at),
     completedAt: r.completed_at == null ? null : n(r.completed_at),
@@ -283,7 +287,7 @@ function friendlyMessage(r: Row): string | null {
     case 'processing':
       return 'Sedang diproses penyedia. Status akan diperbarui otomatis.';
     case 'waiting_admin':
-      return 'Menunggu diproses admin Sirko.';
+      return 'Sedang diproses admin Sirko. Token akan tampil di sini & dikirim ke email.';
     default:
       return null;
   }
@@ -298,6 +302,8 @@ export const orderCreateSchema = z.object({
   clientRef: z.string().trim().min(8).max(64),
   productId: z.string().uuid(),
   customerNo: z.string().trim().min(6).max(30),
+  /** Email penerima token listrik (opsional; selain email akun pemilik). */
+  notifyEmail: z.string().trim().email().max(120).nullish(),
 });
 export type OrderCreateInput = z.infer<typeof orderCreateSchema>;
 
@@ -326,17 +332,30 @@ export async function createOrder(
   const pr = await sql<Row[]>`SELECT * FROM ppob_products WHERE id = ${input.productId}`;
   const p = pr[0];
   if (!p || !p.active || !p.provider_active) throw new AppError('PRODUCT_UNAVAILABLE', 'Produk tidak tersedia.');
-  if (p.provider !== 'digiflazz' || !['pulsa', 'data'].includes(p.category as string)) {
-    throw new AppError('PRODUCT_UNAVAILABLE', 'Produk ini belum bisa dibeli lewat jalur otomatis.');
+  const isPln = p.category === 'pln' && p.provider === 'manual';
+  let target: string;
+  let plnName: string | null = null;
+  if (isPln) {
+    // Token listrik: dibeli MANUAL oleh admin → tak memanggil Digiflazz untuk pembelian.
+    const meter = normalizeMeter(input.customerNo);
+    if (!meter) throw validation('Nomor meter / ID pelanggan PLN harus 11–12 digit.');
+    target = meter;
+    const cached = await sql<{ ok: boolean; name: string | null }[]>`SELECT ok, name FROM ppob_pln_cache WHERE meter_no = ${meter}`;
+    plnName = cached[0]?.ok ? cached[0].name : null;
+  } else {
+    if (p.provider !== 'digiflazz' || !['pulsa', 'data'].includes(p.category as string)) {
+      throw new AppError('PRODUCT_UNAVAILABLE', 'Produk ini belum bisa dibeli lewat jalur otomatis.');
+    }
+    if (!df.digiflazzConfigured()) throw new AppError('PPOB_UNAVAILABLE', 'Layanan PPOB belum dikonfigurasi.');
+    if (inCutoff((p.cutoff_start as string) ?? null, (p.cutoff_end as string) ?? null)) {
+      throw new AppError('PRODUCT_UNAVAILABLE', `Produk sedang cut-off ${p.cutoff_start}–${p.cutoff_end} WIB.`);
+    }
+    const phone = df.normalizePhone(input.customerNo);
+    if (!phone) throw validation('Nomor HP tidak valid.');
+    const op = df.detectOperator(phone);
+    if (op !== p.brand) throw validation(`Nomor ${phone} bukan nomor ${String(p.brand)}${op ? ` (terdeteksi ${op})` : ''}.`);
+    target = phone;
   }
-  if (!df.digiflazzConfigured()) throw new AppError('PPOB_UNAVAILABLE', 'Layanan PPOB belum dikonfigurasi.');
-  if (inCutoff((p.cutoff_start as string) ?? null, (p.cutoff_end as string) ?? null)) {
-    throw new AppError('PRODUCT_UNAVAILABLE', `Produk sedang cut-off ${p.cutoff_start}–${p.cutoff_end} WIB.`);
-  }
-  const phone = df.normalizePhone(input.customerNo);
-  if (!phone) throw validation('Nomor HP tidak valid.');
-  const op = df.detectOperator(phone);
-  if (op !== p.brand) throw validation(`Nomor ${phone} bukan nomor ${String(p.brand)}${op ? ` (terdeteksi ${op})` : ''}.`);
 
   const id = uuid();
   const ts = nowMs();
@@ -350,15 +369,17 @@ export async function createOrder(
           user_ref: auth.userId,
           client_ref: input.clientRef,
           product_id: p.id as string,
-          provider: 'digiflazz',
+          provider: p.provider as string,
           sku: p.sku as string,
           product_name: p.name as string,
           category: p.category as string,
           brand: p.brand as string,
-          customer_no: phone,
+          customer_no: target,
           price: n(p.sell_price),
           cost: n(p.cost_price),
-          status: 'processing',
+          status: isPln ? 'waiting_admin' : 'processing',
+          pln_name: plnName,
+          notify_email: input.notifyEmail ?? null,
           // Pengiriman pertama = panggilan ke Digiflazz → hitung untuk jeda 1×/menit.
           last_checked_at: ts,
           created_at: ts,
@@ -371,7 +392,7 @@ export async function createOrder(
         amount: -n(p.sell_price),
         refType: 'ppob_order',
         refId: id,
-        note: `${p.name as string} → ${phone}`,
+        note: `${p.name as string} → ${target}`,
         createdBy: `app:${auth.userId}`,
       });
       await addEvent(tx, id, 'created', { price: n(p.sell_price), cost: n(p.cost_price) });
@@ -385,6 +406,21 @@ export async function createOrder(
     throw e;
   }
 
+  if (isPln) {
+    const o = (await getOrderRow(id))!;
+    void notifyAdmin({
+      text:
+        `⚡ <b>Order token listrik baru</b>\n` +
+        `Toko: <b>${tgEsc(o.business_name ?? '—')}</b>\n` +
+        `Produk: <b>${tgEsc(o.product_name)}</b>\n` +
+        `No meter: <code>${tgEsc(target)}</code>${plnName ? ` (${tgEsc(plnName)})` : ''}\n` +
+        `Poin dibayar: ${tgEsc(rupiah(n(o.price)))}\n` +
+        `Beli tokennya, lalu tempel di dashboard.`,
+      linkPath: `/dashboard/ppob/orders/${id}`,
+      linkLabel: 'Proses order token',
+    });
+    return orderView(o);
+  }
   await submitToProvider(id);
   return orderView((await getOrderRow(id))!);
 }
@@ -585,7 +621,9 @@ let jobTimer: NodeJS.Timeout | null = null;
 export function startPpobJobs(intervalMs = 120_000): void {
   if (jobTimer || env.PPOB_JOBS === '0') return;
   jobTimer = setInterval(() => {
-    if (!ppobEnabled() || !df.digiflazzConfigured()) return;
+    if (!ppobEnabled()) return;
+    remindWaitingPln().catch((e) => console.error('[ppob-job] pengingat', (e as Error).message));
+    if (!df.digiflazzConfigured()) return;
     reconcilePending().catch((e) => console.error('[ppob-job]', (e as Error).message));
   }, intervalMs);
   jobTimer.unref();
@@ -636,8 +674,9 @@ export async function adminOrderDetail(id: string) {
   const ledger = await sql<Row[]>`
     SELECT type, amount, balance_after, created_at FROM point_ledger WHERE ref_type = 'ppob_order' AND ref_id = ${id}
     ORDER BY created_at`;
+  const acc = await sql<{ email: string | null }[]>`SELECT email::text AS email FROM accounts WHERE id = ${o.account_id as string}`;
   return {
-    order: { ...orderView(o), cost: n(o.cost), providerPrice: o.provider_price == null ? null : n(o.provider_price), rc: (o.provider_rc as string) ?? null, rawMessage: (o.provider_message as string) ?? null, accountId: o.account_id as string, lastCheckedAt: o.last_checked_at == null ? null : n(o.last_checked_at) },
+    order: { ...orderView(o), provider: o.provider as string, plnInfo: (o.pln_info as string) ?? null, notifyEmail: (o.notify_email as string) ?? null, ownerEmail: acc[0]?.email ?? null, fulfilledBy: (o.fulfilled_by as string) ?? null, cost: n(o.cost), providerPrice: o.provider_price == null ? null : n(o.provider_price), rc: (o.provider_rc as string) ?? null, rawMessage: (o.provider_message as string) ?? null, accountId: o.account_id as string, lastCheckedAt: o.last_checked_at == null ? null : n(o.last_checked_at) },
     events: events.map((e) => ({ event: e.event as string, detail: e.detail ?? null, createdAt: n(e.created_at) })),
     ledger: ledger.map((l) => ({ type: l.type as string, amount: n(l.amount), balanceAfter: n(l.balance_after), createdAt: n(l.created_at) })),
   };
@@ -721,4 +760,249 @@ export async function countNeedsAttention(): Promise<number> {
     SELECT count(*)::int c FROM ppob_orders
     WHERE status = 'waiting_admin' OR (status IN ('pending', 'processing') AND created_at < ${nowMs() - 30 * 60_000})`;
   return r[0]?.c ?? 0;
+}
+
+// ── Token listrik (PLN prabayar) — manual oleh admin (tahap 3) ───────────────
+
+const PLN_CACHE_MS = 24 * 3_600_000;
+const PLN_REMIND_MS = 30 * 60_000;
+
+/** Nomor meter / ID pelanggan PLN: angka saja, 11–12 digit. */
+export function normalizeMeter(raw: string): string | null {
+  const d = raw.replace(/[\s\-.]/g, '');
+  return /^\d{11,12}$/.test(d) ? d : null;
+}
+
+/** Token PLN prabayar: 20 digit → "1234-5678-9012-3456-7890"; null bila tak valid. */
+export function formatPlnToken(raw: string): string | null {
+  const d = raw.replace(/[\s\-.]/g, '');
+  if (!/^\d{20}$/.test(d)) return null;
+  return d.match(/.{4}/g)!.join('-');
+}
+
+export interface PlnInquiry {
+  ok: boolean;
+  meterNo: string;
+  name: string | null;
+  segmentPower: string | null;
+  message: string | null;
+  cached: boolean;
+}
+
+/**
+ * Cek nama pelanggan dari nomor meter (Digiflazz inquiry-pln), cache 24 jam
+ * (ada batas rate RC 86). Gagal/limit → ok:false + pesan; app tetap boleh lanjut.
+ */
+export async function plnInquiry(rawMeter: string): Promise<PlnInquiry> {
+  const meter = normalizeMeter(rawMeter);
+  if (!meter) throw validation('Nomor meter / ID pelanggan PLN harus 11–12 digit.');
+  const c = await sql<Row[]>`SELECT * FROM ppob_pln_cache WHERE meter_no = ${meter}`;
+  if (c[0] && nowMs() - n(c[0].checked_at) < PLN_CACHE_MS) {
+    return { ok: Boolean(c[0].ok), meterNo: meter, name: (c[0].name as string) ?? null, segmentPower: (c[0].segment_power as string) ?? null, message: (c[0].message as string) ?? null, cached: true };
+  }
+  if (!df.digiflazzConfigured()) {
+    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: 'Cek nomor meter belum tersedia — pastikan nomor benar.', cached: false };
+  }
+  let r: { ok: boolean; name?: string; segmentPower?: string; message?: string; rc?: string };
+  try {
+    r = await df.inquiryPln(meter);
+  } catch (e) {
+    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: `Cek meter gagal: ${(e as Error).message}`, cached: false };
+  }
+  if (r.rc === '86') {
+    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: 'Batas cek meter tercapai, coba lagi nanti — pastikan nomor benar.', cached: false };
+  }
+  const row = { meter_no: meter, ok: r.ok, name: r.name ?? null, segment_power: r.segmentPower ?? null, message: r.message ?? null, checked_at: nowMs() };
+  await sql`INSERT INTO ppob_pln_cache ${sql(row)}
+            ON CONFLICT (meter_no) DO UPDATE SET ok = EXCLUDED.ok, name = EXCLUDED.name,
+              segment_power = EXCLUDED.segment_power, message = EXCLUDED.message, checked_at = EXCLUDED.checked_at`;
+  return { ok: r.ok, meterNo: meter, name: row.name, segmentPower: row.segment_power, message: r.ok ? null : (r.message ?? 'Nomor meter tidak ditemukan'), cached: false };
+}
+
+// Produk token PLN dikelola admin (nominal & modal pembelian manual).
+
+export interface PlnProductRow {
+  id: string;
+  denom: number;
+  name: string;
+  cost: number;
+  price: number;
+  locked: boolean;
+  active: boolean;
+}
+
+export async function adminListPlnProducts(): Promise<PlnProductRow[]> {
+  const rows = await sql<Row[]>`SELECT * FROM ppob_products WHERE provider = 'manual' AND category = 'pln' ORDER BY sort, cost_price`;
+  return rows.map((r) => ({
+    id: r.id as string,
+    denom: n(r.sort),
+    name: r.name as string,
+    cost: n(r.cost_price),
+    price: n(r.sell_price),
+    locked: Boolean(r.price_locked),
+    active: Boolean(r.active),
+  }));
+}
+
+export const plnProductSchema = z.object({
+  denom: z.coerce.number().int().min(5_000).max(10_000_000),
+  cost: z.coerce.number().int().min(1).max(10_000_000),
+});
+
+/** Tambah/perbarui produk token (kunci = nominal). Harga Poin = modal + markup PLN. */
+export async function adminSavePlnProduct(input: unknown): Promise<void> {
+  const { denom, cost } = plnProductSchema.parse(input);
+  if (cost < denom * 0.9) throw validation('Modal terlalu kecil dibanding nominal token — periksa lagi.');
+  const cfg = await getConfig();
+  const ts = nowMs();
+  const label = new Intl.NumberFormat('id-ID').format(denom);
+  await sql`
+    INSERT INTO ppob_products ${sql({
+      id: uuid(), provider: 'manual', sku: `pln-${denom}`, category: 'pln', brand: 'PLN',
+      name: `Token PLN ${label}`, description: 'Token listrik prabayar — diproses admin Sirko.',
+      cost_price: cost, sell_price: sellPriceFor(cost, 'pln', cfg), provider_active: true, active: true,
+      sort: denom, synced_at: ts, created_at: ts, updated_at: ts,
+    })}
+    ON CONFLICT (provider, sku) DO UPDATE SET
+      cost_price = EXCLUDED.cost_price,
+      sell_price = CASE WHEN ppob_products.price_locked THEN ppob_products.sell_price ELSE EXCLUDED.sell_price END,
+      updated_at = EXCLUDED.updated_at`;
+}
+
+// Pemenuhan order token oleh admin.
+
+async function recipientsFor(o: Row): Promise<string[]> {
+  const acc = await sql<{ email: string | null }[]>`SELECT email::text AS email FROM accounts WHERE id = ${o.account_id as string}`;
+  return [acc[0]?.email, o.notify_email as string | null].filter((x): x is string => Boolean(x));
+}
+
+function plnEmail(o: Row, kind: 'success' | 'failed') {
+  const product = String(o.product_name);
+  const meter = String(o.customer_no);
+  const store = String(o.business_name ?? 'Toko Anda');
+  if (kind === 'success') {
+    const token = String(o.sn);
+    return {
+      subject: `Token listrik Anda sudah tersedia — ${product}`,
+      text: `Token listrik untuk nomor meter ${meter}${o.pln_name ? ` (${o.pln_name})` : ''}:\n\n${token}\n\n${product} · dibeli melalui ${store}.\nMasukkan token ke meteran listrik Anda.\n\n— Sirko`,
+      html: `<div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:520px;margin:auto;color:#151a2d">
+  <h2 style="margin:0 0 6px">⚡ Token listrik Anda sudah tersedia</h2>
+  <p style="margin:0 0 16px;color:#5f6784">${htmlEsc(product)} · dibeli melalui ${htmlEsc(store)}</p>
+  <div style="border:1px solid #e2e6ef;border-radius:12px;padding:16px;text-align:center">
+    <div style="font-size:12px;color:#5f6784;text-transform:uppercase;letter-spacing:.06em">Token</div>
+    <div style="font-size:24px;font-weight:800;letter-spacing:.06em;margin:6px 0 10px;font-family:ui-monospace,Consolas,monospace">${htmlEsc(token)}</div>
+    <div style="font-size:13px;color:#5f6784">No meter <b>${htmlEsc(meter)}</b>${o.pln_name ? ` · ${htmlEsc(o.pln_name)}` : ''}${o.pln_info ? ` · ${htmlEsc(o.pln_info)}` : ''}</div>
+  </div>
+  <p style="font-size:13px;color:#5f6784">Masukkan token di atas ke meteran listrik prabayar Anda.</p>
+  <p style="font-size:12px;color:#8a90a6">— Sirko · Kasir Warung</p>
+</div>`,
+    };
+  }
+  const reason = String(o.provider_message ?? '');
+  return {
+    subject: `Pembelian token listrik dibatalkan — ${product}`,
+    text: `Maaf, pembelian ${product} untuk nomor meter ${meter} tidak dapat diproses${reason ? `: ${reason}` : ''}.\nPoin Sirko sudah dikembalikan ke saldo Anda.\n\n— Sirko`,
+    html: `<div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:520px;margin:auto;color:#151a2d">
+  <h2 style="margin:0 0 6px">Pembelian token listrik dibatalkan</h2>
+  <p>Maaf, <b>${htmlEsc(product)}</b> untuk nomor meter <b>${htmlEsc(meter)}</b> tidak dapat diproses${reason ? `: ${htmlEsc(reason)}` : ''}.</p>
+  <p><b>Poin Sirko sudah dikembalikan</b> ke saldo Anda.</p>
+  <p style="font-size:12px;color:#8a90a6">— Sirko · Kasir Warung</p>
+</div>`,
+  };
+}
+
+async function emailOrder(orderId: string, kind: 'success' | 'failed'): Promise<void> {
+  const o = await getOrderRow(orderId);
+  if (!o) return;
+  const to = await recipientsFor(o);
+  const msg = plnEmail(o, kind);
+  const r = await sendMail({ to, ...msg });
+  await addEvent(sql, orderId, r.ok ? 'email_sent' : r.skipped ? 'email_skipped' : 'email_failed', {
+    to,
+    kind,
+    id: r.id ?? null,
+    error: r.error ?? null,
+  });
+}
+
+/** Admin menempel token → order sukses → email ke pemilik (+ email pembeli). */
+export async function adminFulfillPln(
+  orderId: string,
+  rawToken: string,
+  admin: string,
+  extra: { plnName?: string | null; plnInfo?: string | null } = {},
+): Promise<{ ok: boolean; message: string }> {
+  const token = formatPlnToken(rawToken);
+  if (!token) return { ok: false, message: 'Token harus 20 digit angka.' };
+  const done = await sql.begin(async (tx) => {
+    const r = await tx<Row[]>`SELECT * FROM ppob_orders WHERE id = ${orderId} FOR UPDATE`;
+    const o = r[0];
+    if (!o) return 'Order tidak ditemukan.';
+    if (o.category !== 'pln' || o.provider !== 'manual') return 'Bukan order token listrik manual.';
+    if (o.status !== 'waiting_admin') return `Order sudah berstatus "${String(o.status)}" — tidak diproses ulang.`;
+    const ts = nowMs();
+    await tx`UPDATE ppob_orders SET ${tx({
+      status: 'success',
+      sn: token,
+      pln_name: extra.plnName?.trim() || (o.pln_name as string | null) || null,
+      pln_info: extra.plnInfo?.trim() || null,
+      fulfilled_by: admin,
+      completed_at: ts,
+      updated_at: ts,
+    })} WHERE id = ${orderId}`;
+    await addEvent(tx, orderId, 'admin_fulfilled', { by: admin });
+    return null;
+  });
+  if (done) return { ok: false, message: done };
+  await emailOrder(orderId, 'success');
+  return { ok: true, message: `Token tersimpan (${token}). Email dikirim ke pelanggan.` };
+}
+
+/** Admin menggagalkan order token (meter salah, gangguan) → refund Poin + email. */
+export async function adminFailPln(orderId: string, reason: string, admin: string): Promise<{ ok: boolean; message: string }> {
+  const why = reason.trim();
+  if (!why) return { ok: false, message: 'Alasan wajib diisi (ditampilkan ke pelanggan).' };
+  const o = await getOrderRow(orderId);
+  if (!o) return { ok: false, message: 'Order tidak ditemukan.' };
+  if (o.category !== 'pln' || o.provider !== 'manual') return { ok: false, message: 'Bukan order token listrik manual.' };
+  if (o.status !== 'waiting_admin') return { ok: false, message: `Order sudah berstatus "${String(o.status)}".` };
+  const final = await applyResult(orderId, { ref_id: orderId, status: 'Gagal', message: why.slice(0, 200) }, 'admin_fail');
+  if (final !== 'failed') return { ok: false, message: 'Order tidak bisa digagalkan.' };
+  await sql`UPDATE ppob_orders SET fulfilled_by = ${admin} WHERE id = ${orderId}`;
+  await emailOrder(orderId, 'failed');
+  return { ok: true, message: 'Order digagalkan, Poin dikembalikan, pelanggan diberi tahu lewat email.' };
+}
+
+/** Kirim ulang email token (mis. pelanggan belum menerima). */
+export async function adminResendPlnEmail(orderId: string): Promise<{ ok: boolean; message: string }> {
+  const o = await getOrderRow(orderId);
+  if (!o || o.category !== 'pln' || (o.status !== 'success' && o.status !== 'failed')) {
+    return { ok: false, message: 'Hanya order token yang sudah selesai yang bisa dikirim ulang.' };
+  }
+  await emailOrder(orderId, o.status === 'success' ? 'success' : 'failed');
+  const ev = await sql<{ event: string }[]>`SELECT event FROM ppob_order_events WHERE order_id = ${orderId} ORDER BY created_at DESC, id DESC LIMIT 1`;
+  return ev[0]?.event === 'email_sent'
+    ? { ok: true, message: 'Email dikirim ulang.' }
+    : { ok: false, message: 'Email tidak terkirim — lihat jejak kejadian (Resend belum dikonfigurasi / tanpa alamat email).' };
+}
+
+/** Pengingat Telegram untuk order token yang belum diproses > 30 menit (maks 1×/30 menit per order). */
+export async function remindWaitingPln(): Promise<number> {
+  const ts = nowMs();
+  const rows = await sql<Row[]>`
+    UPDATE ppob_orders SET last_checked_at = ${ts}
+    WHERE status = 'waiting_admin' AND coalesce(last_checked_at, created_at) <= ${ts - PLN_REMIND_MS}
+    RETURNING id, product_name, customer_no, created_at`;
+  if (!rows.length) return 0;
+  const oldest = Math.max(...rows.map((r) => ts - n(r.created_at)));
+  void notifyAdmin({
+    text:
+      `⏰ <b>${rows.length} order token listrik belum diproses</b>\n` +
+      rows.slice(0, 5).map((r) => `• ${tgEsc(r.product_name)} → <code>${tgEsc(r.customer_no)}</code>`).join('\n') +
+      (rows.length > 5 ? `\n…dan ${rows.length - 5} lagi` : '') +
+      `\nTerlama menunggu ±${Math.round(oldest / 60_000)} menit.`,
+    linkPath: '/dashboard/ppob?status=waiting_admin',
+    linkLabel: 'Buka antrean token',
+  });
+  return rows.length;
 }
