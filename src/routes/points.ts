@@ -11,6 +11,7 @@ import * as points from '../services/points.service.js';
  *  - GET  /                      saldo + 20 mutasi terakhir + top-up menunggu + batas
  *  - GET  /ledger?cursor=&limit= riwayat mutasi (keyset)
  *  - GET  /topups                riwayat top-up
+ *  - GET  /topups/:id            detail + instruksi transfer bila masih menunggu (polling)
  *  - POST /topups {amount}       ajukan top-up → kode unik & instruksi transfer (owner/admin)
  *  - POST /topups/:id/cancel     batalkan top-up yang masih menunggu
  * Tak ada endpoint transfer/penarikan (desain §3).
@@ -36,6 +37,7 @@ export const pointsRoutes = new Hono<AppEnv>()
     const r = await points.createTopup({ businessId: a.businessId!, userId: a.userId, role: a.role }, amount);
     return c.json(ok(r), 201);
   })
+  .get('/topups/:id', async (c) => c.json(ok(await points.topupForBusiness(c.get('auth').businessId!, c.req.param('id')))))
   .post('/topups/:id/cancel', async (c) => {
     const t = await points.cancelTopup(c.get('auth').businessId!, c.req.param('id'));
     return c.json(ok(t));

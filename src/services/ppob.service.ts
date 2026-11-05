@@ -7,7 +7,7 @@ import { AppError, notFound, validation } from '../lib/errors.js';
 import { notifyAdmin, tgEsc } from '../lib/notify.js';
 import { sendMail, htmlEsc } from '../lib/mail.js';
 import * as df from '../ppob/digiflazz.js';
-import { applyLedger, ownerAccountId } from './points.service.js';
+import { applyLedger, ownerAccountId, getConfig as getPointsConfig } from './points.service.js';
 
 /**
  * PPOB — pulsa & paket data via Digiflazz (tahap 2). Server = sumber kebenaran.
@@ -177,6 +177,54 @@ export async function syncDigiflazzProducts(admin: string): Promise<SyncResult> 
     WHERE provider = 'digiflazz' AND (synced_at IS NULL OR synced_at < ${ts}) AND provider_active
     RETURNING id`;
   return { received: list.length, upserted, deactivated: gone.length };
+}
+
+// ── Status untuk layar menu PPOB di app ──────────────────────────────────────
+
+export interface PpobStatus {
+  /** Saklar global PPOB_ENABLED. false → sembunyikan/nonaktifkan menu PPOB. */
+  enabled: boolean;
+  categories: Array<{ key: 'pulsa' | 'data' | 'pln'; label: string; available: boolean; productCount: number; reason: string | null }>;
+  points: { available: boolean; balance: number | null; reason: string | null; canTopup: boolean; minTopup: number; maxTopup: number };
+  serverTime: number;
+}
+
+/** Satu panggilan untuk membangun layar menu PPOB: saklar, kategori yang bisa dibeli, saldo Poin. */
+export async function statusForBusiness(auth: { businessId: string; role: string }): Promise<PpobStatus> {
+  const enabled = ppobEnabled();
+  const counts = await sql<{ category: string; c: number }[]>`
+    SELECT category, count(*)::int c FROM ppob_products WHERE active AND provider_active GROUP BY category`;
+  const cnt = (k: string) => counts.find((x) => x.category === k)?.c ?? 0;
+  const dfReady = df.digiflazzConfigured();
+  const cat = (key: 'pulsa' | 'data' | 'pln', label: string) => {
+    const productCount = cnt(key);
+    const reason = !enabled
+      ? 'PPOB belum aktif.'
+      : key !== 'pln' && !dfReady
+        ? 'Layanan sedang disiapkan.'
+        : productCount === 0
+          ? 'Belum ada produk.'
+          : null;
+    return { key, label, available: reason === null, productCount, reason };
+  };
+  const accountId = await ownerAccountId(auth.businessId);
+  const pcfg = await getPointsConfig();
+  const balance = accountId
+    ? n((await sql<{ balance: string }[]>`SELECT balance FROM point_accounts WHERE account_id = ${accountId}`)[0]?.balance)
+    : null;
+  return {
+    enabled,
+    categories: [cat('pulsa', 'Pulsa'), cat('data', 'Paket Data'), cat('pln', 'Token Listrik')],
+    points: {
+      available: Boolean(accountId),
+      balance,
+      reason: accountId ? null : 'Toko ini belum punya akun pemilik (login cloud) — Poin Sirko tidak tersedia.',
+      canTopup: Boolean(accountId) && (auth.role === 'owner' || auth.role === 'admin'),
+      minTopup: pcfg.minTopup,
+      maxTopup: pcfg.maxTopup,
+    },
+    serverTime: nowMs(),
+  };
 }
 
 // ── Katalog untuk app ────────────────────────────────────────────────────────
@@ -582,9 +630,10 @@ export async function listOrdersForBusiness(businessId: string, opts: { cursor?:
     cur = { ts: Number(ts), id };
   }
   const rows = await sql<Row[]>`
-    SELECT * FROM ppob_orders WHERE business_id = ${businessId}
-      ${cur ? sql`AND (created_at, id) < (${cur.ts}, ${cur.id})` : sql``}
-    ORDER BY created_at DESC, id DESC LIMIT ${limit + 1}`;
+    SELECT o.*, b.name AS business_name FROM ppob_orders o LEFT JOIN businesses b ON b.id = o.business_id
+    WHERE o.business_id = ${businessId}
+      ${cur ? sql`AND (o.created_at, o.id) < (${cur.ts}, ${cur.id})` : sql``}
+    ORDER BY o.created_at DESC, o.id DESC LIMIT ${limit + 1}`;
   const items = rows.slice(0, limit).map(orderView);
   const last = items[items.length - 1];
   return {

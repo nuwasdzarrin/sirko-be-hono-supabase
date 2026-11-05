@@ -7,6 +7,7 @@ import * as ppob from '../services/ppob.service.js';
 
 /**
  * PPOB untuk app (Bearer + konteks toko). Base `/v1/ppob`. Online-only.
+ *  - GET  /status                                     saklar PPOB, kategori tersedia, saldo Poin (layar menu)
  *  - GET  /products?category=pulsa|data|pln&customerNo=   produk aktif (pulsa/data difilter operator)
  *  - POST /pln/inquiry {meterNo}                      cek nama pelanggan PLN (cache 24 jam)
  *  - POST /orders {clientRef, productId, customerNo, notifyEmail?}  beli (idempoten via clientRef);
@@ -16,6 +17,10 @@ import * as ppob from '../services/ppob.service.js';
  */
 export const ppobRoutes = new Hono<AppEnv>()
   .use('*', requireAuth, requireTenant)
+  .get('/status', async (c) => {
+    const a = c.get('auth');
+    return c.json(ok(await ppob.statusForBusiness({ businessId: a.businessId!, role: a.role })));
+  })
   .get('/products', async (c) => {
     const r = await ppob.listProducts({
       category: c.req.query('category') ?? '',
