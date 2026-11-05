@@ -38,6 +38,8 @@ import * as feedback from '../services/feedback.service.js';
 import { getStoreReport, getTransactionDetail, resolveRange } from '../services/store-report.service.js';
 import { renderStoreReport, renderTransactionDetail } from '../views/business.view.js';
 import { renderFeedback } from '../views/feedback.view.js';
+import * as points from '../services/points.service.js';
+import { renderPointsPage, renderBusinessPoints } from '../views/points.view.js';
 import * as contributions from '../services/catalog-contribution.service.js';
 
 /**
@@ -123,8 +125,12 @@ dashboardRoutes.use('*', async (c, next) => {
 
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {
-  const fbNew = await feedback.countNew().catch(() => 0);
+  const [fbNew, ptPending] = await Promise.all([
+    feedback.countNew().catch(() => 0),
+    points.countPendingTopups().catch(() => 0),
+  ]);
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
+  html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
   const f = c.get('flash');
   const toast = f
     ? `<div class="flash ${f.type === 'error' ? 'err' : 'ok'}" role="status">${escapeHtml(f.msg)}</div>`
@@ -302,6 +308,9 @@ dashboardRoutes.get('/businesses/:id', async (c) => {
   const detail = await getBusinessDetail(id);
   if (!detail) return sendPage(c, renderNotFound('Toko tidak ditemukan.', '/dashboard/businesses'), 404);
   const tab = c.req.query('tab') ?? '';
+  if (tab === 'points') {
+    return sendPage(c, renderBusinessPoints(detail, await points.adminPointsForBusiness(id)));
+  }
   if (tab === 'report') {
     const range = resolveRange({ preset: c.req.query('preset'), from: c.req.query('from'), to: c.req.query('to') });
     return sendPage(c, renderStoreReport(detail, await getStoreReport(id, range)));
@@ -324,6 +333,81 @@ dashboardRoutes.get('/businesses/:id/transactions/:txId', async (c) => {
     return sendPage(c, renderNotFound('Transaksi tidak ditemukan.', back), 404);
   }
   return sendPage(c, renderTransactionDetail(detail, tx));
+});
+
+// ── Poin Sirko ───────────────────────────────────────────────────────────────
+
+const TOPUP_STATUSES = ['pending', 'paid', 'rejected', 'expired', 'cancelled', 'semua'] as const;
+
+/** Kembali hanya ke halaman Poin / tab Poin toko. */
+function safePointsBack(v: unknown, fallback = '/dashboard/points?tab=topups'): string {
+  const s = typeof v === 'string' ? v : '';
+  return /^\/dashboard\/(points|businesses\/[0-9a-f-]{36})(\?[^\\]*)?$/.test(s) ? s : fallback;
+}
+
+dashboardRoutes.get('/points', async (c) => {
+  const tab = (['topups', 'accounts', 'settings'] as const).find((t) => t === c.req.query('tab')) ?? 'topups';
+  const page = intParam(c.req.query('page'), 1);
+  if (tab === 'accounts') {
+    const [accounts, total] = await Promise.all([
+      points.adminListAccounts({ page, limit: 25, q: c.req.query('q') }),
+      points.totalOutstanding(),
+    ]);
+    return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), accounts: { ...accounts, totalBalance: total } }));
+  }
+  if (tab === 'settings') {
+    return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), config: await points.getConfig() }));
+  }
+  const s = c.req.query('status') ?? 'pending';
+  const status = (TOPUP_STATUSES as readonly string[]).includes(s) ? (s as points.TopupStatus | 'semua') : 'pending';
+  const topups = await points.adminListTopups({ status, page, limit: 20 });
+  return sendPage(c, renderPointsPage({ tab, serverTime: Date.now(), topups: { ...topups, status } }));
+});
+
+dashboardRoutes.post('/points/topups/:id/confirm', async (c) => {
+  const body = await c.req.parseBody();
+  const r = await points.adminConfirmTopup(c.req.param('id'), c.get('admin'));
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(safePointsBack(body.back));
+});
+
+dashboardRoutes.post('/points/topups/:id/reject', async (c) => {
+  const body = await c.req.parseBody();
+  const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 200) : null;
+  const r = await points.adminRejectTopup(c.req.param('id'), c.get('admin'), note);
+  flash(c, r.ok ? 'ok' : 'error', r.message);
+  return c.redirect(safePointsBack(body.back));
+});
+
+dashboardRoutes.post('/points/accounts/:accountId/adjust', async (c) => {
+  const body = await c.req.parseBody();
+  const back = safePointsBack(body.back, '/dashboard/points?tab=accounts');
+  const amount = Number(body.amount);
+  const note = typeof body.note === 'string' ? body.note.slice(0, 200) : '';
+  const bid = typeof body.businessId === 'string' && UUID_RE.test(body.businessId) ? body.businessId : null;
+  try {
+    const r = await points.adminAdjust(c.req.param('accountId'), amount, note, c.get('admin'), bid);
+    flash(c, 'ok', `Koreksi ${amount > 0 ? '+' : ''}${amount} Poin disimpan. Saldo sekarang ${r.balanceAfter}.`);
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect(back);
+});
+
+dashboardRoutes.post('/points/settings', async (c) => {
+  const body = await c.req.parseBody();
+  try {
+    await points.saveConfig(body, c.get('admin'));
+    flash(c, 'ok', 'Pengaturan Poin disimpan.');
+    return c.redirect('/dashboard/points?tab=settings');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    const config = { ...(await points.getConfig()), ...(body as Partial<points.PointsConfig>) };
+    return sendPage(c, renderPointsPage({ tab: 'settings', serverTime: Date.now(), config, configError: msg }), 422);
+  }
 });
 
 // ── Saran pengguna ───────────────────────────────────────────────────────────

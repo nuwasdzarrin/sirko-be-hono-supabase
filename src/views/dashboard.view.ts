@@ -285,6 +285,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
     <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
     <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
+    <a class="tab <%= active==='points'?'active':'' %>" href="/dashboard/points">Poin<!--pt-badge--></a>
     <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     <span class="spacer"></span>
     <span class="badge">lintas-tenant</span>
@@ -1107,6 +1108,7 @@ export function renderBusinessShell(d: BusinessDetail, active: string, main: str
 <nav class="tabs" id="biz-tabs" aria-label="Data toko">
   <a class="${active === '' ? 'on' : ''}" href="${bizUrl(id, {})}">Ringkasan <span class="c">${helpers.fmtNum(total)}</span></a>
   <a class="special ${active === 'report' ? 'on' : ''}" href="${bizUrl(id, { tab: 'report' })}">📊 Laporan</a>
+  <a class="special ${active === 'points' ? 'on' : ''}" href="${bizUrl(id, { tab: 'points' })}">🪙 Poin</a>
   ${BUSINESS_TABS.map((x) => {
     const n = d.counts[x.wire] ?? 0;
     const cls = [active === x.wire ? 'on' : '', n === 0 ? 'zero' : ''].join(' ').trim();

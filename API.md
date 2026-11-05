@@ -129,6 +129,26 @@ GET  /v1/feedback   → { data: [ ...saran toko ini, terbaru dulu ] }   // riway
 - `status`: `baru` → `dibaca` / `diproses` → `selesai` / `ditolak` (diubah admin di dashboard). `adminNote` = balasan admin, boleh ditampilkan di app.
 - Online-only (tak lewat backup/sync).
 
+## 4c. Poin Sirko (Bearer + konteks toko) — saldo prabayar untuk PPOB
+
+Saldo milik **akun pemilik** toko (dipakai bersama semua toko milik akun itu). Server = sumber kebenaran:
+**jangan** simpan saldo sebagai data lokal yang di-sync/backup — selalu baca dari server. Online-only.
+
+```
+GET  /v1/points            → { balance, ledger:[20 terakhir], nextCursor, pendingTopups:[{topup, instructions}], limits:{minTopup,maxTopup} }
+GET  /v1/points/ledger?cursor=&limit=   → data:[mutasi], meta:{nextCursor, hasMore}
+GET  /v1/points/topups     → riwayat top-up
+POST /v1/points/topups     { amount }   (hanya role owner/admin) → 201 { topup, instructions }
+POST /v1/points/topups/:id/cancel       → batalkan top-up yang masih menunggu
+```
+- Mutasi: `{ id, type: topup|purchase|refund|adjustment, amount (±), balanceAfter, businessId, businessName, note, createdAt }`.
+- `instructions`: `{ transferAmount, bankName, accountNo, accountName, qrisImageUrl, note, expiresAt }` — pengguna
+  transfer **tepat** `transferAmount` (nominal + 3 digit kode unik); Poin yang masuk = `transferAmount`.
+- Status top-up: `pending` → `paid` (dikonfirmasi admin) / `rejected` / `expired` (lewat batas) / `cancelled`.
+- Error: `OWNER_ACCOUNT_MISSING` (409, toko tanpa akun pemilik cloud), `VALIDATION` (nominal di luar batas),
+  `CONFLICT` (masih ada top-up menunggu melebihi batas), `FORBIDDEN` (bukan owner/admin).
+- Poin tidak bisa ditarik maupun ditransfer ke akun lain.
+
 ## 5. Health
 `GET /v1/health` (tanpa auth) → `{ data:{ status:"ok", db:"ok", serverTime } }`.
 

@@ -30,6 +30,12 @@ const rawSchema = z.object({
   // Basic Auth. Bila kosong (dev) → terbuka. Di production SEBAIKNYA diisi.
   DASHBOARD_USER: z.string().optional(),
   DASHBOARD_PASSWORD: z.string().optional(),
+
+  // Notifikasi admin via Telegram (opsional). Kosong → notifikasi dilewati (log saja).
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_ADMIN_CHAT_ID: z.string().optional(),
+  // URL publik dashboard untuk tautan di notifikasi (mis. https://sirko.produkdesa.com).
+  PUBLIC_BASE_URL: z.string().optional(),
 });
 
 const parsed = rawSchema.safeParse(process.env);

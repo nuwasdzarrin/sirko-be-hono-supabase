@@ -10,6 +10,8 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'UPGRADE_REQUIRED'
   | 'RATE_LIMITED'
+  | 'OWNER_ACCOUNT_MISSING'
+  | 'INSUFFICIENT_POINTS'
   | 'INTERNAL';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
@@ -20,6 +22,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   CONFLICT: 409,
   UPGRADE_REQUIRED: 409, // client schemaVersion lebih baru dari yang didukung server
   RATE_LIMITED: 429,
+  OWNER_ACCOUNT_MISSING: 409, // toko tanpa akun pemilik cloud → Poin tak tersedia
+  INSUFFICIENT_POINTS: 409, // saldo Poin kurang untuk pembelian
   INTERNAL: 500,
 };
 
