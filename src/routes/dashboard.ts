@@ -40,6 +40,9 @@ import { renderStoreReport, renderTransactionDetail } from '../views/business.vi
 import { renderFeedback } from '../views/feedback.view.js';
 import * as points from '../services/points.service.js';
 import { renderPointsPage, renderBusinessPoints } from '../views/points.view.js';
+import * as ppob from '../services/ppob.service.js';
+import { digiflazzConfigured } from '../ppob/digiflazz.js';
+import { renderPpobOrders, renderPpobOrderDetail, renderPpobProducts, renderPpobSettings } from '../views/ppob.view.js';
 import * as contributions from '../services/catalog-contribution.service.js';
 
 /**
@@ -125,10 +128,12 @@ dashboardRoutes.use('*', async (c, next) => {
 
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {
-  const [fbNew, ptPending] = await Promise.all([
+  const [fbNew, ptPending, ppAttention] = await Promise.all([
     feedback.countNew().catch(() => 0),
     points.countPendingTopups().catch(() => 0),
+    ppob.countNeedsAttention().catch(() => 0),
   ]);
+  html = html.replace('<!--pp-badge-->', ppAttention > 0 ? ` <span class="nb">${ppAttention}</span>` : '');
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
   html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
   const f = c.get('flash');
@@ -407,6 +412,89 @@ dashboardRoutes.post('/points/settings', async (c) => {
     if (!msg) throw e;
     const config = { ...(await points.getConfig()), ...(body as Partial<points.PointsConfig>) };
     return sendPage(c, renderPointsPage({ tab: 'settings', serverTime: Date.now(), config, configError: msg }), 422);
+  }
+});
+
+// ── PPOB ─────────────────────────────────────────────────────────────────────
+
+const PPOB_STATUSES = ['semua', 'success', 'pending', 'processing', 'waiting_admin', 'failed'];
+
+dashboardRoutes.get('/ppob', async (c) => {
+  const tab = c.req.query('tab') ?? 'orders';
+  const page = intParam(c.req.query('page'), 1);
+  const attention = await ppob.countNeedsAttention();
+  if (tab === 'products') {
+    const category = ['pulsa', 'data'].includes(c.req.query('category') ?? '') ? c.req.query('category')! : '';
+    const brand = (c.req.query('brand') ?? '').slice(0, 30);
+    const q = (c.req.query('q') ?? '').slice(0, 60);
+    const d = await ppob.adminListProducts({ category: category || undefined, brand: brand || undefined, q: q || undefined, page, limit: 50 });
+    return sendPage(c, renderPpobProducts({ ...d, category, brand, q }, { attention, serverTime: Date.now(), configured: digiflazzConfigured() }));
+  }
+  if (tab === 'settings') {
+    return sendPage(c, renderPpobSettings(await ppob.getConfig(), { attention, serverTime: Date.now(), error: null }));
+  }
+  const s = c.req.query('status') ?? 'semua';
+  const status = PPOB_STATUSES.includes(s) ? s : 'semua';
+  const category = ['pulsa', 'data', 'pln'].includes(c.req.query('category') ?? '') ? c.req.query('category')! : '';
+  const q = (c.req.query('q') ?? '').trim().slice(0, 60);
+  const [d, deposit] = await Promise.all([
+    ppob.adminListOrders({ status, category: category || undefined, page, limit: 25, q: q || undefined }),
+    ppob.depositBalance(),
+  ]);
+  return sendPage(c, renderPpobOrders({ ...d, status, category, q }, { deposit, enabled: ppob.ppobEnabled(), attention, serverTime: Date.now() }));
+});
+
+dashboardRoutes.get('/ppob/orders/:id', async (c) => {
+  const d = await ppob.adminOrderDetail(c.req.param('id'));
+  if (!d) return sendPage(c, renderNotFound('Order PPOB tidak ditemukan.', '/dashboard/ppob'), 404);
+  return sendPage(c, renderPpobOrderDetail(d, { attention: await ppob.countNeedsAttention(), serverTime: Date.now() }));
+});
+
+dashboardRoutes.post('/ppob/orders/:id/check', async (c) => {
+  const id = c.req.param('id');
+  const r = await ppob.checkStatus(id, { source: 'admin_check' });
+  flash(c, r.checked ? 'ok' : 'error', r.checked ? 'Status dicek ulang ke Digiflazz.' : `Tidak dicek: ${r.reason}`);
+  return c.redirect(`/dashboard/ppob/orders/${id}`);
+});
+
+dashboardRoutes.post('/ppob/sync', async (c) => {
+  try {
+    const r = await ppob.syncDigiflazzProducts(c.get('admin'));
+    flash(c, 'ok', `Sinkron selesai: ${r.received} produk diterima, ${r.upserted} pulsa/data disimpan, ${r.deactivated} dinonaktifkan.`);
+  } catch (e) {
+    flash(c, 'error', `Sinkron gagal: ${(e as Error).message}`);
+  }
+  return c.redirect('/dashboard/ppob?tab=products');
+});
+
+dashboardRoutes.post('/ppob/products/:id', async (c) => {
+  const body = await c.req.parseBody();
+  const back = typeof body.back === 'string' && /^\/dashboard\/ppob\?tab=products[^\\]*$/.test(body.back) ? body.back : '/dashboard/ppob?tab=products';
+  const op = String(body.op ?? '');
+  try {
+    if (op === 'price') await ppob.adminUpdateProduct(c.req.param('id'), { price: Number(body.price) });
+    else if (op === 'unlock') await ppob.adminUpdateProduct(c.req.param('id'), { unlock: true });
+    else if (op === 'hide' || op === 'show') await ppob.adminUpdateProduct(c.req.param('id'), { active: op === 'show' });
+    flash(c, 'ok', 'Produk diperbarui.');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect(back);
+});
+
+dashboardRoutes.post('/ppob/settings', async (c) => {
+  const body = await c.req.parseBody();
+  try {
+    await ppob.saveConfig(body, c.get('admin'));
+    flash(c, 'ok', 'Pengaturan PPOB disimpan; harga produk tak terkunci dihitung ulang.');
+    return c.redirect('/dashboard/ppob?tab=settings');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    const cfg = { ...(await ppob.getConfig()), ...(body as Record<string, never>) };
+    return sendPage(c, renderPpobSettings(cfg, { attention: await ppob.countNeedsAttention(), serverTime: Date.now(), error: msg }), 422);
   }
 });
 

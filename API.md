@@ -149,6 +149,26 @@ POST /v1/points/topups/:id/cancel       → batalkan top-up yang masih menunggu
   `CONFLICT` (masih ada top-up menunggu melebihi batas), `FORBIDDEN` (bukan owner/admin).
 - Poin tidak bisa ditarik maupun ditransfer ke akun lain.
 
+## 4d. PPOB — pulsa & paket data (Bearer + konteks toko, online-only)
+
+Dibayar dengan **Poin Sirko** (§4c). Harga di sini = harga Poin yang dipotong; harga jual ke pembeli
+ditentukan toko sendiri di aplikasi.
+
+```
+GET  /v1/ppob/products?category=pulsa|data&customerNo=08…   → data:[{id, category, brand, name, description, price, available, unavailableReason}]
+                                                              meta:{operator, enabled}   (difilter operator dari nomor)
+POST /v1/ppob/orders  { clientRef, productId, customerNo }     → 201 order
+GET  /v1/ppob/orders/:id                                       → order (server cek ulang ke penyedia bila masih pending)
+GET  /v1/ppob/orders?cursor=&limit=                            → riwayat, meta:{nextCursor, hasMore}
+```
+- **`clientRef` wajib unik per pembelian** (mis. UUID dibuat app saat tombol Bayar ditekan). Kirim ulang
+  dengan `clientRef` sama (timeout/klik ganda) → server mengembalikan order yang sama, Poin tidak terpotong lagi.
+- Order: `{ id, clientRef, category, brand, productName, customerNo, price, status, refunded, sn, message, createdAt, completedAt }`.
+- `status`: `success` (tampilkan `sn`) · `failed` (Poin **sudah dikembalikan** otomatis, `refunded: true`) ·
+  `pending`/`processing` (tampilkan "sedang diproses", polling `GET /orders/:id` tiap ±10–15 dtk).
+- Error: `INSUFFICIENT_POINTS` (409, `details.balance`/`required`), `PRODUCT_UNAVAILABLE` (409, nonaktif/cut-off),
+  `PPOB_UNAVAILABLE` (503), `VALIDATION` (422, nomor tak valid / operator tak cocok), `OWNER_ACCOUNT_MISSING`.
+
 ## 5. Health
 `GET /v1/health` (tanpa auth) → `{ data:{ status:"ok", db:"ok", serverTime } }`.
 

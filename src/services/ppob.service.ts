@@ -97,6 +97,17 @@ export function ppobEnabled(): boolean {
 
 // ── Sinkron harga Digiflazz ──────────────────────────────────────────────────
 
+/** Normalisasi jam cut-off "h:m" → "hh:mm"; mulai = selesai → tanpa cut-off. */
+export function cutoffOf(start?: string, end?: string): { cutoff_start: string | null; cutoff_end: string | null } {
+  const norm = (v?: string) => {
+    const m = /^(\d{1,2}):(\d{1,2})$/.exec((v ?? '').trim());
+    return m ? `${m[1]!.padStart(2, '0')}:${m[2]!.padStart(2, '0')}` : null;
+  };
+  const s = norm(start);
+  const e = norm(end);
+  return s && e && s !== e ? { cutoff_start: s, cutoff_end: e } : { cutoff_start: null, cutoff_end: null };
+}
+
 const CATEGORY_MAP: Record<string, 'pulsa' | 'data'> = { pulsa: 'pulsa', data: 'data' };
 
 export interface SyncResult {
@@ -136,8 +147,8 @@ export async function syncDigiflazzProducts(admin: string): Promise<SyncResult> 
         cost_price: Number.isFinite(cost) ? cost : 0,
         sell_price: sellPriceFor(Number.isFinite(cost) ? cost : 0, cat, cfg),
         provider_active: Boolean(p.buyer_product_status && p.seller_product_status),
-        cutoff_start: p.start_cut_off || null,
-        cutoff_end: p.end_cut_off || null,
+        // Digiflazz memakai "0:0"–"0:0" (mulai = selesai) untuk "tanpa cut-off".
+        ...cutoffOf(p.start_cut_off, p.end_cut_off),
         synced_at: ts,
         created_at: ts,
         updated_at: ts,
@@ -348,6 +359,8 @@ export async function createOrder(
           price: n(p.sell_price),
           cost: n(p.cost_price),
           status: 'processing',
+          // Pengiriman pertama = panggilan ke Digiflazz → hitung untuk jeda 1×/menit.
+          last_checked_at: ts,
           created_at: ts,
           updated_at: ts,
         })}`;

@@ -245,7 +245,7 @@ suite('PPOB tahap 2 — pulsa & data', () => {
     expect(calls).toHaveLength(0);
 
     // Order berumur > 1 menit → GET memicu cek ulang (ref_id sama) → sukses.
-    await sql`UPDATE ppob_orders SET created_at = created_at - 120000 WHERE id = ${r.json.data.id}`;
+    await sql`UPDATE ppob_orders SET created_at = created_at - 120000, last_checked_at = last_checked_at - 120000 WHERE id = ${r.json.data.id}`;
     const g = await req('GET', `/v1/ppob/orders/${r.json.data.id}`, token);
     expect(g.json.data).toMatchObject({ status: 'success', sn: 'SN-RETRY' });
     expect(calls.filter((c) => c.path === '/transaction')[0]!.body.ref_id).toBe(r.json.data.id);
@@ -298,7 +298,7 @@ suite('PPOB tahap 2 — pulsa & data', () => {
   it('tugas berkala menyelesaikan order pending', async () => {
     replyFor(tsel(8), { status: 'Pending', rc: '03' }, { status: 'Sukses', rc: '00', sn: 'SN-JOB' });
     const r = await buy(pTsel10, tsel(8));
-    await sql`UPDATE ppob_orders SET created_at = created_at - 300000 WHERE id = ${r.json.data.id}`;
+    await sql`UPDATE ppob_orders SET created_at = created_at - 300000, last_checked_at = last_checked_at - 300000 WHERE id = ${r.json.data.id}`;
     expect(await ppob.reconcilePending()).toBeGreaterThanOrEqual(1);
     expect((await orderRow(r.json.data.id)).status).toBe('success');
   });
@@ -309,6 +309,73 @@ suite('PPOB tahap 2 — pulsa & data', () => {
     expect(list.json.meta.hasMore).toBe(true);
     const other = await signAccessToken({ userId: uuid(), businessId: uuid(), role: 'owner' });
     expect((await req('GET', `/v1/ppob/orders/${list.json.data[0].id}`, other)).status).toBe(404);
+  });
+
+  describe('dashboard admin PPOB', () => {
+    let cookie = '';
+    const page = async (path: string) => {
+      const res = await app.request(path, { headers: { Cookie: cookie } });
+      return { status: res.status, html: await res.text() };
+    };
+    const form = (path: string, data: Record<string, string>) =>
+      app.request(path, {
+        method: 'POST',
+        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(data).toString(),
+      });
+
+    beforeAll(async () => {
+      const body = new URLSearchParams({ user: process.env.DASHBOARD_USER!, password: process.env.DASHBOARD_PASSWORD! }).toString();
+      const res = await app.request('/dashboard/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+      cookie = (res.headers.get('set-cookie') ?? '').split(';')[0]!;
+    });
+
+    it('daftar order + deposit + detail dengan jejak & mutasi Poin', async () => {
+      const list = await page(`/dashboard/ppob?q=${tsel(1)}`);
+      expect(list.status).toBe(200);
+      expect(list.html).toContain(tsel(1));
+      expect(list.html).toContain('Rp 1.234.567'); // deposit dari Digiflazz palsu
+      const id = (await sql`SELECT id FROM ppob_orders WHERE customer_no = ${tsel(1)} AND business_id = ${businessId}`)[0]!.id as string;
+      const d = await page(`/dashboard/ppob/orders/${id}`);
+      expect(d.html).toContain('SN-ABC-123');
+      expect(d.html).toContain('submit_success');
+      expect(d.html).toContain('purchase');
+    });
+
+    it('tombol cek status menghormati jeda 1 menit', async () => {
+      replyFor(tsel(9), { status: 'Pending', rc: '03' });
+      const r = await buy(pTsel10, tsel(9));
+      const res = await form(`/dashboard/ppob/orders/${r.json.data.id}/check`, {});
+      expect(res.status).toBe(302);
+      const flash = (res.headers.get('set-cookie') ?? '').split(';')[0]!;
+      const next = await app.request(`/dashboard/ppob/orders/${r.json.data.id}`, { headers: { Cookie: `${cookie}; ${flash}` } });
+      expect(await next.text()).toContain('maks 1× per menit');
+    });
+
+    it('produk: set harga (kunci), sembunyikan, kembali otomatis', async () => {
+      const back = '/dashboard/ppob?tab=products';
+      await form(`/dashboard/ppob/products/${pTsel10}`, { op: 'price', price: '11000', back });
+      let p = (await sql`SELECT * FROM ppob_products WHERE id = ${pTsel10}`)[0]!;
+      expect([Number(p.sell_price), p.price_locked]).toEqual([11_000, true]);
+      await form(`/dashboard/ppob/products/${pTsel10}`, { op: 'hide', back });
+      expect((await sql`SELECT active FROM ppob_products WHERE id = ${pTsel10}`)[0]!.active).toBe(false);
+      const cat = await req('GET', `/v1/ppob/products?category=pulsa&customerNo=${TSEL}`, token);
+      expect(cat.json.data.find((x: { id: string }) => x.id === pTsel10)).toBeUndefined();
+      await form(`/dashboard/ppob/products/${pTsel10}`, { op: 'show', back });
+      await form(`/dashboard/ppob/products/${pTsel10}`, { op: 'unlock', back });
+      p = (await sql`SELECT * FROM ppob_products WHERE id = ${pTsel10}`)[0]!;
+      expect([Number(p.sell_price), p.price_locked, p.active]).toEqual([10_700, false, true]);
+      const html = (await page('/dashboard/ppob?tab=products&category=pulsa')).html;
+      expect(html).toContain('Telkomsel 10.000');
+    });
+
+    it('pengaturan markup menghitung ulang harga tak terkunci', async () => {
+      const r = await form('/dashboard/ppob/settings', { markupPulsa: '1000', markupData: '500', markupPln: '1500', roundTo: '500', lowDepositAlert: '100000' });
+      expect(r.status).toBe(302);
+      expect(Number((await sql`SELECT sell_price FROM ppob_products WHERE id = ${pTsel10}`)[0]!.sell_price)).toBe(11_500); // ceil(11150/500)*500
+      expect(Number((await sql`SELECT sell_price FROM ppob_products WHERE id = ${pXlData}`)[0]!.sell_price)).toBe(47_000); // terkunci
+      await sql`DELETE FROM app_config WHERE key = 'ppob'`;
+    });
   });
 
   it('saldo Poin = Σ ledger setelah semua skenario', async () => {

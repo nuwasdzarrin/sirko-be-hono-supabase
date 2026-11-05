@@ -8,7 +8,7 @@ import {
   detectOperator,
   brandKey,
 } from '../../src/ppob/digiflazz.js';
-import { inCutoff, sellPriceFor, DEFAULT_PPOB_CONFIG } from '../../src/services/ppob.service.js';
+import { inCutoff, sellPriceFor, cutoffOf, DEFAULT_PPOB_CONFIG } from '../../src/services/ppob.service.js';
 
 const md5 = (s: string) => createHash('md5').update(s).digest('hex');
 
@@ -65,6 +65,12 @@ describe('Harga & cut-off', () => {
     expect(sellPriceFor(10_150, 'pulsa', DEFAULT_PPOB_CONFIG)).toBe(10_700);
     expect(sellPriceFor(10_000, 'data', DEFAULT_PPOB_CONFIG)).toBe(10_500);
     expect(sellPriceFor(20_000, 'pln', DEFAULT_PPOB_CONFIG)).toBe(21_500);
+  });
+
+  it('cut-off Digiflazz: "0:0"–"0:0" = tanpa cut-off; dinormalisasi hh:mm', () => {
+    expect(cutoffOf('0:0', '0:0')).toEqual({ cutoff_start: null, cutoff_end: null });
+    expect(cutoffOf('23:45', '0:15')).toEqual({ cutoff_start: '23:45', cutoff_end: '00:15' });
+    expect(cutoffOf(undefined, '1:0')).toEqual({ cutoff_start: null, cutoff_end: null });
   });
 
   it('cut-off WIB termasuk melewati tengah malam', () => {
