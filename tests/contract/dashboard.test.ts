@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { app } from '../../src/app.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
@@ -219,12 +220,8 @@ suite('Dashboard contract', () => {
   });
 
   it('detail toko: ringkasan jumlah data + tab tabel (aktif & dihapus)', async () => {
-    const reg = await app.request('/v1/auth/register-business', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business: { name: `Toko ${tag}` }, owner: { name: 'Bu Tini', email: `o-${tag.slice(2)}@toko.id`, password: 'rahasia123' } }),
-    });
-    const { data } = (await reg.json()) as { data: { accessToken: string; business: { id: string } } };
+    const reg = await registerOwnerStore({ business: { name: `Toko ${tag}` }, owner: { name: 'Bu Tini', email: `o-${tag.slice(2)}@toko.id`, password: 'rahasia123' } });
+    const { data } = reg.json as { data: { accessToken: string; business: { id: string } } };
     const ts = Date.now();
     const catId = uuid();
     await app.request('/v1/backup/push', {

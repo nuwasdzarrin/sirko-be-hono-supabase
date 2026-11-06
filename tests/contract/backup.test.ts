@@ -3,6 +3,7 @@ import { app } from '../../src/app.js';
 import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test Backup (Fitur 1). Butuh Postgres nyata; skip bila tak tersambung.
@@ -35,7 +36,7 @@ async function req(method: string, path: string, token?: string, body?: unknown,
 /** Daftarkan toko baru → { token, businessId }. */
 async function newStore() {
   const tag = uuid().slice(0, 8);
-  const { json } = await req('POST', '/v1/auth/register-business', undefined, {
+  const { json } = await registerOwnerStore({
     business: { name: `Toko ${tag}`, businessType: 'kelontong' },
     owner: { name: `Owner ${tag}`, email: `o-${tag}@toko.id`, password: 'rahasia123' },
   });

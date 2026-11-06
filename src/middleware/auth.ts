@@ -28,6 +28,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
     businessId: claims.businessId,
     role: claims.role,
     permissions,
+    ...(claims.scope ? { scope: claims.scope } : {}),
   });
 
   await next();

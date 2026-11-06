@@ -4,6 +4,7 @@ import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
 import * as plans from '../../src/services/plan.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test Juragan tahap a: migrasi 0007 (index keanggotaan, plan_prices),
@@ -33,7 +34,7 @@ async function req(method: string, path: string, body?: unknown, token?: string)
 async function register() {
   const tag = uuid().slice(0, 8);
   const email = `jp-${tag}@toko.id`;
-  const r = await req('POST', '/v1/auth/register-business', {
+  const r = await registerOwnerStore({
     business: { name: `Toko ${tag}` },
     owner: { name: `Owner ${tag}`, email, password: 'rahasia123' },
   });

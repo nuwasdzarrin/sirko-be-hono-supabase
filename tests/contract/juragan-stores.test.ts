@@ -193,7 +193,7 @@ suite('Juragan — sesi & multi-toko', () => {
     expect(shape(created.json.data)).toEqual(expected);
     expect(shape(reg.data)).toEqual(expected);
     expect(Object.keys(l.json.data).sort()).toEqual(
-      ['accessToken', 'business', 'businesses', 'expiresIn', 'plan', 'refreshToken', 'user'],
+      ['accessToken', 'account', 'business', 'businesses', 'expiresIn', 'offlineAuth', 'plan', 'refreshToken', 'user'],
     );
   });
 });

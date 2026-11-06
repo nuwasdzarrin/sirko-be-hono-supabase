@@ -19,7 +19,13 @@ export type ErrorCode =
   // ── Juragan ──
   | 'PLAN_REQUIRED'
   | 'PLAN_LIMIT'
-  | 'PLAN_UNAVAILABLE';
+  | 'PLAN_UNAVAILABLE'
+  // ── Akun ──
+  | 'EMAIL_NOT_VERIFIED'
+  | 'OTP_INVALID'
+  | 'ACCOUNT_LOCKED'
+  // ── PPOB (lanjutan) ──
+  | 'PENDING_SAME_TARGET';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   VALIDATION: 422,
@@ -39,6 +45,12 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   PLAN_REQUIRED: 403, // fitur butuh Paket Juragan
   PLAN_LIMIT: 403, // sudah mencapai maxStores
   PLAN_UNAVAILABLE: 503, // harga/pembayaran langganan belum diatur
+  // ── Akun ──
+  EMAIL_NOT_VERIFIED: 403, // akun belum verifikasi OTP email (kode baru sudah dikirim)
+  OTP_INVALID: 422, // kode OTP salah / kedaluwarsa / sudah dipakai
+  ACCOUNT_LOCKED: 429, // terlalu banyak percobaan login gagal (kunci 15 menit)
+  // ── PPOB (lanjutan) ──
+  PENDING_SAME_TARGET: 409, // nomor tujuan sama masih punya order yang belum jelas statusnya
 };
 
 /** Error domain terkendali — dibawa apa adanya ke envelope error. */

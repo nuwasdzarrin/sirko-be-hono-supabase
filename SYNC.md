@@ -22,11 +22,11 @@ Simpan juga di `app_settings` lokal: `sync_cursor` (string opaque), `last_push_a
 
 ## 1. Autentikasi (per toko)
 ```
-POST /v1/auth/register-business   { business:{name,businessType?}, owner:{name,email?,phone?,password} }
-POST /v1/auth/login               { emailOrPhone, password }
+POST /v1/auth/register           { name, email, phone, password }  → OTP email → verify-email → POST /v1/businesses
+POST /v1/auth/login               { login, password }   (detail alur akun: AKUN-APP.md)
 → { data:{ accessToken, refreshToken, expiresIn, user:{id,role,businessId}, business } }
 ```
-- Toko baru → `register-business`. Device lain / re-install → `login` (akun sama → `businessId` sama → PULL memulihkan data).
+- Toko baru → `register` + `verify-email` + `POST /v1/businesses`. Device lain / re-install → `login` (akun sama → `businessId` sama → PULL memulihkan data).
 - Simpan `accessToken`(umur `expiresIn` detik), `refreshToken`, `businessId`.
 - Saat request balas **401** → `POST /v1/auth/refresh { refreshToken }` → token baru; ulangi request. Bila refresh gagal → minta login ulang.
 
@@ -193,7 +193,7 @@ konsisten setelah semua halaman diterapkan).
   sebagai konflik di status — tidak menggagalkan halaman.
 - `createdAt` null → pakai `updatedAt`.
 - **`users` tanpa `username`/`pinHash`** (owner versi cloud yang dibuat server
-  saat `register-business`; login-nya email+password, bukan PIN) **diabaikan** —
+  saat `POST /v1/businesses`; login-nya email+password, bukan PIN) **diabaikan** —
   bukan data perangkat & tak bisa dipakai login PIN. Pemilik di HP tetap user
   perangkat (ber-PIN) yang ikut tersinkron dari HP pertama.
 - Cursor disimpan di `app_settings.sync_cursor` (lokal saja) **setelah** halaman
@@ -210,7 +210,7 @@ konsisten setelah semua halaman diterapkan).
 
 ### 8.5 Alur akun
 - **Toko yang sudah berjalan di HP ini, belum punya akun:** *Daftar akun cloud*
-  (`register-business`, nama toko dari data lokal) → push seluruh data lokal.
+  (`register` + OTP, lalu `POST /v1/businesses` dengan nama toko dari data lokal) → push seluruh data lokal.
 - **Sudah punya akun:** *Masuk* → push data lokal + pull.
 - **HP baru / instal ulang:** di layar onboarding pilih **Pulihkan dari Cloud**
   → login → pull penuh (toko, pengguna + PIN, produk, transaksi, dst.) → layar

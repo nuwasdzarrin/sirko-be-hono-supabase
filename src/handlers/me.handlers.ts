@@ -10,6 +10,7 @@ export async function handleMe(c: Context<AppEnv>) {
     userId: auth.userId,
     businessId: auth.businessId,
     role: auth.role,
+    scope: auth.scope,
   });
   return c.json(ok(payload), 200);
 }

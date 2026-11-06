@@ -4,11 +4,13 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireTenant } from '../middleware/tenant.js';
 import { ok } from '../lib/envelope.js';
 import * as ppob from '../services/ppob.service.js';
+import * as pricing from '../services/ppob-pricing.service.js';
 
 /**
  * PPOB untuk app (Bearer + konteks toko). Base `/v1/ppob`. Online-only.
  *  - GET  /status                                     saklar PPOB, kategori tersedia, saldo Poin (layar menu)
  *  - GET  /products?category=pulsa|data|pln&customerNo=   produk aktif (pulsa/data difilter operator)
+ *  - GET/PUT /pricing                                 aturan harga JUAL toko (untung per kategori, harga khusus)
  *  - POST /pln/inquiry {meterNo}                      cek nama pelanggan PLN (cache 24 jam)
  *  - POST /orders {clientRef, productId, customerNo, notifyEmail?}  beli (idempoten via clientRef);
  *    token PLN → status `waiting_admin` (diproses admin, token tampil di order & dikirim email)
@@ -25,8 +27,15 @@ export const ppobRoutes = new Hono<AppEnv>()
     const r = await ppob.listProducts({
       category: c.req.query('category') ?? '',
       customerNo: c.req.query('customerNo') || undefined,
+      businessId: c.get('auth').businessId!,
     });
     return c.json(ok(r.items, { operator: r.operator, enabled: ppob.ppobEnabled() }));
+  })
+  .get('/pricing', async (c) => c.json(ok(await pricing.getPricing(c.get('auth').businessId!))))
+  .put('/pricing', async (c) => {
+    const input = pricing.pricingSchema.parse(await c.req.json());
+    const a = c.get('auth');
+    return c.json(ok(await pricing.putPricing({ businessId: a.businessId!, role: a.role }, input)));
   })
   .post('/pln/inquiry', async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as { meterNo?: unknown };

@@ -153,9 +153,9 @@ HOST=https://<app>.vercel.app
 # health (juga dipakai cron)
 curl -s $HOST/v1/health          # → {"data":{"status":"ok","db":"ok","serverTime":...}}
 
-# register → login → me
-curl -sX POST $HOST/v1/auth/register-business -H 'content-type: application/json' \
-  -d '{"business":{"name":"Toko Uji"},"owner":{"name":"Budi","email":"budi@toko.id","password":"rahasia123"}}'
+# login → me (daftar akun baru = /v1/auth/register + OTP email, lihat AKUN-APP.md)
+curl -sX POST $HOST/v1/auth/login -H 'content-type: application/json' \
+  -d '{"login":"budi@toko.id","password":"rahasia123"}'
 # simpan accessToken lalu:
 curl -s $HOST/v1/me -H "Authorization: Bearer <TOKEN>"
 

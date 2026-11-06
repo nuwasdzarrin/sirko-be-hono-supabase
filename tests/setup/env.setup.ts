@@ -60,6 +60,8 @@ process.env.DIGIFLAZZ_WEBHOOK_SECRET = 'test-df-webhook-secret';
 process.env.DIGIFLAZZ_TESTING = 'true';
 process.env.PPOB_JOBS = '0';
 delete process.env.RESEND_API_KEY; // email asli tak boleh terkirim dari test
+// Akun: kode OTP ikut di respons (devCode) agar helper test bisa verifikasi tanpa email.
+process.env.AUTH_DEV_OTP_ECHO = 'true';
 
 // S3 dummy agar presigner (Fitur 2 Media) bisa diuji struktur signed URL-nya.
 process.env.S3_ENDPOINT ??= 'https://s3.test.local/storage/v1/s3';

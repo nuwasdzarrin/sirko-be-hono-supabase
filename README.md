@@ -126,7 +126,7 @@ npm run typecheck   # tsc --noEmit — wajib bersih sebelum commit
 
 | Method | Path | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/v1/auth/register-business` | — | buat business + akun owner + user owner (atomik) → token |
+| POST | `/v1/auth/register` | — | daftar akun pemilik → OTP email (lalu `verify-email`, `POST /v1/businesses`) |
 | POST | `/v1/auth/login` | — | `emailOrPhone` + `password` → token |
 | POST | `/v1/auth/refresh` | — | rotasi refresh token → access baru |
 | GET | `/v1/me` | Bearer | profil user + business + permission efektif |

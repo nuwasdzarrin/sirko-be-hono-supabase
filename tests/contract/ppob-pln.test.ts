@@ -8,6 +8,7 @@ import { setMailTransport, type MailMessage } from '../../src/lib/mail.js';
 import { setDigiflazzTransport } from '../../src/ppob/digiflazz.js';
 import * as points from '../../src/services/points.service.js';
 import * as ppob from '../../src/services/ppob.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test tahap 3 — token listrik MANUAL: order → menunggu admin (Telegram) →
@@ -61,7 +62,7 @@ suite('PPOB tahap 3 — token listrik manual', () => {
       }),
     );
     await sql`DELETE FROM app_config WHERE key = 'ppob'`;
-    const r = await req('POST', '/v1/auth/register-business', undefined, {
+    const r = await registerOwnerStore({
       business: { name: `Toko Listrik ${tag}` },
       owner: { name: 'Pak Listrik', email: `pln-${tag}@toko.id`, password: 'rahasia123' },
     });

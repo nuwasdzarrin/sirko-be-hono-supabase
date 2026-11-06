@@ -9,31 +9,19 @@ const phoneSchema = z
   .regex(/^[0-9+][0-9]{6,19}$/, 'Nomor telepon tidak valid');
 const passwordSchema = z.string().min(6, 'Password minimal 6 karakter').max(200);
 
-export const registerBusinessSchema = z.object({
-  business: z.object({
-    name: z.string().trim().min(1).max(120),
-    businessType: z.string().trim().max(60).optional().nullable(),
-  }),
-  owner: z
-    .object({
-      name: z.string().trim().min(1).max(120),
-      email: emailSchema.optional().nullable(),
-      phone: phoneSchema.optional().nullable(),
-      password: passwordSchema,
-    })
-    .refine((o) => o.email || o.phone, {
-      message: 'Wajib isi email atau phone',
-      path: ['email'],
-    }),
-});
-export type RegisterBusinessInput = z.infer<typeof registerBusinessSchema>;
 
-export const loginSchema = z.object({
-  emailOrPhone: z.string().trim().min(1).max(255),
-  password: z.string().min(1).max(200),
-  /** Juragan: toko yang ingin dibuka (harus anggota). Opsional. */
-  businessId: z.string().uuid().optional().nullable(),
-});
+export const loginSchema = z
+  .object({
+    /** Email ATAU nomor WA (akun pemilik baru). */
+    login: z.string().trim().min(1).max(255).optional(),
+    /** Nama field lama (app ≤ 1.2.x) — setara `login`. */
+    emailOrPhone: z.string().trim().min(1).max(255).optional(),
+    password: z.string().min(1).max(200),
+    /** Juragan: toko yang ingin dibuka (harus anggota). Opsional. */
+    businessId: z.string().uuid().optional().nullable(),
+  })
+  .refine((o) => o.login || o.emailOrPhone, { message: 'Isi email atau nomor WA', path: ['login'] })
+  .transform((o) => ({ ...o, emailOrPhone: (o.login ?? o.emailOrPhone)! }));
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const refreshSchema = z.object({

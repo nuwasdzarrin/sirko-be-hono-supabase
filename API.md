@@ -20,8 +20,9 @@ Token akses dikirim di header: `Authorization: Bearer <accessToken>`.
 
 | Method | Path | Auth | Body / Query |
 |---|---|---|---|
-| POST | `/v1/auth/register-business` | — | `{ business:{name,businessType?}, owner:{name,email?,phone?,password} }` |
-| POST | `/v1/auth/login` | — | `{ emailOrPhone, password }` |
+| POST | `/v1/auth/register` | — | `{ name, email, phone, password }` → OTP ke email (lihat AKUN-APP.md) |
+| POST | `/v1/auth/verify-email` | — | `{ email, code }` → sesi akun |
+| POST | `/v1/auth/login` | — | `{ login \| emailOrPhone, password }` |
 | POST | `/v1/auth/refresh` | — | `{ refreshToken }` |
 | GET | `/v1/me` | Bearer | — |
 
@@ -227,7 +228,7 @@ meng-cache `plan` untuk offline. Status paket **tidak pernah** memblok
 Paket yang ditampilkan di sesi = paket **akun pemilik toko aktif** (kasir melihat paket tokonya).
 
 ### Sesi — satu bentuk respons
-`register-business` (201), `login` (200), `switch-business` (200), `POST /v1/businesses` (201)
+`login` (200), `switch-business` (200), `POST /v1/businesses` (201)
 mengembalikan `data` berbentuk **identik**:
 ```jsonc
 { "accessToken": "…", "refreshToken": "…", "expiresIn": 900,
@@ -240,7 +241,6 @@ mengembalikan `data` berbentuk **identik**:
 | Method | Path | Auth | Body | Catatan / error |
 |---|---|---|---|---|
 | POST | `/v1/auth/login` | — | `{ emailOrPhone, password, businessId? }` | Toko: `businessId` (harus anggota) → toko terakhir dibuka → toko utama. Bukan anggota → 403 `FORBIDDEN`. Paket warung + `businessId` bukan toko utama → 403 `PLAN_REQUIRED` "Toko cabang hanya bisa dibuka dengan Paket Juragan." (tanpa `businessId`, warung selalu masuk toko utama). |
-| POST | `/v1/auth/register-business` | — | (tetap) | Email/telepon terdaftar → 409 `CONFLICT` ("Masuk lalu tambah toko (Paket Juragan).") |
 | POST | `/v1/auth/switch-business` | Bearer | `{ businessId }` | Bukan anggota / tak ada → 403 `FORBIDDEN`. Warung & bukan toko utama → 403 `PLAN_REQUIRED`. Token toko asal tidak dicabut. |
 | POST | `/v1/businesses` | Bearer (owner) | `{ name, businessType? }` | Warung → 403 `PLAN_REQUIRED` · sudah `maxStores` → 403 `PLAN_LIMIT` · 422 `VALIDATION`. Token toko baru langsung bisa push. |
 | GET | `/v1/me` | Bearer | — | + `plan`, `businesses` |
@@ -318,3 +318,24 @@ akun = **owner** di setiap toko yang disentuh (else 403 `FORBIDDEN`). `auth.busi
 | `PLAN_REQUIRED` | 403 | "Fitur ini butuh Paket Juragan." |
 | `PLAN_LIMIT` | 403 | "Paket Juragan maksimal 3 toko." |
 | `PLAN_UNAVAILABLE` | 503 | "Pembayaran langganan belum tersedia. Coba lagi nanti." |
+
+---
+
+## Akun pemilik (daftar + OTP email, login email/WA, lupa password, login offline) & harga PPOB per toko
+
+> **Kontrak lengkap untuk aplikasi: [AKUN-APP.md](AKUN-APP.md).** Ringkasan:
+
+```
+POST /v1/auth/register             { name, email, phone, password(min 8) } → 201 { accountId, email, sentTo, expiresAt }
+POST /v1/auth/verify-email         { email, code } → sesi AKUN (business null, businesses [])
+POST /v1/auth/resend-verification  { email }
+POST /v1/auth/login                { login: email|noWA, password, businessId? } (emailOrPhone lama tetap diterima)
+POST /v1/auth/password/forgot      { login } → OTP ke email
+POST /v1/auth/password/reset       { login, code, newPassword } → sesi (semua sesi lama dicabut)
+POST /v1/auth/password/change      (Bearer) { currentPassword, newPassword } → { account, offlineAuth }
+POST /v1/businesses                (Bearer sesi akun/toko) toko PERTAMA gratis; berikutnya butuh Juragan
+GET/PUT /v1/ppob/pricing           (Bearer toko) untung per kategori, pembulatan, harga khusus
+```
+Semua respons sesi + `GET /v1/me` kini membawa `account` & `offlineAuth` (PBKDF2-SHA256 khusus login offline).
+Error baru: `EMAIL_NOT_VERIFIED` 403, `OTP_INVALID` 422, `ACCOUNT_LOCKED` 429, `PENDING_SAME_TARGET` 409.
+

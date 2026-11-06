@@ -2,6 +2,7 @@ import { app } from '../../src/app.js';
 import { sql } from '../../src/db/client.js';
 import { uuid } from '../../src/lib/uuid.js';
 import * as subscriptions from '../../src/services/subscription.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /** Helper bersama contract test Juragan (bukan file test). */
 
@@ -18,7 +19,7 @@ export const PASSWORD = 'rahasia123';
 export async function register(prefix = 'jr') {
   const tag = uuid().slice(0, 8);
   const email = `${prefix}-${tag}@toko.id`;
-  const r = await req('POST', '/v1/auth/register-business', {
+  const r = await registerOwnerStore({
     business: { name: `Toko ${tag}` },
     owner: { name: `Owner ${tag}`, email, password: PASSWORD },
   });
