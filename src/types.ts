@@ -7,6 +7,8 @@ export interface AuthContext {
   role: Role;
   /** Permission efektif (dari role/custom) — diisi middleware auth untuk RBAC. */
   permissions: string[];
+  /** 'account' = sesi akun pemilik tanpa toko (`userId` = accounts.id). Lihat lib/jwt.ts. */
+  scope?: 'account';
 }
 
 /** Hono generics: Variables yang tersedia via c.get()/c.set(). */

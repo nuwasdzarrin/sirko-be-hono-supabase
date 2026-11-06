@@ -56,6 +56,14 @@ const rawSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   // Pengirim terverifikasi di Resend, mis. "Sirko <noreply@sirko.id>".
   MAIL_FROM: z.string().optional(),
+
+  // ── Akun ──
+  // true (HANYA non-production) = sertakan `devCode` OTP di respons agar app bisa diuji
+  // tanpa Resend. Diabaikan bila APP_ENV=production.
+  AUTH_DEV_OTP_ECHO: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 const parsed = rawSchema.safeParse(process.env);

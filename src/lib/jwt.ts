@@ -23,6 +23,12 @@ export interface AccessClaims {
   userId: string;
   businessId: string | null;
   role: Role;
+  /**
+   * 'account' = sesi AKUN pemilik yang belum/tanpa toko: `userId` = accounts.id,
+   * `businessId` null. Hanya untuk endpoint tingkat akun (me, buat toko pertama,
+   * ganti password); endpoint toko menolak (requireTenant).
+   */
+  scope?: 'account';
 }
 
 export interface RefreshClaims {
@@ -32,7 +38,7 @@ export interface RefreshClaims {
 
 /** Terbitkan access token. `businessId` bisa null untuk sirko_admin. */
 export async function signAccessToken(claims: AccessClaims): Promise<string> {
-  return new SignJWT({ businessId: claims.businessId, role: claims.role })
+  return new SignJWT({ businessId: claims.businessId, role: claims.role, ...(claims.scope ? { scope: claims.scope } : {}) })
     .setProtectedHeader({ alg: ALG })
     .setSubject(claims.userId)
     .setIssuer(ISSUER)
@@ -62,10 +68,11 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims> {
       issuer: ISSUER,
       audience: AUD_ACCESS,
     });
-    const { sub, businessId, role } = payload as {
+    const { sub, businessId, role, scope } = payload as {
       sub?: string;
       businessId?: unknown;
       role?: unknown;
+      scope?: unknown;
     };
     if (!sub || !isRole(role)) {
       throw unauthenticated('Klaim token tidak lengkap');
@@ -74,6 +81,7 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims> {
       userId: sub,
       businessId: typeof businessId === 'string' ? businessId : null,
       role,
+      ...(scope === 'account' ? { scope: 'account' as const } : {}),
     };
   } catch (err) {
     if (err instanceof joseErrors.JWTExpired) throw unauthenticated('Token kedaluwarsa');

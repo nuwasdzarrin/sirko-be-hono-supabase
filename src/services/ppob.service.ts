@@ -8,6 +8,7 @@ import { notifyAdmin, tgEsc } from '../lib/notify.js';
 import { sendMail, htmlEsc } from '../lib/mail.js';
 import * as df from '../ppob/digiflazz.js';
 import { applyLedger, ownerAccountId, getConfig as getPointsConfig } from './points.service.js';
+import { getPricing, sellPriceOf } from './ppob-pricing.service.js';
 
 /**
  * PPOB — pulsa & paket data via Digiflazz (tahap 2). Server = sumber kebenaran.
@@ -235,9 +236,13 @@ export interface ProductView {
   brand: string;
   name: string;
   description: string | null;
-  price: number; // harga Poin
+  price: number; // harga Poin (modal toko)
   available: boolean;
   unavailableReason: string | null;
+  /** Harga jual ke pembeli menurut aturan harga toko (GET/PUT /v1/ppob/pricing). */
+  sellPrice?: number;
+  margin?: number;
+  customPrice?: boolean;
 }
 
 /** "hh:mm" WIB sekarang dalam rentang cut-off (boleh melewati tengah malam)? */
@@ -261,7 +266,7 @@ function productView(r: Row): ProductView {
   };
 }
 
-export async function listProducts(opts: { category: string; customerNo?: string }) {
+export async function listProducts(opts: { category: string; customerNo?: string; businessId?: string }) {
   if (!['pulsa', 'data', 'pln'].includes(opts.category)) throw validation('Kategori harus pulsa, data, atau pln');
   let operator: string | null = null;
   if (opts.customerNo && opts.category !== 'pln') {
@@ -274,7 +279,10 @@ export async function listProducts(opts: { category: string; customerNo?: string
     WHERE category = ${opts.category} AND active AND provider_active
       ${operator ? sql`AND brand = ${operator}` : sql``}
     ORDER BY brand, sell_price, name`;
-  return { operator, items: rows.map(productView) };
+  const items = rows.map(productView);
+  if (!opts.businessId) return { operator, items };
+  const pricing = await getPricing(opts.businessId);
+  return { operator, items: items.map((p) => ({ ...p, ...sellPriceOf(p, pricing) })) };
 }
 
 // ── Order ────────────────────────────────────────────────────────────────────
@@ -405,6 +413,19 @@ export async function createOrder(
     target = phone;
   }
 
+  // Nomor tujuan sama yang statusnya belum jelas → tolak (cegah terisi dua kali, SPEC §5).
+  const open = await sql<{ id: string; product_name: string }[]>`
+    SELECT id, product_name FROM ppob_orders
+    WHERE business_id = ${auth.businessId} AND customer_no = ${target}
+      AND status IN ('processing', 'pending', 'waiting_admin') LIMIT 1`;
+  if (open[0]) {
+    throw new AppError(
+      'PENDING_SAME_TARGET',
+      `Nomor ${target} masih punya pembelian yang sedang diproses (${open[0].product_name}). Tunggu sampai jelas, cek di Riwayat PPOB.`,
+      { orderId: open[0].id },
+    );
+  }
+
   const id = uuid();
   const ts = nowMs();
   try {
@@ -469,8 +490,21 @@ export async function createOrder(
     });
     return orderView(o);
   }
-  await submitToProvider(id);
+  // App menunggu maks 15 dtk (SPEC §5): jawab paling lambat SUBMIT_WAIT_MS; bila penyedia
+  // belum menjawab, order tetap diproses di latar belakang (proses VPS persisten) & app cek status.
+  const submit = submitToProvider(id).catch((e) => console.error('[ppob] submit', id, (e as Error).message));
+  await Promise.race([submit, new Promise((r) => setTimeout(r, submitWaitMs).unref())]);
   return orderView((await getOrderRow(id))!);
+}
+
+let submitWaitMs = 12_000;
+/** Ubah batas tunggu jawaban penyedia (test). Kembalikan fungsi pemulih. */
+export function setSubmitWaitMs(ms: number): () => void {
+  const prev = submitWaitMs;
+  submitWaitMs = ms;
+  return () => {
+    submitWaitMs = prev;
+  };
 }
 
 /** Kirim order ke Digiflazz & terapkan hasilnya. Aman dipanggil ulang (ref_id sama). */

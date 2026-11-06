@@ -318,3 +318,24 @@ akun = **owner** di setiap toko yang disentuh (else 403 `FORBIDDEN`). `auth.busi
 | `PLAN_REQUIRED` | 403 | "Fitur ini butuh Paket Juragan." |
 | `PLAN_LIMIT` | 403 | "Paket Juragan maksimal 3 toko." |
 | `PLAN_UNAVAILABLE` | 503 | "Pembayaran langganan belum tersedia. Coba lagi nanti." |
+
+---
+
+## Akun pemilik (daftar + OTP email, login email/WA, lupa password, login offline) & harga PPOB per toko
+
+> **Kontrak lengkap untuk aplikasi: [AKUN-APP.md](AKUN-APP.md).** Ringkasan:
+
+```
+POST /v1/auth/register             { name, email, phone, password(min 8) } → 201 { accountId, email, sentTo, expiresAt }
+POST /v1/auth/verify-email         { email, code } → sesi AKUN (business null, businesses [])
+POST /v1/auth/resend-verification  { email }
+POST /v1/auth/login                { login: email|noWA, password, businessId? } (emailOrPhone lama tetap diterima)
+POST /v1/auth/password/forgot      { login } → OTP ke email
+POST /v1/auth/password/reset       { login, code, newPassword } → sesi (semua sesi lama dicabut)
+POST /v1/auth/password/change      (Bearer) { currentPassword, newPassword } → { account, offlineAuth }
+POST /v1/businesses                (Bearer sesi akun/toko) toko PERTAMA gratis; berikutnya butuh Juragan
+GET/PUT /v1/ppob/pricing           (Bearer toko) untung per kategori, pembulatan, harga khusus
+```
+Semua respons sesi + `GET /v1/me` kini membawa `account` & `offlineAuth` (PBKDF2-SHA256 khusus login offline).
+Error baru: `EMAIL_NOT_VERIFIED` 403, `OTP_INVALID` 422, `ACCOUNT_LOCKED` 429, `PENDING_SAME_TARGET` 409.
+

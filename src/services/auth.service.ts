@@ -21,6 +21,8 @@ import type {
 } from '../schemas/auth.schema.js';
 import * as plans from './plan.service.js';
 import type { EffectivePlan } from './plan.service.js';
+import * as acct from './account.service.js';
+import type { AccountInfo, OfflineAuth } from './account.service.js';
 
 /** Ringkasan keanggotaan toko (kontrak app §1.2). */
 export interface BusinessSummary {
@@ -42,6 +44,10 @@ export interface AuthPayload {
   business: { id: string; name: string; businessType: string | null } | null;
   businesses: BusinessSummary[];
   plan: EffectivePlan;
+  /** Akun pemilik (nama, email, WA). null untuk user tanpa akun cloud. */
+  account: AccountInfo | null;
+  /** Turunan password khusus login OFFLINE di HP (bukan hash server). */
+  offlineAuth: OfflineAuth | null;
 }
 
 const accounts = new AccountRepository();
@@ -93,12 +99,15 @@ async function buildSession(user: Pick<UserRow, 'id' | 'name' | 'role' | 'busine
   if (user.account_id && user.business_id) {
     await sql`UPDATE accounts SET last_business_id = ${user.business_id} WHERE id = ${user.account_id}`;
   }
+  const account = user.account_id ? await acct.accountById(user.account_id) : null;
   return {
     ...tokens,
     user: { id: user.id, name: user.name, role: user.role, businessId: user.business_id },
     business,
     businesses,
     plan,
+    account: account ? acct.accountInfo(account) : null,
+    offlineAuth: account ? acct.offlineAuthOf(account) : null,
   };
 }
 
@@ -132,6 +141,8 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Au
         { id: accountId, email, phone, passwordHash, createdAt: ts, updatedAt: ts },
         tx,
       );
+      // Alur lama (tanpa OTP, app ≤ 1.2.x): langsung terverifikasi. Akan dihapus setelah app baru rilis.
+      await tx`UPDATE accounts SET name = ${input.owner.name}, password_changed_at = ${ts} WHERE id = ${accountId}`;
       await UserRepository.create(
         {
           id: userId,
@@ -153,6 +164,8 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Au
     throw err;
   }
 
+  const created = await acct.accountById(accountId);
+  if (created) await acct.ensureOffline(created, input.owner.password);
   return buildSession({ id: userId, name: input.owner.name, role: 'owner', business_id: businessId, account_id: accountId });
 }
 
@@ -161,24 +174,19 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Au
  * `businessId` body (harus anggota, else 403) → `last_business_id` → toko utama.
  * Paket warung hanya boleh membuka toko utama (sama dengan switch-business).
  */
-export async function login(input: LoginInput): Promise<AuthPayload> {
-  const account = await accounts.findByEmailOrPhone(input.emailOrPhone);
-  // Pesan seragam untuk cegah user-enumeration (akun tak ada vs password salah).
-  const invalid = () => unauthenticated('Email/telepon atau password salah');
-  if (!account) {
-    // Tetap jalankan verifikasi dummy agar waktu respons relatif seragam.
-    await verifyPassword(input.password, '$2a$10$0000000000000000000000000000000000000000000000000000');
-    throw invalid();
-  }
-  const passwordOk = await verifyPassword(input.password, account.password_hash);
-  if (!passwordOk) throw invalid();
+export async function login(input: LoginInput, ip = 'unknown'): Promise<AuthPayload | acct.AccountSessionPayload> {
+  // Email ATAU nomor WA + password; 5 gagal → kunci 15 menit per akun & per IP.
+  let account = await acct.checkCredentials(input.emailOrPhone, input.password, ip);
+  if (account.pending_verification) await acct.rejectUnverified(account);
+  account = await acct.ensureOffline(account, input.password);
 
   const memberships = await UserRepository.listMembershipsForAuth(account.id);
   if (memberships.length === 0) {
-    // Akun tanpa toko (mis. sirko_admin): perilaku lama.
-    const user = await UserRepository.findByAccountIdForAuth(account.id);
-    if (!user || !user.is_active || user.business_id) throw invalid();
-    return buildSession(user);
+    // sirko_admin (baris users tanpa toko): perilaku lama.
+    const admin = await UserRepository.findByAccountIdForAuth(account.id);
+    if (admin && admin.role === 'sirko_admin' && admin.is_active && !admin.business_id) return buildSession(admin);
+    // Pemilik yang belum membuat toko → sesi akun (lanjut "Buat toko").
+    return acct.accountSession(account);
   }
 
   const [plan, primaryId, last] = await Promise.all([
@@ -229,26 +237,32 @@ export async function switchBusiness(auth: { userId: string }, businessId: strin
  * bisa melampaui kuota. Respons = sesi untuk toko baru (token langsung bisa push).
  */
 export async function createBusiness(
-  auth: { userId: string; role: Role },
+  auth: { userId: string; role: Role; scope?: 'account' },
   input: CreateBusinessInput,
 ): Promise<AuthPayload> {
   if (auth.role !== 'owner') throw forbidden('Hanya pemilik toko yang bisa menambah toko.');
-  const accountId = await plans.accountIdOfUser(auth.userId);
+  const accountId = await acct.accountIdOfAuth(auth);
   if (!accountId) throw forbidden('Hanya pemilik toko yang bisa menambah toko.');
 
   const plan = await plans.effective(accountId);
-  if (!plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko cabang hanya bisa dengan Paket Juragan.');
+  const ownedNow = await UserRepository.countOwnedBusinesses(accountId);
+  // Toko PERTAMA selalu gratis (paket Warung); toko berikutnya butuh multi_store.
+  if (ownedNow > 0 && !plans.hasFeature(plan, 'multi_store')) {
+    throw planRequired('Tambah toko cabang hanya bisa dengan Paket Juragan.');
+  }
 
-  const [me] = await sql<{ name: string }[]>`SELECT name FROM users WHERE id = ${auth.userId}`;
+  const account = await acct.accountById(accountId);
+  const [me] = auth.scope === 'account' ? [] : await sql<{ name: string }[]>`SELECT name FROM users WHERE id = ${auth.userId}`;
   const ts = nowMs();
   const businessId = uuid();
   const userId = uuid();
-  const ownerName = me?.name ?? 'Pemilik';
+  const ownerName = me?.name ?? account?.name ?? 'Pemilik';
 
   await sql.begin(async (tx) => {
     await tx`SELECT id FROM accounts WHERE id = ${accountId} FOR UPDATE`;
     const owned = await UserRepository.countOwnedBusinesses(accountId, tx);
-    if (owned >= plan.maxStores) throw planLimit(plan.maxStores);
+    if (owned > 0 && !plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko cabang hanya bisa dengan Paket Juragan.');
+    if (owned >= Math.max(1, plan.maxStores)) throw planLimit(plan.maxStores);
     await BusinessRepository.create(
       { id: businessId, name: input.name, businessType: input.businessType ?? null, createdAt: ts, updatedAt: ts },
       tx,
@@ -274,11 +288,11 @@ export async function createBusiness(
 }
 
 /** GET /v1/me/businesses — daftar toko akun + paket. */
-export async function myBusinesses(auth: { userId: string; businessId: string | null }): Promise<{
+export async function myBusinesses(auth: { userId: string; businessId: string | null; scope?: 'account' }): Promise<{
   businesses: BusinessSummary[];
   plan: EffectivePlan;
 }> {
-  const accountId = await plans.accountIdOfUser(auth.userId);
+  const accountId = await acct.accountIdOfAuth(auth);
   const [businesses, plan] = await Promise.all([
     listBusinessSummaries(accountId),
     plans.forBusiness(auth.businessId, accountId),
@@ -293,6 +307,14 @@ export async function refresh(refreshToken: string): Promise<{
   expiresIn: number;
 }> {
   const { userId, jti } = await verifyRefreshToken(refreshToken);
+  // Refresh token sesi AKUN (pemilik tanpa toko): subjek = accounts.id.
+  const acctRow = await sql<{ account_id: string }[]>`
+    SELECT account_id FROM refresh_tokens
+    WHERE jti = ${jti} AND account_id = ${userId} AND user_id IS NULL AND revoked = false AND expires_at > ${nowMs()}`;
+  if (acctRow[0]) {
+    await refreshTokens.revoke(jti);
+    return acct.issueAccountTokens(acctRow[0].account_id);
+  }
   if (!(await refreshTokens.isActive(jti, userId, nowMs()))) {
     throw unauthenticated('Refresh token sudah dicabut atau tidak dikenal');
   }
@@ -312,24 +334,49 @@ export async function me(auth: {
   userId: string;
   businessId: string | null;
   role: Role;
+  scope?: 'account';
 }): Promise<{
   user: { id: string; name: string; role: Role; businessId: string | null };
   business: { id: string; name: string; businessType: string | null } | null;
   permissions: string[];
   plan: EffectivePlan;
   businesses: BusinessSummary[];
+  account: AccountInfo | null;
+  offlineAuth: OfflineAuth | null;
 }> {
+  const withAccount = async <T extends object>(base: T, accountId: string | null) => {
+    const a = accountId ? await acct.accountById(accountId) : null;
+    return { ...base, account: a ? acct.accountInfo(a) : null, offlineAuth: a ? acct.offlineAuthOf(a) : null };
+  };
+  // Sesi AKUN (pemilik belum punya toko / token tingkat akun).
+  if (auth.scope === 'account') {
+    const a = await acct.accountById(auth.userId);
+    if (!a) throw unauthenticated('Akun tidak ditemukan');
+    return withAccount(
+      {
+        user: { id: a.id, name: a.name ?? 'Pemilik', role: 'owner' as Role, businessId: null },
+        business: null,
+        permissions: effectivePermissions('owner'),
+        plan: await plans.effective(a.id),
+        businesses: await listBusinessSummaries(a.id),
+      },
+      a.id,
+    );
+  }
   // sirko_admin (businessId null) tak punya toko; user biasa dibaca tenant-scoped.
   if (!auth.businessId) {
     const user = await UserRepository.findByIdForAuth(auth.userId);
     if (!user) throw unauthenticated('User tidak ditemukan');
-    return {
-      user: { id: user.id, name: user.name, role: user.role, businessId: null },
-      business: null,
-      permissions: effectivePermissions(user.role, user.permissions),
-      plan: await plans.effective(user.account_id),
-      businesses: await listBusinessSummaries(user.account_id),
-    };
+    return withAccount(
+      {
+        user: { id: user.id, name: user.name, role: user.role, businessId: null },
+        business: null,
+        permissions: effectivePermissions(user.role, user.permissions),
+        plan: await plans.effective(user.account_id),
+        businesses: await listBusinessSummaries(user.account_id),
+      },
+      user.account_id,
+    );
   }
 
   const userRepo = new UserRepository(auth.businessId);
@@ -341,15 +388,18 @@ export async function me(auth: {
     listBusinessSummaries(user.account_id),
   ]);
 
-  return {
-    user: { id: user.id, name: user.name, role: user.role, businessId: auth.businessId },
-    business: business
-      ? { id: business.id, name: business.name, businessType: business.business_type }
-      : null,
-    permissions: effectivePermissions(user.role, user.permissions),
-    plan,
-    businesses,
-  };
+  return withAccount(
+    {
+      user: { id: user.id, name: user.name, role: user.role, businessId: auth.businessId },
+      business: business
+        ? { id: business.id, name: business.name, businessType: business.business_type }
+        : null,
+      permissions: effectivePermissions(user.role, user.permissions),
+      plan,
+      businesses,
+    },
+    user.account_id,
+  );
 }
 
 async function loadBusinessSummary(

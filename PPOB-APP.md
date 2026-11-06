@@ -5,6 +5,8 @@
 > **Dari:** backend `sirko-backend` (repo `sirko-be-hono-supabase`), pemilik: agen PPOB.
 > **Status:** mengikat. Field yang tercantum di sini **tidak** akan diganti nama/tipenya;
 > field baru boleh muncul kapan saja (abaikan yang tak dikenal).
+> **Pembaruan 2026-11-06 (akun & kasir):** harga jual per toko (`sellPrice`, `GET/PUT /v1/ppob/pricing`),
+> 409 `PENDING_SAME_TARGET`, jawaban order ≤ ±12 dtk — rinciannya di `KONTRAK-API-akun-app.md` §6–§7.
 > **Tanggal:** 2026-11-06. Contoh JSON di bawah **diambil dari respons server sungguhan**
 > (bukan ditulis tangan), hanya ID yang berbeda.
 > **Rancangan lengkap (latar belakang):** `docs/superpowers/specs/2026-11-02-ppob-poin-design.md`.
@@ -340,6 +342,7 @@ token PLN:   waiting_admin ──────┬─ success (sn = token "1234-56
 | 422 | `VALIDATION` | nomor salah, operator tak cocok, nominal di luar batas, body cacat | tampilkan `message` di form |
 | 429 | `RATE_LIMITED` | terlalu sering | coba lagi sebentar |
 | 503 | `PPOB_UNAVAILABLE` | PPOB dimatikan / belum dikonfigurasi | sembunyikan/nonaktifkan menu |
+| 409 | `PENDING_SAME_TARGET` | nomor tujuan sama masih punya order belum jelas (`details.orderId`) | "Nomor ini masih diproses, cek Riwayat PPOB" |
 
 Selalu tampilkan `error.message` (bahasa Indonesia). `details` hanya untuk logika.
 

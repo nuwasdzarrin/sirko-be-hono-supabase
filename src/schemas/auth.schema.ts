@@ -28,12 +28,18 @@ export const registerBusinessSchema = z.object({
 });
 export type RegisterBusinessInput = z.infer<typeof registerBusinessSchema>;
 
-export const loginSchema = z.object({
-  emailOrPhone: z.string().trim().min(1).max(255),
-  password: z.string().min(1).max(200),
-  /** Juragan: toko yang ingin dibuka (harus anggota). Opsional. */
-  businessId: z.string().uuid().optional().nullable(),
-});
+export const loginSchema = z
+  .object({
+    /** Email ATAU nomor WA (akun pemilik baru). */
+    login: z.string().trim().min(1).max(255).optional(),
+    /** Nama field lama (app ≤ 1.2.x) — setara `login`. */
+    emailOrPhone: z.string().trim().min(1).max(255).optional(),
+    password: z.string().min(1).max(200),
+    /** Juragan: toko yang ingin dibuka (harus anggota). Opsional. */
+    businessId: z.string().uuid().optional().nullable(),
+  })
+  .refine((o) => o.login || o.emailOrPhone, { message: 'Isi email atau nomor WA', path: ['login'] })
+  .transform((o) => ({ ...o, emailOrPhone: (o.login ?? o.emailOrPhone)! }));
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const refreshSchema = z.object({
