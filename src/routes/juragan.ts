@@ -20,6 +20,8 @@ import { resolveRange } from '../services/store-report.service.js';
  *  - GET  /juragan/reports/summary?preset=|from=&to=   laporan gabungan per toko + total
  *  - POST /juragan/copy-products       salin produk (UUID baru, stok 0)
  *  - POST /juragan/stock-transfers     mutasi stok (ledger out/in, ref store_transfer)
+ *  - GET  /juragan/product-links?fromBusinessId=&toBusinessId=   pasangan produk tertaut
+ *  - GET  /juragan/products?businessId=&q=                       katalog toko lain (stok ledger)
  */
 
 const checkoutSchema = z.object({ period: z.enum(subscriptions.PERIODS) });
@@ -29,6 +31,8 @@ const copySchema = z.object({
   toBusinessId: z.string().uuid(),
   productIds: z.array(z.string().uuid()).min(1, 'Pilih minimal satu produk').max(200, 'Maksimal 200 produk sekali salin'),
 });
+const linksQuery = z.object({ fromBusinessId: z.string().uuid(), toBusinessId: z.string().uuid() });
+const productsQuery = z.object({ businessId: z.string().uuid(), q: z.string().max(100).optional() });
 const transferSchema = z.object({
   fromBusinessId: z.string().uuid(),
   toBusinessId: z.string().uuid(),
@@ -71,6 +75,14 @@ export const juraganRoutes = new Hono<AppEnv>()
   .post('/juragan/copy-products', requireAuth, async (c) => {
     const input = copySchema.parse(await c.req.json());
     return c.json(ok(await juragan.copyProducts(c.get('auth'), input)), 201);
+  })
+  .get('/juragan/product-links', requireAuth, async (c) => {
+    const input = linksQuery.parse(c.req.query());
+    return c.json(ok(await juragan.productLinks(c.get('auth'), input)), 200);
+  })
+  .get('/juragan/products', requireAuth, async (c) => {
+    const input = productsQuery.parse(c.req.query());
+    return c.json(ok(await juragan.businessProducts(c.get('auth'), input)), 200);
   })
   .post('/juragan/stock-transfers', requireAuth, async (c) => {
     const input = transferSchema.parse(await c.req.json());
