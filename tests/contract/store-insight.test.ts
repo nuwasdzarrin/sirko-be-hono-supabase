@@ -4,6 +4,7 @@ import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
 import { resolveRange } from '../../src/services/store-report.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test: laporan toko (laba rugi §9), detail transaksi (pembayaran &
@@ -47,7 +48,7 @@ suite('Laporan toko, detail transaksi & Saran', () => {
 
   beforeAll(async () => {
     await runMigrations(sql);
-    const reg = await json('POST', '/v1/auth/register-business', undefined, {
+    const reg = await registerOwnerStore({
       business: { name: `Toko Lap ${tag}` },
       owner: { name: 'Pak Lapor', email: `lap-${tag}@toko.id`, password: 'rahasia123' },
     });

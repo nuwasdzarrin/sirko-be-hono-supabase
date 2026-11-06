@@ -9,24 +9,6 @@ const phoneSchema = z
   .regex(/^[0-9+][0-9]{6,19}$/, 'Nomor telepon tidak valid');
 const passwordSchema = z.string().min(6, 'Password minimal 6 karakter').max(200);
 
-export const registerBusinessSchema = z.object({
-  business: z.object({
-    name: z.string().trim().min(1).max(120),
-    businessType: z.string().trim().max(60).optional().nullable(),
-  }),
-  owner: z
-    .object({
-      name: z.string().trim().min(1).max(120),
-      email: emailSchema.optional().nullable(),
-      phone: phoneSchema.optional().nullable(),
-      password: passwordSchema,
-    })
-    .refine((o) => o.email || o.phone, {
-      message: 'Wajib isi email atau phone',
-      path: ['email'],
-    }),
-});
-export type RegisterBusinessInput = z.infer<typeof registerBusinessSchema>;
 
 export const loginSchema = z
   .object({

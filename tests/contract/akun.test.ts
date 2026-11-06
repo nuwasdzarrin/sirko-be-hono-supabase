@@ -95,7 +95,7 @@ suite('Akun pemilik — daftar, OTP, login email/WA, lupa password, offline', ()
     expect(r.status).toBe(201);
     created.push(r.json.data.accountId);
     expect(r.json.data).toMatchObject({ email, sentTo: expect.stringMatching(/^ba\*+@contoh\.id$/) });
-    expect(r.json.data.devCode).toBeUndefined(); // tanpa AUTH_DEV_OTP_ECHO
+    expect(r.json.data.devCode).toMatch(/^\d{6}$/); // setup test menyalakan AUTH_DEV_OTP_ECHO (non-production)
     expect(mails).toHaveLength(1);
     expect(mails[0]!.subject).toMatch(/^\d{6} — kode verifikasi email Sirko$/);
     const row = (await sql`SELECT phone, pending_verification, name FROM accounts WHERE id = ${r.json.data.accountId}`)[0]!;
@@ -260,15 +260,11 @@ suite('Akun pemilik — daftar, OTP, login email/WA, lupa password, offline', ()
     expect(v.json.data.user.name).toBe('Ulang 2');
   });
 
-  it('register-business lama tetap jalan (akun langsung aktif, punya offlineAuth)', async () => {
-    const email = `lama-${tag}@contoh.id`;
+  it('register-business lama sudah dimatikan (404) — daftar hanya lewat /register + OTP', async () => {
     const r = await req('POST', '/v1/auth/register-business', {
       business: { name: 'Toko Lama' },
-      owner: { name: 'Lama', email, password: 'rahasia123' },
+      owner: { name: 'Lama', email: `lama-${tag}@contoh.id`, password: 'rahasia123' },
     });
-    expect(r.status).toBe(201);
-    created.push(r.json.data.account.id);
-    expect(r.json.data.offlineAuth).not.toBeNull();
-    expect((await req('POST', '/v1/auth/login', { login: email, password: 'rahasia123' })).status).toBe(200);
+    expect(r.status).toBe(404);
   });
 });

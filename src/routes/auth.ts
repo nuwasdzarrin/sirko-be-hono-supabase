@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types.js';
 import {
-  handleRegisterBusiness,
   handleLogin,
   handleRefresh,
   handleSwitchBusiness,
@@ -14,8 +13,7 @@ import * as authService from '../services/auth.service.js';
 
 /** Rute auth self-owned (tanpa Bearer kecuali disebut). Base di-mount pada `/v1/auth`. */
 export const authRoutes = new Hono<AppEnv>()
-  // Alur lama (app ≤ 1.2.x): daftar + toko sekaligus, tanpa OTP. Dihapus setelah app baru rilis.
-  .post('/register-business', handleRegisterBusiness)
+  // Daftar akun = POST /register + OTP (endpoint lama register-business dihapus 2026-11-07).
   .post('/login', handleLogin)
   .post('/refresh', handleRefresh)
   .post('/switch-business', requireAuth, handleSwitchBusiness)

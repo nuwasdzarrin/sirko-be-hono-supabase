@@ -4,6 +4,7 @@ import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
 import { signAccessToken } from '../../src/lib/jwt.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test Katalog (Fitur 2). Butuh Postgres nyata; skip bila tak tersambung.
@@ -34,7 +35,7 @@ async function req(method: string, path: string, token?: string, body?: unknown)
 
 async function storeToken() {
   const tag = uuid().slice(0, 8);
-  const { json } = await req('POST', '/v1/auth/register-business', undefined, {
+  const { json } = await registerOwnerStore({
     business: { name: `Toko ${tag}` },
     owner: { name: `O ${tag}`, email: `o-${tag}@toko.id`, password: 'rahasia123' },
   });

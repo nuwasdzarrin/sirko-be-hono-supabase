@@ -153,9 +153,10 @@ sync sukses: bila `offlineAuth.updatedAt` ≠ yang tersimpan → simpan hash bar
 ### 3.9 `POST /v1/auth/refresh` — tidak berubah
 `{ "refreshToken" }` → `{ accessToken, refreshToken, expiresIn }`. Berlaku juga untuk sesi akun.
 
-### 3.10 `POST /v1/auth/register-business` — LAMA
-Masih aktif untuk app ≤ 1.2.x (daftar + toko sekaligus, tanpa OTP). **App baru jangan memakainya.**
-Akan dihapus setelah app baru rilis (koordinasi pemilik).
+### 3.10 `POST /v1/auth/register-business` — DIHAPUS (2026-11-07)
+Endpoint lama (daftar + toko sekaligus, tanpa OTP) sudah dimatikan → **404**. App belum pernah rilis,
+jadi tak ada app lama yang perlu didukung. Satu-satunya alur daftar: `register` → `verify-email` →
+`POST /v1/businesses`.
 
 ---
 

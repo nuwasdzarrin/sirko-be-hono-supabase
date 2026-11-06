@@ -8,6 +8,7 @@ import { setDigiflazzTransport } from '../../src/ppob/digiflazz.js';
 import { setNotifyTransport } from '../../src/lib/notify.js';
 import * as points from '../../src/services/points.service.js';
 import * as ppob from '../../src/services/ppob.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test aturan harga JUAL PPOB per toko (SPEC §4) + aturan kasir (SPEC §5):
@@ -60,7 +61,7 @@ suite('PPOB — harga jual per toko & aturan kasir', () => {
     p10 = (await sql`SELECT id FROM ppob_products WHERE sku = ${`pt10-${tag}`}`)[0]!.id as string;
     p25 = (await sql`SELECT id FROM ppob_products WHERE sku = ${`pt25-${tag}`}`)[0]!.id as string;
     for (const i of [1, 2]) {
-      const r = await req('POST', '/v1/auth/register-business', undefined, {
+      const r = await registerOwnerStore({
         business: { name: `Toko Harga ${i} ${tag}` },
         owner: { name: 'Pemilik', email: `harga${i}-${tag}@toko.id`, password: 'rahasia123' },
       });

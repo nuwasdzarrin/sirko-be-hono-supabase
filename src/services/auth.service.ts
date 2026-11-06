@@ -15,7 +15,6 @@ import { nowMs } from '../lib/time.js';
 import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '../config/env.js';
 import { AppError, conflict, forbidden, unauthenticated } from '../lib/errors.js';
 import type {
-  RegisterBusinessInput,
   LoginInput,
   CreateBusinessInput,
 } from '../schemas/auth.schema.js';
@@ -109,64 +108,6 @@ async function buildSession(user: Pick<UserRow, 'id' | 'name' | 'role' | 'busine
     account: account ? acct.accountInfo(account) : null,
     offlineAuth: account ? acct.offlineAuthOf(account) : null,
   };
-}
-
-/** POST /v1/auth/register-business — buat business + account owner + user owner (atomik). */
-export async function registerBusiness(input: RegisterBusinessInput): Promise<AuthPayload> {
-  const email = input.owner.email ?? null;
-  const phone = input.owner.phone ?? null;
-  const taken = () => conflict('Email atau nomor telepon sudah terdaftar. Masuk lalu tambah toko (Paket Juragan).');
-
-  if (await accounts.existsByEmailOrPhone(email, phone)) throw taken();
-
-  const ts = nowMs();
-  const businessId = uuid();
-  const accountId = uuid();
-  const userId = uuid();
-  const passwordHash = await hashPassword(input.owner.password);
-
-  try {
-    await sql.begin(async (tx) => {
-      await BusinessRepository.create(
-        {
-          id: businessId,
-          name: input.business.name,
-          businessType: input.business.businessType ?? null,
-          createdAt: ts,
-          updatedAt: ts,
-        },
-        tx,
-      );
-      await accounts.create(
-        { id: accountId, email, phone, passwordHash, createdAt: ts, updatedAt: ts },
-        tx,
-      );
-      // Alur lama (tanpa OTP, app ≤ 1.2.x): langsung terverifikasi. Akan dihapus setelah app baru rilis.
-      await tx`UPDATE accounts SET name = ${input.owner.name}, password_changed_at = ${ts} WHERE id = ${accountId}`;
-      await UserRepository.create(
-        {
-          id: userId,
-          businessId,
-          accountId,
-          name: input.owner.name,
-          username: null,
-          role: 'owner',
-          permissions: [],
-          createdAt: ts,
-          updatedAt: ts,
-        },
-        tx,
-      );
-    });
-  } catch (err) {
-    // Balapan unik email/phone (23505) → CONFLICT alih-alih 500.
-    if (isUniqueViolation(err)) throw taken();
-    throw err;
-  }
-
-  const created = await acct.accountById(accountId);
-  if (created) await acct.ensureOffline(created, input.owner.password);
-  return buildSession({ id: userId, name: input.owner.name, role: 'owner', business_id: businessId, account_id: accountId });
 }
 
 /**

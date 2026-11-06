@@ -1,17 +1,11 @@
 import type { Context } from 'hono';
 import type { AppEnv } from '../types.js';
 import { ok } from '../lib/envelope.js';
-import { registerBusinessSchema, loginSchema, refreshSchema, switchBusinessSchema } from '../schemas/auth.schema.js';
+import { loginSchema, refreshSchema, switchBusinessSchema } from '../schemas/auth.schema.js';
 import * as authService from '../services/auth.service.js';
 import { clientIp } from '../services/account.service.js';
 
 /** Handler tipis: parse+validasi (zod) → service → envelope sukses. */
-
-export async function handleRegisterBusiness(c: Context<AppEnv>) {
-  const input = registerBusinessSchema.parse(await c.req.json());
-  const payload = await authService.registerBusiness(input);
-  return c.json(ok(payload), 201);
-}
 
 export async function handleLogin(c: Context<AppEnv>) {
   const input = loginSchema.parse(await c.req.json());

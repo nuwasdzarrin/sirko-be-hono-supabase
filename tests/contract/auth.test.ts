@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { app } from '../../src/app.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 import { sql } from '../../src/db/client.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
 
 /**
- * Contract test auth: register → login → /v1/me; tolak token invalid; isolasi
+ * Contract test auth: daftar (alur akun baru) → login → /v1/me; tolak token invalid; isolasi
  * tenant. Butuh Postgres nyata (DATABASE_URL). Bila DB tak tersambung, seluruh
  * suite di-skip (bukan gagal) — CI/dev tanpa DB tetap hijau di unit test.
  */
@@ -52,9 +53,14 @@ suite('Auth contract', () => {
     await sql.end({ timeout: 5 });
   });
 
-  it('register-business → 201 dengan token, user owner, business', async () => {
+  it('endpoint lama register-business sudah dimatikan → 404', async () => {
+    const { status } = await post('/v1/auth/register-business', newOwner());
+    expect(status).toBe(404);
+  });
+
+  it('daftar + verifikasi + buat toko → 201 dengan token, user owner, business', async () => {
     const input = newOwner();
-    const { status, json } = await post('/v1/auth/register-business', input);
+    const { status, json } = await registerOwnerStore(input);
     expect(status).toBe(201);
     expect(json.data.accessToken).toBeTypeOf('string');
     expect(json.data.refreshToken).toBeTypeOf('string');
@@ -64,17 +70,17 @@ suite('Auth contract', () => {
     expect(json.data.business.name).toBe(input.business.name);
   });
 
-  it('register-business email duplikat → 409 CONFLICT', async () => {
+  it('daftar dengan email yang sudah terverifikasi → 409 CONFLICT', async () => {
     const input = newOwner();
-    await post('/v1/auth/register-business', input);
-    const { status, json } = await post('/v1/auth/register-business', input);
+    await registerOwnerStore(input);
+    const { status, json } = await registerOwnerStore(input);
     expect(status).toBe(409);
     expect(json.error.code).toBe('CONFLICT');
   });
 
   it('login benar → 200; password salah → 401', async () => {
     const input = newOwner();
-    await post('/v1/auth/register-business', input);
+    await registerOwnerStore(input);
 
     const okRes = await post('/v1/auth/login', {
       emailOrPhone: input.owner.email,
@@ -93,7 +99,7 @@ suite('Auth contract', () => {
 
   it('GET /v1/me dengan token → 200 profil + permissions', async () => {
     const input = newOwner();
-    const reg = await post('/v1/auth/register-business', input);
+    const reg = await registerOwnerStore(input);
     const token = reg.json.data.accessToken;
 
     const { status, json } = await get('/v1/me', token);
@@ -111,7 +117,7 @@ suite('Auth contract', () => {
 
   it('GET /v1/me token dirusak → 401', async () => {
     const input = newOwner();
-    const reg = await post('/v1/auth/register-business', input);
+    const reg = await registerOwnerStore(input);
     const tampered = (reg.json.data.accessToken as string).slice(0, -3) + 'zzz';
     const { status, json } = await get('/v1/me', tampered);
     expect(status).toBe(401);
@@ -121,14 +127,14 @@ suite('Auth contract', () => {
   it('validasi gagal (password pendek) → 422 VALIDATION', async () => {
     const input = newOwner();
     input.owner.password = '123';
-    const { status, json } = await post('/v1/auth/register-business', input);
+    const { status, json } = await registerOwnerStore(input);
     expect(status).toBe(422);
     expect(json.error.code).toBe('VALIDATION');
   });
 
   it('isolasi tenant: token toko A hanya melihat business A (bukan B)', async () => {
-    const a = await post('/v1/auth/register-business', newOwner());
-    const b = await post('/v1/auth/register-business', newOwner());
+    const a = await registerOwnerStore(newOwner());
+    const b = await registerOwnerStore(newOwner());
     expect(a.json.data.business.id).not.toBe(b.json.data.business.id);
 
     const meA = await get('/v1/me', a.json.data.accessToken);
@@ -140,7 +146,7 @@ suite('Auth contract', () => {
   });
 
   it('refresh token → access baru; rotasi mencabut token lama', async () => {
-    const reg = await post('/v1/auth/register-business', newOwner());
+    const reg = await registerOwnerStore(newOwner());
     const oldRefresh = reg.json.data.refreshToken;
 
     const r1 = await post('/v1/auth/refresh', { refreshToken: oldRefresh });

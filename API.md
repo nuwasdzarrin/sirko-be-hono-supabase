@@ -20,8 +20,9 @@ Token akses dikirim di header: `Authorization: Bearer <accessToken>`.
 
 | Method | Path | Auth | Body / Query |
 |---|---|---|---|
-| POST | `/v1/auth/register-business` | — | `{ business:{name,businessType?}, owner:{name,email?,phone?,password} }` |
-| POST | `/v1/auth/login` | — | `{ emailOrPhone, password }` |
+| POST | `/v1/auth/register` | — | `{ name, email, phone, password }` → OTP ke email (lihat AKUN-APP.md) |
+| POST | `/v1/auth/verify-email` | — | `{ email, code }` → sesi akun |
+| POST | `/v1/auth/login` | — | `{ login \| emailOrPhone, password }` |
 | POST | `/v1/auth/refresh` | — | `{ refreshToken }` |
 | GET | `/v1/me` | Bearer | — |
 
@@ -227,7 +228,7 @@ meng-cache `plan` untuk offline. Status paket **tidak pernah** memblok
 Paket yang ditampilkan di sesi = paket **akun pemilik toko aktif** (kasir melihat paket tokonya).
 
 ### Sesi — satu bentuk respons
-`register-business` (201), `login` (200), `switch-business` (200), `POST /v1/businesses` (201)
+`login` (200), `switch-business` (200), `POST /v1/businesses` (201)
 mengembalikan `data` berbentuk **identik**:
 ```jsonc
 { "accessToken": "…", "refreshToken": "…", "expiresIn": 900,
@@ -240,7 +241,6 @@ mengembalikan `data` berbentuk **identik**:
 | Method | Path | Auth | Body | Catatan / error |
 |---|---|---|---|---|
 | POST | `/v1/auth/login` | — | `{ emailOrPhone, password, businessId? }` | Toko: `businessId` (harus anggota) → toko terakhir dibuka → toko utama. Bukan anggota → 403 `FORBIDDEN`. Paket warung + `businessId` bukan toko utama → 403 `PLAN_REQUIRED` "Toko cabang hanya bisa dibuka dengan Paket Juragan." (tanpa `businessId`, warung selalu masuk toko utama). |
-| POST | `/v1/auth/register-business` | — | (tetap) | Email/telepon terdaftar → 409 `CONFLICT` ("Masuk lalu tambah toko (Paket Juragan).") |
 | POST | `/v1/auth/switch-business` | Bearer | `{ businessId }` | Bukan anggota / tak ada → 403 `FORBIDDEN`. Warung & bukan toko utama → 403 `PLAN_REQUIRED`. Token toko asal tidak dicabut. |
 | POST | `/v1/businesses` | Bearer (owner) | `{ name, businessType? }` | Warung → 403 `PLAN_REQUIRED` · sudah `maxStores` → 403 `PLAN_LIMIT` · 422 `VALIDATION`. Token toko baru langsung bisa push. |
 | GET | `/v1/me` | Bearer | — | + `plan`, `businesses` |

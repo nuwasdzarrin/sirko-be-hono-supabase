@@ -9,6 +9,7 @@ import { setNotifyTransport, type AdminNotice } from '../../src/lib/notify.js';
 import { setDigiflazzTransport, DigiflazzError } from '../../src/ppob/digiflazz.js';
 import * as points from '../../src/services/points.service.js';
 import * as ppob from '../../src/services/ppob.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test PPOB tahap 2 (pulsa & data via Digiflazz PALSU).
@@ -84,7 +85,7 @@ suite('PPOB tahap 2 — pulsa & data', () => {
       notices.push(n);
     });
     await sql`DELETE FROM app_config WHERE key IN ('ppob', 'ppob_sync')`;
-    const r = await req('POST', '/v1/auth/register-business', undefined, {
+    const r = await registerOwnerStore({
       business: { name: `Toko PPOB ${tag}` },
       owner: { name: 'Bu PPOB', email: `ppob-${tag}@toko.id`, password: 'rahasia123' },
     });

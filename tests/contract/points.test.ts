@@ -6,6 +6,7 @@ import { uuid } from '../../src/lib/uuid.js';
 import { signAccessToken } from '../../src/lib/jwt.js';
 import { setNotifyTransport, type AdminNotice } from '../../src/lib/notify.js';
 import * as points from '../../src/services/points.service.js';
+import { registerOwnerStore } from '../helpers/owner-store.js';
 
 /**
  * Contract test Poin Sirko (tahap 1): saldo per akun pemilik, top-up manual +
@@ -32,7 +33,7 @@ async function req(method: string, path: string, token?: string, body?: unknown)
 }
 
 async function newStore(tag: string) {
-  const { json } = await req('POST', '/v1/auth/register-business', undefined, {
+  const { json } = await registerOwnerStore({
     business: { name: `Toko Poin ${tag}` },
     owner: { name: `Owner ${tag}`, email: `poin-${tag}@toko.id`, password: 'rahasia123' },
   });
