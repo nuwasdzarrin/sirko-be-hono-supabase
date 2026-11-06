@@ -137,7 +137,7 @@ suite('Juragan — fitur lintas-toko', () => {
     expect(r.status).toBe(201);
     const d = r.json.data;
     expect(d.copied).toHaveLength(2);
-    expect(d.skipped).toEqual([{ fromProductId: ghost, reason: 'NOT_FOUND' }]);
+    expect(d.skipped).toEqual([{ fromProductId: ghost, reason: 'NOT_FOUND', variants: [] }]);
     expect(d.createdCategories).toBe(0); // "Minuman" = "minuman" di S2
     expect(d.createdUnits).toBe(1);
 
@@ -160,9 +160,9 @@ suite('Juragan — fitur lintas-toko', () => {
     const [src] = await sql<{ business_id: string }[]>`SELECT business_id FROM products WHERE id = ${kopi}`;
     expect(src!.business_id).toBe(A.businessId);
 
-    // Salin ulang → barcode sudah ada di tujuan → dilewati + id produk yang ada.
+    // Salin ulang → sudah tertaut → dilewati + id produk yang ada.
     const again = await req('POST', '/v1/juragan/copy-products', { fromBusinessId: A.businessId, toBusinessId: s2, productIds: [kopi] }, A.token);
-    expect(again.json.data).toMatchObject({ copied: [], skipped: [{ fromProductId: kopi, reason: 'BARCODE_EXISTS', existingProductId: kopiS2 }] });
+    expect(again.json.data).toMatchObject({ copied: [], skipped: [{ fromProductId: kopi, reason: 'ALREADY_COPIED', existingProductId: kopiS2 }] });
   });
 
   it('mutasi stok: ledger asal turun & tujuan naik (ref store_transfer); products.updated_at tetap; stok kurang ditolak', async () => {

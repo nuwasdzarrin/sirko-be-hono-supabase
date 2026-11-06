@@ -279,7 +279,9 @@ akun = **owner** di setiap toko yang disentuh (else 403 `FORBIDDEN`). `auth.busi
 | Method | Path | Body / query | Respons |
 |---|---|---|---|
 | GET | `/v1/juragan/reports/summary` | `?preset=today\|7d\|30d\|month\|lastmonth\|year` atau `?from=YYYY-MM-DD&to=YYYY-MM-DD` (WIB; default bulan ini) | 200 `{ range:{from,to,fromMs,toMs}, stores:[StoreSummary], total, plan }` |
-| POST | `/v1/juragan/copy-products` | `{ fromBusinessId, toBusinessId, productIds: uuid[1..200] }` | 201 `{ copied:[{fromProductId,toProductId,variants:[{fromVariantId,toVariantId}]}], skipped:[{fromProductId,reason:"NOT_FOUND"\|"BARCODE_EXISTS",existingProductId?}], createdCategories, createdUnits }` |
+| POST | `/v1/juragan/copy-products` | `{ fromBusinessId, toBusinessId, productIds: uuid[1..200] }` | 201 `{ copied:[{fromProductId,toProductId,variants:[{fromVariantId,toVariantId}]}], skipped:[{fromProductId,reason:"NOT_FOUND"\|"ALREADY_COPIED"\|"BARCODE_EXISTS",existingProductId?,variants:[{fromVariantId,toVariantId}]}], createdCategories, createdUnits }` |
+| GET | `/v1/juragan/product-links` | `?fromBusinessId=&toBusinessId=` | 200 `{ links:[{fromProductId,toProductId,variants:[{fromVariantId,toVariantId}]}] }` — pasangan tertaut, arah sesuai query, hanya yang hidup di kedua sisi |
+| GET | `/v1/juragan/products` | `?businessId=&q=` (q opsional: nama/barcode, tanpa beda huruf) | 200 `{ products:[{id,name,barcode,stock,hasVariants,variants:[{id,name,stock}]}] }` — maks 200, urut nama, tanpa produk terhapus; `stock` = Σ `stock_logs` (ledger), bukan `products.stock` |
 | POST | `/v1/juragan/stock-transfers` | `{ fromBusinessId, toBusinessId, lines:[{productId,toProductId,variantId?,toVariantId?,qty>0}] (1..100), note? }` | 201 `{ transferId, fromBusinessId, toBusinessId, createdAt, lines:[{…, fromStockAfter, toStockAfter}] }` |
 
 ```jsonc
@@ -295,6 +297,13 @@ akun = **owner** di setiap toko yang disentuh (else 403 `FORBIDDEN`). `auth.busi
   stok salinan **0** (isi lewat mutasi stok). Kategori & satuan dicocokkan **per nama** (tanpa beda huruf
   besar/kecil) di toko tujuan, dibuat bila belum ada. Produk yang **barcode-nya sudah ada** di toko tujuan
   dilewati (`BARCODE_EXISTS` + `existingProductId` → pakai untuk mutasi). `image_path` hanya disalin bila URL http(s).
+- **Tautan salinan (`product_links`, server-only, bukan tabel sync)** mengingat pasangan produk/varian antar-toko,
+  berlaku **dua arah** (A→B = B→A). Urutan pencocokan `copy-products` per produk sumber:
+  (1) sudah tertaut ke produk tujuan yang belum dihapus → `ALREADY_COPIED` + `existingProductId` + `variants`;
+  (2) barcode sama di toko tujuan → `BARCODE_EXISTS` + tautan disimpan (varian dicocokkan per **nama**, tanpa beda huruf);
+  (3) selain itu disalin & tautan produk + tiap varian disimpan. Tautan ke produk tujuan yang sudah dihapus
+  diabaikan (disalin ulang, tautan diperbarui). Item `skipped` selalu membawa `variants` (kosong untuk `NOT_FOUND`).
+  `stock-transfers` juga menyimpan tautan pasangan yang dipakai (produk & varian) bila belum ada.
   Toko tujuan menerima produk baru lewat **pull sync biasa**.
 - **Mutasi stok:** satu transaksi DB; per baris menambah `stock_logs` toko asal (`type:"out"`, `qtyChange:-qty`)
   dan tujuan (`type:"in"`, `+qty`), `refType:"store_transfer"`, `refId` = `transferId` yang sama, `note`
