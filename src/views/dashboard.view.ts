@@ -62,6 +62,7 @@ const CSS = `
   nav.top a.tab:hover{color:var(--tx)}
   nav.top a.tab.active{background:var(--card);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line)}
   nav.top .spacer{flex:1}
+  nav.top .navtabs{display:contents}
   nav.top .st{color:var(--mut);font-size:12px}
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;min-width:32px;padding:0 9px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer;font:inherit;font-size:13px}
   .icon-btn:hover{border-color:var(--acc)}
@@ -247,6 +248,13 @@ const CSS = `
     .flabel{flex:none;padding:0}
     nav.top .st,nav.top .badge{display:none}
     nav.top .icon-btn span{display:none}
+    nav.top{gap:6px 4px;margin-bottom:16px}
+    nav.top .brand{order:0}
+    nav.top .spacer{order:1}
+    nav.top>*:not(.brand):not(.spacer):not(.navtabs){order:2}
+    nav.top .navtabs{order:3;display:flex;gap:4px;flex:0 0 100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+    nav.top .navtabs::-webkit-scrollbar{display:none}
+    nav.top .navtabs a.tab{flex:0 0 auto;white-space:nowrap}
   }
 `;
 
@@ -281,6 +289,7 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
 <body><div class="wrap">
   <nav class="top">
     <a class="brand" href="/dashboard"><span class="logo">S</span>Sirko Admin</a>
+    <div class="navtabs">
     <a class="tab <%= active==='overview'?'active':'' %>" href="/dashboard">Ringkasan</a>
     <a class="tab <%= active==='catalog'?'active':'' %>" href="/dashboard/catalog">Katalog</a>
     <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
@@ -290,6 +299,8 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
     <a class="tab <%= active==='ppob'?'active':'' %>" href="/dashboard/ppob">PPOB<!--pp-badge--></a>
     <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     <a class="tab <%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--></a>
+    </div>
+    <script>(function(){var a=document.querySelector('nav.top .navtabs .tab.active');if(a&&a.parentNode.scrollWidth>a.parentNode.clientWidth){a.parentNode.scrollLeft=a.offsetLeft-a.parentNode.offsetLeft-40}})();</script>
     <span class="spacer"></span>
     <span class="badge">lintas-tenant</span>
     <span class="st"><%= fmtDateTime(serverTime) %> WIB</span>

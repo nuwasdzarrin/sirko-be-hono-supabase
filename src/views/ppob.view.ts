@@ -38,6 +38,36 @@ const CSS = `<style>
   .stmt{width:100%;min-width:0;border-collapse:collapse}
   .stmt td{padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
   .stmt td.v{text-align:right;font-variant-numeric:tabular-nums}
+  .pp-detail{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+  .pp-detail>*{min-width:0}
+  @media (max-width:640px){
+    .pp-row form{margin-left:0!important;width:100%}
+    .pp-row form input[type=search]{flex:1;min-width:0}
+    .pp-cards{overflow:visible;border:0;background:none}
+    .pp-cards table,.pp-cards tbody{display:block;width:100%;min-width:0}
+    .pp-cards thead{display:none}
+    .pp-cards tr{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}
+    .pp-cards td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0;border:0;text-align:right}
+    .pp-cards td::before{content:attr(data-l);color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em;text-align:left;flex:none}
+    .pp-cards td.go{justify-content:flex-end;padding-top:8px}
+    .pp-cards td.go::before{content:none}
+    .pp-cards td.empty{display:block;text-align:center}
+    .pp-cards td.empty::before{content:none}
+  }
+  .pp-detail .fields input{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px}
+  .pp-detail .fields #token{font-size:18px}
+  .titlebar h1 code{word-break:break-all}
+  @media (max-width:860px){.pp-detail{grid-template-columns:minmax(0,1fr)}}
+  @media (max-width:640px){
+    .ev{grid-template-columns:minmax(0,1fr);gap:2px}
+    .ev>.mut{margin-top:8px}
+    .kv2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .kv2 code{word-break:break-all}
+    .pln-copy .btn{flex:0 0 auto}
+    .fields .f input{width:100%;box-sizing:border-box}
+    form[action$="/fail"] input{min-width:0!important;width:100%}
+    form[action$="/fail"] .btn,.pp-detail .form-actions .btn{width:100%}
+  }
 </style>`;
 
 const tabs = (on: string, attention: number) => `<div class="pp-tabs">
@@ -84,14 +114,14 @@ export function renderPpobOrders(d: OrderListData, extra: { deposit: { value: nu
       const href = `/dashboard/ppob/orders/${esc(o.id)}`;
       const margin = o.status === 'success' ? o.price - (o.providerPrice ?? o.cost) : null;
       return `<tr class="rowlink" onclick="location.href='${href}'">
-        <td class="mut">${dt(o.createdAt)}</td>
-        <td><a href="/dashboard/businesses/${esc(o.businessId)}?tab=points" onclick="event.stopPropagation()" style="color:var(--tx)">${esc(o.businessName ?? '—')}</a></td>
-        <td>${esc(o.productName)}<br><span class="mut" style="font-size:11px">${esc(CAT[o.category] ?? o.category)}</span></td>
-        <td><code>${esc(o.customerNo)}</code></td>
-        <td class="num">${rp(o.price)}</td>
-        <td class="num">${margin == null ? '<span class="mut">—</span>' : rp(margin)}</td>
-        <td>${pill(o.status)}${o.refunded ? ' <span class="pill">refund</span>' : ''}</td>
-        <td><a class="mini" href="${href}">Detail →</a></td></tr>`;
+        <td class="mut" data-l="Waktu">${dt(o.createdAt)}</td>
+        <td data-l="Toko"><a href="/dashboard/businesses/${esc(o.businessId)}?tab=points" onclick="event.stopPropagation()" style="color:var(--tx)">${esc(o.businessName ?? '—')}</a></td>
+        <td data-l="Produk">${esc(o.productName)}<br><span class="mut" style="font-size:11px">${esc(CAT[o.category] ?? o.category)}</span></td>
+        <td data-l="Tujuan"><code>${esc(o.customerNo)}</code></td>
+        <td class="num" data-l="Harga">${rp(o.price)}</td>
+        <td class="num" data-l="Laba">${margin == null ? '<span class="mut">—</span>' : rp(margin)}</td>
+        <td data-l="Status">${pill(o.status)}${o.refunded ? ' <span class="pill">refund</span>' : ''}</td>
+        <td class="go"><a class="mini" href="${href}">Detail →</a></td></tr>`;
     })
     .join('');
   const body = `${CSS}<div class="titlebar"><h1>PPOB</h1></div>${tabs('orders', extra.attention)}
@@ -106,7 +136,7 @@ export function renderPpobOrders(d: OrderListData, extra: { deposit: { value: nu
     <input type="hidden" name="status" value="${esc(d.status)}"><input type="hidden" name="category" value="${esc(d.category)}">
     <input type="search" name="q" value="${esc(d.q)}" placeholder="No tujuan / toko / produk / ID order"><button class="btn ghost" type="submit">Cari</button>
   </form></div>
-<div class="tablewrap"><table>
+<div class="tablewrap pp-cards"><table>
 <thead><tr><th>Waktu</th><th>Toko</th><th>Produk</th><th>Tujuan</th><th class="num">Harga</th><th class="num">Laba</th><th>Status</th><th></th></tr></thead>
 <tbody>${rows || '<tr><td colspan="8" class="empty">Belum ada order pada filter ini.</td></tr>'}</tbody></table></div>
 ${pagerHtml(d.page, d.pages, d.total, (p) => esc(url({ page: p })))}`;
@@ -182,8 +212,9 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
   <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/resend-email"><button class="btn ghost" type="submit">✉ Kirim ulang email</button></form></div>`;
   const body = `${CSS}<a class="crumb" href="/dashboard/ppob">← Semua order PPOB</a>
 <div class="titlebar"><h1 style="font-size:17px">${esc(o.productName)} → <code>${esc(o.customerNo)}</code></h1>${pill(o.status)}</div>
-<div class="tx-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start">
+<div class="pp-detail">
   <div>
+    ${o.status === 'waiting_admin' ? plnPanel.replace('style="margin-top:12px;', 'style="margin-bottom:12px;') : ''}
     <div class="panel"><div class="kv2">
       <div><b>Toko</b><a href="/dashboard/businesses/${esc(o.businessId)}?tab=points">${esc(o.businessName ?? '—')}</a></div>
       <div><b>Jenis</b>${esc(CAT[o.category] ?? o.category)} · ${esc(o.brand ?? '')}</div>
@@ -196,7 +227,7 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
       ${o.rc || o.rawMessage ? `<div style="grid-column:1/-1"><b>Balasan penyedia</b>RC ${esc(o.rc ?? '—')} · ${esc(o.rawMessage ?? '')}</div>` : ''}
     </div></div>
     ${o.sn ? `<div class="panel" style="margin-top:12px"><h3>${o.category === 'pln' ? 'Token listrik' : 'Serial number (SN)'}</h3><div class="sn">${esc(o.sn)}</div>${o.plnName || o.plnInfo ? `<div class="mut" style="margin-top:4px">${esc([o.plnName, o.plnInfo].filter(Boolean).join(' · '))}</div>` : ''}</div>` : ''}
-    ${plnPanel}
+    ${o.status === 'waiting_admin' ? '' : plnPanel}
     <h2>Jejak kejadian</h2>
     <div class="panel"><div class="ev">${d.events.map((e) => `<span class="mut">${dt(e.createdAt)}</span><span><b>${esc(e.event)}</b>${e.detail ? `<br><code>${esc(JSON.stringify(e.detail))}</code>` : ''}</span>`).join('') || '<span class="mut">—</span>'}</div></div>
   </div>
