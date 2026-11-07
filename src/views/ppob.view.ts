@@ -136,9 +136,15 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
     : o.status === 'waiting_admin'
       ? `<div class="panel" style="margin-top:12px;border-color:var(--warn-line)">
   <h3>⚡ Proses token listrik</h3>
-  <p style="margin:0 0 10px;font-size:13px">Beli <b>${esc(o.productName)}</b> untuk no meter <b><code>${esc(o.customerNo)}</code></b>${o.plnName ? ` (${esc(o.plnName)})` : ''}, lalu tempel tokennya. Email dikirim ke: ${recipients}.</p>
+  <ol class="pln-steps">
+    <li>Salin nomor meter:
+      <div class="pln-copy"><code id="meterNo">${esc(o.customerNo)}</code><button type="button" class="btn" data-copy="meterNo">📋 Salin</button></div>
+      ${o.plnName ? `<div style="font-size:12px;color:var(--mut)">a.n. ${esc(o.plnName)}</div>` : ''}</li>
+    <li>Beli <b>${esc(o.productName)}</b> di aplikasi PLN Mobile / bank / e-wallet.</li>
+    <li>Salin token yang terbit, tempel di bawah, lalu simpan. Email token otomatis terkirim ke: ${recipients}.</li>
+  </ol>
   <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/fulfill" class="fields" onsubmit="return confirm('Simpan token & kirim email ke pelanggan?')">
-    <div class="f full"><label for="token">Token (20 digit)</label><input id="token" name="token" required inputmode="numeric" autocomplete="off" pattern="[0-9 \-]{20,29}" placeholder="1234 5678 9012 3456 7890" style="font-size:18px;letter-spacing:.06em"></div>
+    <div class="f full"><label for="token">Token (20 digit)</label><div class="pln-copy"><input id="token" name="token" required inputmode="numeric" autocomplete="off" pattern="[0-9 \-]{20,29}" placeholder="1234 5678 9012 3456 7890" style="flex:1;min-width:0;font-size:18px;letter-spacing:.06em"><button type="button" class="btn" id="pasteToken">📥 Tempel</button></div></div>
     <div class="f"><label for="plnName">Nama pelanggan</label><input id="plnName" name="plnName" value="${esc(o.plnName ?? '')}" maxlength="80"></div>
     <div class="f"><label for="plnInfo">Info (kWh / daya, opsional)</label><input id="plnInfo" name="plnInfo" maxlength="80" placeholder="mis. 32,5 kWh · R1/1300VA"></div>
     <div class="form-actions full"><button class="btn ok" type="submit">✓ Simpan token &amp; kirim email</button></div>
@@ -147,7 +153,31 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
     <input name="reason" required maxlength="200" placeholder="Alasan gagal (dikirim ke pelanggan), mis. nomor meter salah" style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px">
     <button class="btn bad" type="submit">Gagalkan &amp; kembalikan Poin</button>
   </form>
-</div>`
+</div>
+<style>
+.pln-steps{margin:0 0 12px;padding-left:20px;font-size:13px;line-height:1.5}
+.pln-steps li{margin-bottom:8px}
+.pln-copy{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.pln-copy code{font-size:20px;letter-spacing:.05em;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+</style>
+<script>
+(function(){
+  document.querySelectorAll('[data-copy]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = document.getElementById(b.getAttribute('data-copy')).textContent.trim();
+      var done = function(){ var o = b.textContent; b.textContent = '✓ Tersalin'; setTimeout(function(){ b.textContent = o; }, 1500); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, function(){ fallback(t); done(); });
+      else { fallback(t); done(); }
+    });
+  });
+  function fallback(t){ var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); }
+  var p = document.getElementById('pasteToken'), inp = document.getElementById('token');
+  if (p && inp) p.addEventListener('click', function(){
+    if (!navigator.clipboard || !navigator.clipboard.readText) { inp.focus(); return; }
+    navigator.clipboard.readText().then(function(t){ inp.value = (t || '').replace(/[^0-9]/g, '').slice(0, 20).replace(/(\\d{4})(?=\\d)/g, '$1 '); inp.focus(); }, function(){ inp.focus(); });
+  });
+})();
+</script>`
       : `<div class="panel" style="margin-top:12px"><h3>Email pelanggan</h3><p style="margin:0 0 10px;font-size:13px">Penerima: ${recipients}${o.fulfilledBy ? ` · diproses oleh ${esc(o.fulfilledBy)}` : ''}</p>
   <form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/resend-email"><button class="btn ghost" type="submit">✉ Kirim ulang email</button></form></div>`;
   const body = `${CSS}<a class="crumb" href="/dashboard/ppob">← Semua order PPOB</a>
