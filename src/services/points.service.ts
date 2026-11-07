@@ -74,6 +74,26 @@ export async function saveConfig(input: unknown, admin: string): Promise<PointsC
   return cfg;
 }
 
+const QRIS_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+
+/** Unggah gambar QRIS top-up Poin ke bucket (presigned PUT dari server) → URL publik HTTPS. */
+export async function uploadQrisImage(file: File): Promise<string> {
+  const ext = QRIS_TYPES[file.type];
+  if (!ext) throw validation('Gambar QRIS harus PNG, JPG, atau WebP');
+  if (file.size > 2 * 1024 * 1024) throw validation('Gambar QRIS maksimal 2 MB');
+  const { getStorage } = await import('../lib/storage.js');
+  const storage = getStorage();
+  const key = `config/qris-poin-${Date.now()}.${ext}`;
+  const res = await fetch(storage.signPut(key, file.type), {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: Buffer.from(await file.arrayBuffer()),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw validation(`Unggah QRIS gagal (HTTP ${res.status}). Isi URL gambar secara manual.`);
+  return storage.publicUrl(key);
+}
+
 // ── Akun pemilik ─────────────────────────────────────────────────────────────
 
 /** Akun pemilik toko: baris users ber-role owner dengan account_id (hanya diisi server). */

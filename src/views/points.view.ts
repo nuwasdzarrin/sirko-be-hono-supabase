@@ -50,6 +50,10 @@ const CSS = `<style>
   .stmt td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .cfg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;max-width:760px}
   .cfg .full{grid-column:1/-1}
+  .qris-prev{display:block;width:180px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px;margin:4px 0}
+  .qris-box .chk{display:flex;gap:6px;align-items:center;font-weight:400;font-size:13px}
+  .qris-box input[type=file]{font-size:13px}
+  @media (max-width:640px){.cfg{grid-template-columns:minmax(0,1fr)}}
   @media (max-width:640px){.tp{grid-template-columns:1fr}.tp .acts{justify-content:flex-start}.cfg{grid-template-columns:1fr}}
 </style>`;
 
@@ -162,13 +166,22 @@ ${pagerHtml(a.page, a.pages, a.total, (p) => `/dashboard/points?tab=accounts&amp
     const f = (name: keyof PointsConfig, label: string, type = 'text', hint = '', full = false) =>
       `<div class="f ${full ? 'full' : ''}"><label for="${name}">${label}</label><input type="${type}" id="${name}" name="${name}" value="${esc(c[name])}">${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
     main = `${d.configError ? `<div class="flash err" role="alert">${esc(d.configError)}</div>` : ''}
-<form method="post" action="/dashboard/points/settings" class="panel">
+<form method="post" action="/dashboard/points/settings" class="panel" enctype="multipart/form-data">
   <h3>Rekening tujuan top-up (tampil di aplikasi)</h3>
   <div class="cfg">
     ${f('bankName', 'Bank', 'text', 'mis. BCA')}
     ${f('accountNo', 'Nomor rekening')}
     ${f('accountName', 'Atas nama', 'text', '', true)}
-    ${f('qrisImageUrl', 'URL gambar QRIS statis (opsional)', 'url', 'Kosongkan bila tidak memakai QRIS.', true)}
+    <div class="f full qris-box">
+      <label>QRIS statis (opsional)</label>
+      ${c.qrisImageUrl ? `<a href="${esc(c.qrisImageUrl)}" target="_blank" rel="noopener"><img src="${esc(c.qrisImageUrl)}" alt="QRIS top-up Poin" class="qris-prev"></a>
+      <label class="chk"><input type="checkbox" name="qrisRemove"> Hapus QRIS</label>` : '<div class="hint">Belum ada gambar QRIS.</div>'}
+      <label for="qrisFile" style="margin-top:8px">Unggah gambar QRIS baru</label>
+      <input type="file" id="qrisFile" name="qrisFile" accept="image/png,image/jpeg,image/webp">
+      <div class="hint">PNG/JPG/WebP, maks 2 MB. Mengganti gambar lama.</div>
+      <label for="qrisImageUrl" style="margin-top:8px">atau URL gambar QRIS (HTTPS)</label>
+      <input type="url" id="qrisImageUrl" name="qrisImageUrl" value="${esc(c.qrisImageUrl)}">
+    </div>
     ${f('note', 'Catatan instruksi', 'text', '', true)}
   </div>
   <h3 style="margin-top:18px">Batas</h3>
