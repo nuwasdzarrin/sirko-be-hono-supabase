@@ -408,13 +408,22 @@ dashboardRoutes.post('/points/accounts/:accountId/adjust', async (c) => {
 dashboardRoutes.post('/points/settings', async (c) => {
   const body = await c.req.parseBody();
   try {
-    await points.saveConfig(body, c.get('admin'));
+    const input: Record<string, unknown> = { ...body };
+    delete input.qrisFile;
+    const file = body.qrisFile;
+    if (file instanceof File && file.size > 0) input.qrisImageUrl = await points.uploadQrisImage(file);
+    if (body.qrisRemove === 'on') input.qrisImageUrl = '';
+    if (typeof input.qrisImageUrl === 'string' && input.qrisImageUrl && !/^https:\/\//i.test(input.qrisImageUrl)) {
+      throw new AppError('VALIDATION', 'URL QRIS harus diawali https:// (aplikasi mengunduh gambar ini).');
+    }
+    await points.saveConfig(input, c.get('admin'));
     flash(c, 'ok', 'Pengaturan Poin disimpan.');
     return c.redirect('/dashboard/points?tab=settings');
   } catch (e) {
     const msg = formError(e);
     if (!msg) throw e;
-    const config = { ...(await points.getConfig()), ...(body as Partial<points.PointsConfig>) };
+    const { qrisFile: _f, ...rest } = body;
+    const config = { ...(await points.getConfig()), ...(rest as Partial<points.PointsConfig>) };
     return sendPage(c, renderPointsPage({ tab: 'settings', serverTime: Date.now(), config, configError: msg }), 422);
   }
 });
