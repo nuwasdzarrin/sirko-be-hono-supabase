@@ -483,10 +483,12 @@ export async function createOrder(
         `Toko: <b>${tgEsc(o.business_name ?? '—')}</b>\n` +
         `Produk: <b>${tgEsc(o.product_name)}</b>\n` +
         `No meter: <code>${tgEsc(target)}</code>${plnName ? ` (${tgEsc(plnName)})` : ''}\n` +
-        `Poin dibayar: ${tgEsc(rupiah(n(o.price)))}\n` +
-        `Beli tokennya, lalu tempel di dashboard.`,
+        `Poin dibayar: ${tgEsc(rupiah(n(o.price)))}\n\n` +
+        `1. Ketuk nomor meter di atas untuk menyalin.\n` +
+        `2. Beli tokennya di aplikasi PLN Mobile.\n` +
+        `3. Buka order di bawah → tempel token → email terkirim ke pelanggan.`,
       linkPath: `/dashboard/ppob/orders/${id}`,
-      linkLabel: 'Proses order token',
+      linkLabel: '⚡ Buka & tempel token',
     });
     return orderView(o);
   }
