@@ -160,8 +160,11 @@ Body: `{ "meterNo": "51234567890" }` (11–12 digit; spasi/strip boleh).
 { "data": { "ok": true, "meterNo": "51234567890", "name": "BUDI SANTOSO",
             "segmentPower": "R1 /000001300", "message": null, "cached": false } }
 ```
-- `ok=false` → `message` berisi alasan (nomor tak ditemukan / batas cek tercapai / belum tersedia).
-  Tampilkan sebagai peringatan; pengguna **tetap boleh** membeli.
+- `ok=false` → `message` berisi alasan (nomor tak ditemukan / batas cek tercapai / belum tersedia /
+  "Cek nomor meter sedang bermasalah…"). Tampilkan apa adanya sebagai peringatan; pengguna **tetap
+  boleh** membeli. Pesan teknis Digiflazz (salah konfigurasi, gangguan jaringan) tidak pernah diteruskan.
+- `cached=true` hanya untuk hasil pasti (nama ditemukan, atau nomor memang salah), disimpan 24 jam.
+  Gangguan sementara/konfigurasi tidak di-cache: cek ulang boleh langsung dicoba lagi.
 - Format nomor salah → 422 `VALIDATION`.
 
 ### 3.4 `POST /v1/ppob/orders` — beli
