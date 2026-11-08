@@ -288,6 +288,29 @@ suite('Admin dashboard — akun, password, profil, pengguna, bot Telegram', () =
       expect(mails.length).toBeGreaterThan(m0);
     });
 
+    it('detail transaksi: baris PPOB dari HP ("token menyusul") tampil dengan status & token terkini', async () => {
+      const txId = uuid();
+      const ts = Date.now();
+      await sql`INSERT INTO transactions ${sql({
+        id: txId, business_id: businessId, invoice_no: `INV-${tag}`, datetime: ts, subtotal: 24000, discount_total: 0, tax_total: 0,
+        grand_total: 24000, paid_total: 24000, change_total: 0, status: 'paid', is_credit: false, note: `PPOB ${orderId}`,
+        created_at: ts, updated_at: ts, rounding_adjustment: 0,
+      })}`;
+      await sql`INSERT INTO transaction_items ${sql({
+        id: uuid(), business_id: businessId, transaction_id: txId, qty: 1, unit_price: 24000, cost_price_snapshot: 22000, discount: 0, line_total: 24000,
+        name_snapshot: `Token PLN 21.000 · 86300000123 · DIPROSES, token menyusul · #${orderId.slice(0, 8)}`, created_at: ts, updated_at: ts,
+      })}`;
+      const page = await get(`/dashboard/businesses/${businessId}/transactions/${txId}`, cookie);
+      expect(page.status).toBe(200);
+      expect(page.html).not.toContain('token menyusul');
+      expect(page.html).toContain('Token PLN 21.000 · 86300000123');
+      expect(page.html).toMatch(/pill ok">Sukses/);
+      expect(page.html).toContain('1234-5678-9012-3456-7890');
+      expect(page.html).toContain(`/dashboard/ppob/orders/${orderId}`);
+      await sql`DELETE FROM transaction_items WHERE transaction_id = ${txId}`;
+      await sql`DELETE FROM transactions WHERE id = ${txId}`;
+    });
+
     it('konfirmasi top-up lewat chat: Dana masuk → konfirmasi → Poin bertambah sekali', async () => {
       const acc = (await points.ownerAccountId(businessId))!;
       const before = Number((await sql`SELECT balance FROM point_accounts WHERE account_id = ${acc}`)[0]!.balance);
