@@ -55,14 +55,47 @@ const CSS = `
   body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
   a{color:var(--acc);text-decoration:none}
   .wrap{max-width:1140px;margin:0 auto;padding:20px 16px 64px}
-  nav.top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:12px}
+  nav.top{display:flex;gap:6px;align-items:center;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:12px;position:relative}
+  nav.top .menu{display:flex;align-items:center;gap:2px}
+  nav.top .grp{position:relative}
+  nav.top .grp>summary{list-style:none;cursor:pointer;color:var(--mut);padding:6px 11px;border-radius:8px;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap;user-select:none}
+  nav.top .grp>summary::-webkit-details-marker{display:none}
+  nav.top .grp>summary:hover{color:var(--tx)}
+  nav.top .grp>summary .chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.7}
+  nav.top .grp[open]>summary .chev{transform:rotate(-135deg) translateY(-1px)}
+  nav.top .grp.active>summary,nav.top .grp[open]>summary{background:var(--card);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line)}
+  nav.top .grp .gdot{display:none;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+  nav.top .grp:has(.dd .nb) .gdot{display:inline-block}
+  nav.top .dd{position:absolute;top:calc(100% + 6px);left:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;z-index:50;display:flex;flex-direction:column;gap:2px}
+  nav.top .dd a{display:block;padding:8px 10px;border-radius:8px;color:var(--tx);font-weight:600;font-size:14px}
+  nav.top .dd button.dd-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;color:var(--tx);font-weight:600;font-size:14px;text-align:left;background:none;border:0;cursor:pointer;font-family:inherit;width:100%}
+  nav.top .dd button.dd-item svg{width:16px;height:16px}
+  nav.top .dd a small{display:block;font-weight:400;color:var(--mut);font-size:11px;margin-top:1px}
+  nav.top .dd a:hover,nav.top .dd button.dd-item:hover{background:var(--sunk)}
+  nav.top .dd a.active{background:var(--acc-soft);color:var(--acc)}
+  nav.top .dd .nb{background:var(--warn);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800}
+  nav.top .dd hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+  nav.top .grp.me>summary{padding:3px 8px 3px 3px;border:1px solid var(--line);background:var(--card);color:var(--tx)}
+  nav.top .grp.me .ava{width:24px;height:24px;border-radius:50%;background:var(--acc-soft);color:var(--acc);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+  nav.top .grp.me .dd{left:auto;right:0}
+  nav.top .grp.me .who{padding:6px 10px 8px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--line);margin-bottom:4px;word-break:break-all}
+  nav.top .grp.me .who b{display:block;color:var(--tx);font-size:13px}
+  nav.top .burger{display:none;font-size:16px}
+  @media (max-width:1180px){nav.top .st{display:none} nav.top .grp.me .me-name{display:none}}
+  @media (max-width:900px){
+    nav.top .burger{display:inline-flex}
+    nav.top .menu{display:none;position:absolute;top:100%;left:0;right:0;margin-top:6px;flex-direction:column;align-items:stretch;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px;z-index:60;max-height:75vh;overflow:auto}
+    nav.top #navtoggle:checked~.menu{display:flex}
+    nav.top .menu>a.tab,nav.top .menu .grp>summary{padding:10px 12px}
+    nav.top .menu .grp>summary .chev{margin-left:auto}
+    nav.top .menu .dd{position:static;box-shadow:none;border:0;border-left:2px solid var(--line);border-radius:0;margin:2px 0 6px 14px;padding:0 0 0 6px;min-width:0}
+  }
   nav.top .brand{font-weight:800;letter-spacing:-.01em;margin-right:10px;display:flex;align-items:center;gap:8px;color:var(--tx)}
   .logo{width:26px;height:26px;border-radius:8px;background:var(--acc);color:var(--acc-tx);display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
   nav.top a.tab{color:var(--mut);padding:6px 12px;border-radius:8px;font-weight:600}
   nav.top a.tab:hover{color:var(--tx)}
   nav.top a.tab.active{background:var(--card);color:var(--tx);box-shadow:inset 0 0 0 1px var(--line)}
   nav.top .spacer{flex:1}
-  nav.top .navtabs{display:contents}
   nav.top .st{color:var(--mut);font-size:12px}
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;min-width:32px;padding:0 9px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer;font:inherit;font-size:13px}
   .icon-btn:hover{border-color:var(--acc)}
@@ -240,21 +273,11 @@ const CSS = `
   tr.rowlink{cursor:pointer}
   .biztable td{white-space:nowrap}
   tr.rowlink:hover td{background:var(--acc-soft)}
-  @media (max-width:1400px){nav.top .badge,nav.top .st{display:none} nav.top a.tab{padding:6px 9px}}
   @media (max-width:860px){.form-grid{grid-template-columns:1fr}}
   @media (max-width:640px){
     .fields{grid-template-columns:1fr}
     .frow{flex-direction:column;gap:6px}
     .flabel{flex:none;padding:0}
-    nav.top .st,nav.top .badge{display:none}
-    nav.top .icon-btn span{display:none}
-    nav.top{gap:6px 4px;margin-bottom:16px}
-    nav.top .brand{order:0}
-    nav.top .spacer{order:1}
-    nav.top>*:not(.brand):not(.spacer):not(.navtabs){order:2}
-    nav.top .navtabs{order:3;display:flex;gap:4px;flex:0 0 100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-    nav.top .navtabs::-webkit-scrollbar{display:none}
-    nav.top .navtabs a.tab{flex:0 0 auto;white-space:nowrap}
   }
 `;
 
@@ -289,26 +312,54 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
 <body><div class="wrap">
   <nav class="top">
     <a class="brand" href="/dashboard"><span class="logo">S</span>Sirko Admin</a>
-    <div class="navtabs">
-    <a class="tab <%= active==='overview'?'active':'' %>" href="/dashboard">Ringkasan</a>
-    <a class="tab <%= active==='catalog'?'active':'' %>" href="/dashboard/catalog">Katalog</a>
-    <a class="tab <%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %></a>
-    <a class="tab <%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko</a>
-    <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
-    <a class="tab <%= active==='points'?'active':'' %>" href="/dashboard/points">Poin<!--pt-badge--></a>
-    <a class="tab <%= active==='ppob'?'active':'' %>" href="/dashboard/ppob">PPOB<!--pp-badge--></a>
-    <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
-    <a class="tab <%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--></a>
+    <input type="checkbox" id="navtoggle" hidden>
+    <div class="menu">
+      <a class="tab <%= active==='overview'?'active':'' %>" href="/dashboard">Ringkasan</a>
+      <details class="grp <%= ['users','businesses','subscriptions'].includes(active)?'active':'' %>">
+        <summary>Pengguna <span class="gdot"></span><span class="chev"></span></summary>
+        <div class="dd">
+          <a class="<%= active==='users'?'active':'' %>" href="/dashboard/users">Pengguna terdaftar<small>Akun pemilik, verifikasi, Poin</small></a>
+          <a class="<%= active==='businesses'?'active':'' %>" href="/dashboard/businesses">Toko<small>Semua toko &amp; laporannya</small></a>
+          <a class="<%= active==='subscriptions'?'active':'' %>" href="/dashboard/subscriptions">Langganan<!--sub-badge--><small>Paket Juragan &amp; pembayaran</small></a>
+        </div>
+      </details>
+      <a class="tab <%= active==='transactions'?'active':'' %>" href="/dashboard/transactions">Transaksi</a>
+      <details class="grp <%= ['ppob','points'].includes(active)?'active':'' %>">
+        <summary>PPOB &amp; Poin <span class="gdot"></span><span class="chev"></span></summary>
+        <div class="dd">
+          <a class="<%= active==='ppob'?'active':'' %>" href="/dashboard/ppob">PPOB<!--pp-badge--><small>Order pulsa, data, token listrik</small></a>
+          <a class="<%= active==='points'?'active':'' %>" href="/dashboard/points">Poin<!--pt-badge--><small>Top-up, saldo akun, rekening</small></a>
+        </div>
+      </details>
+      <details class="grp <%= ['catalog','contributions'].includes(active)?'active':'' %>">
+        <summary>Katalog <span class="gdot"></span><span class="chev"></span></summary>
+        <div class="dd">
+          <a class="<%= active==='catalog'?'active':'' %>" href="/dashboard/catalog">Katalog produk<small>Produk umum &amp; foto</small></a>
+          <a class="<%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %><small>Usulan produk dari toko</small></a>
+        </div>
+      </details>
+      <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     </div>
-    <script>(function(){var a=document.querySelector('nav.top .navtabs .tab.active');if(a&&a.parentNode.scrollWidth>a.parentNode.clientWidth){a.parentNode.scrollLeft=a.offsetLeft-a.parentNode.offsetLeft-40}})();</script>
     <span class="spacer"></span>
-    <span class="badge">lintas-tenant</span>
     <span class="st"><%= fmtDateTime(serverTime) %> WIB</span>
     <%- themeBtn %>
-    <form class="inline-logout" method="post" action="/dashboard/logout">
-      <button class="icon-btn" type="submit" title="Keluar" aria-label="Keluar"><%- icons.logout %><span>Keluar</span></button>
-    </form>
+    <details class="grp me <%= active==='profile'?'active':'' %>">
+      <summary aria-label="Akun admin"><span class="ava"><!--admin-initial-->A</span><span class="me-name"><!--admin-name-->Akun</span><span class="chev"></span></summary>
+      <div class="dd">
+        <div class="who"><!--admin-who--><b>Admin</b></div>
+        <a class="<%= active==='profile'?'active':'' %>" href="/dashboard/profile"><span>Profil &amp; keamanan<small>Password, notifikasi Telegram</small></span></a>
+        <hr>
+        <form method="post" action="/dashboard/logout"><button class="dd-item" type="submit"><span>Keluar</span><%- icons.logout %></button></form>
+      </div>
+    </details>
+    <label for="navtoggle" class="icon-btn burger" aria-label="Menu" title="Menu">☰</label>
   </nav>
+  <script>(function(){
+    var ds=[].slice.call(document.querySelectorAll('nav.top details.grp'));
+    ds.forEach(function(d){d.addEventListener('toggle',function(){if(d.open)ds.forEach(function(o){if(o!==d&&!o.contains(d))o.open=false})})});
+    document.addEventListener('click',function(e){ds.forEach(function(d){if(d.open&&!d.contains(e.target))d.open=false})});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')ds.forEach(function(d){d.open=false})});
+  })();</script>
   <!--flash-->
   <%- body %>
 </div>
@@ -384,7 +435,45 @@ const LOGIN_CSS = `
   .submit[disabled]{opacity:.7;cursor:progress}
   .alert{display:flex;gap:8px;align-items:flex-start;background:var(--sunk);border:1px solid var(--bad-line);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px}
   .login-foot{margin-top:18px;text-align:center;font-size:12px;color:var(--mut)}
+  .notice{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px}
+  .otp-input input{font-size:24px;letter-spacing:.35em;text-align:center;font-family:ui-monospace,Consolas,monospace}
 `;
+
+const AUTH_TPL = `<!doctype html><html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title><%= title %> · Sirko Admin</title>
+<script><%- themeBoot %></script>
+<style><%- css %><%- loginCss %></style></head>
+<body>
+  <div class="login-top"><%- themeBtn %></div>
+  <main class="login-main">
+    <div class="login-card">
+      <div class="login-brand"><span class="logo">S</span><div><b>Sirko Admin</b><span>Panel pengelola Sirko</span></div></div>
+      <h1><%= title %></h1>
+      <p class="sub"><%= sub %></p>
+      <% if (error) { %><div class="alert" role="alert"><span>⚠</span><span><%= error %></span></div><% } %>
+      <% if (notice) { %><div class="notice" role="status"><%= notice %></div><% } %>
+      <%- body %>
+      <div class="login-foot"><a href="/dashboard/login">← Kembali ke halaman masuk</a></div>
+    </div>
+  </main>
+<script><%- themeJs %></script>
+</body></html>`;
+
+/** Kartu halaman tanpa sesi (lupa/reset password) dengan gaya halaman login. */
+export function renderAuthCard(opts: { title: string; sub: string; body: string; error?: string | null; notice?: string | null }): string {
+  return ejs.render(AUTH_TPL, {
+    error: null,
+    notice: null,
+    ...opts,
+    css: CSS,
+    loginCss: LOGIN_CSS,
+    themeBoot: THEME_BOOT,
+    themeJs: THEME_TOGGLE_JS,
+    themeBtn: THEME_BTN,
+  });
+}
 
 const LOGIN_TPL = `<!doctype html><html lang="id"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -403,7 +492,7 @@ const LOGIN_TPL = `<!doctype html><html lang="id"><head>
       <form method="post" action="/dashboard/login" id="login-form">
         <input type="hidden" name="next" value="<%= next %>">
         <div class="field">
-          <label for="user">Username</label>
+          <label for="user">Email</label>
           <div class="input"><input id="user" name="user" type="text" autocomplete="username" required value="<%= user %>" <%= user ? '' : 'autofocus' %>></div>
         </div>
         <div class="field">
@@ -413,7 +502,7 @@ const LOGIN_TPL = `<!doctype html><html lang="id"><head>
             <button type="button" id="toggle-pw" aria-label="Tampilkan password" title="Tampilkan password"><%- icons.eye %></button>
           </div>
         </div>
-        <div class="row"><label><input type="checkbox" name="remember"> Ingat saya 30 hari</label></div>
+        <div class="row"><label><input type="checkbox" name="remember"> Ingat saya 30 hari</label><a href="/dashboard/forgot">Lupa password?</a></div>
         <button class="btn primary submit" type="submit">Masuk</button>
       </form>
       <div class="login-foot">Sirko · Kasir Warung</div>

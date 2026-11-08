@@ -1,4 +1,6 @@
 import { env } from '../config/env.js';
+import { sql } from '../db/client.js';
+import { tg, type TgButton } from './telegram.js';
 
 /**
  * Notifikasi ke admin Sirko via Telegram Bot API (sendMessage).
@@ -11,6 +13,8 @@ export interface AdminNotice {
   /** Path dashboard, mis. `/dashboard/points?tab=topups` → jadi tombol tautan. */
   linkPath?: string;
   linkLabel?: string;
+  /** Baris tombol inline tambahan (di atas tombol tautan dashboard), mis. salin no meter. */
+  buttons?: TgButton[][];
 }
 
 /** Transport yang bisa diganti di test. */
@@ -18,29 +22,50 @@ export type NotifyTransport = (n: AdminNotice) => Promise<void>;
 
 export const sentNotices: AdminNotice[] = []; // jejak untuk test/debug (dibatasi)
 
+/** Tujuan notifikasi: semua admin yang menautkan Telegram + TELEGRAM_ADMIN_CHAT_ID lama. */
+export async function adminChatIds(): Promise<string[]> {
+  const ids = new Set<string>();
+  if (env.TELEGRAM_ADMIN_CHAT_ID) ids.add(String(env.TELEGRAM_ADMIN_CHAT_ID).trim());
+  try {
+    const r = await sql<{ c: string }[]>`SELECT telegram_chat_id::text c FROM admin_users WHERE telegram_chat_id IS NOT NULL`;
+    for (const x of r) ids.add(x.c);
+  } catch {
+    // tabel belum ada (migrasi belum jalan) → pakai .env saja
+  }
+  return [...ids].filter(Boolean);
+}
+
+/** reply_markup untuk notifikasi: tombol tambahan + tombol tautan dashboard. */
+export function noticeMarkup(n: AdminNotice): Record<string, unknown> | undefined {
+  const base = (env.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
+  const url = n.linkPath && base ? `${base}${n.linkPath}` : null;
+  const rows: TgButton[][] = [...(n.buttons ?? [])];
+  if (url) rows.push([{ text: n.linkLabel ?? 'Buka dashboard', url }]);
+  return rows.length ? { inline_keyboard: rows } : undefined;
+}
+
 async function telegramTransport(n: AdminNotice): Promise<void> {
-  const token = env.TELEGRAM_BOT_TOKEN;
-  const chatId = env.TELEGRAM_ADMIN_CHAT_ID;
-  if (!token || !chatId) {
+  const chats = env.TELEGRAM_BOT_TOKEN ? await adminChatIds() : [];
+  if (!chats.length) {
     console.log(`[notify] (Telegram belum dikonfigurasi) ${n.text.replace(/<[^>]+>/g, '')}`);
     return;
   }
-  const base = (env.PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
-  const url = n.linkPath && base ? `${base}${n.linkPath}` : null;
-  const body: Record<string, unknown> = {
-    chat_id: chatId,
-    text: n.text,
-    parse_mode: 'HTML',
-    disable_web_page_preview: true,
-  };
-  if (url) body.reply_markup = { inline_keyboard: [[{ text: n.linkLabel ?? 'Buka dashboard', url }]] };
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!res.ok) throw new Error(`Telegram HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const markup = noticeMarkup(n);
+  const errors: string[] = [];
+  for (const chatId of chats) {
+    try {
+      await tg('sendMessage', {
+        chat_id: chatId,
+        text: n.text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        ...(markup ? { reply_markup: markup } : {}),
+      });
+    } catch (e) {
+      errors.push((e as Error).message);
+    }
+  }
+  if (errors.length) throw new Error(errors.join(' | '));
 }
 
 let transport: NotifyTransport = telegramTransport;

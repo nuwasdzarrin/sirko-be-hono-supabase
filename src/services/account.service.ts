@@ -529,3 +529,6 @@ export async function accountIdOfAuth(auth: { userId: string; scope?: 'account' 
   if (auth.scope === 'account') return auth.userId;
   return plans.accountIdOfUser(auth.userId);
 }
+
+/** Pembatas percobaan login (dipakai juga oleh login admin dashboard). */
+export const loginThrottle = { lockedFor, recordFailure, clearFailures, lockedError };
