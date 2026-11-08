@@ -55,6 +55,7 @@ suite('PPOB tahap 3 — token listrik manual', () => {
         dfCalls.push(path);
         if (path === '/inquiry-pln') {
           if (String(body.customer_no) === '55555555555') return { status: 'Gagal', rc: '41', message: 'Signature Anda salah' };
+          if (String(body.customer_no) === '77777777777') return { status: 'Gagal', rc: '02', message: 'Transaksi Gagal' };
           if (String(body.customer_no) === '66666666666') return { status: 'Gagal', rc: '70', message: 'Timeout dari biller' };
           return String(body.customer_no) === meter
             ? { status: 'Sukses', rc: '00', customer_no: meter, name: 'BUDI SANTOSO', segment_power: 'R1 /000001300' }
@@ -120,10 +121,10 @@ suite('PPOB tahap 3 — token listrik manual', () => {
     const r = await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: meter });
     expect(r.json.data).toMatchObject({ ok: true, name: 'BUDI SANTOSO', segmentPower: 'R1 /000001300', cached: false });
     const again = await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: meter });
-    expect(again.json.data.cached).toBe(true);
+    expect(again.json.data).toMatchObject({ cached: true, ok: true, message: null });
     expect(dfCalls.filter((p) => p === '/inquiry-pln')).toHaveLength(1);
     const bad = await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: '99999999999' });
-    expect(bad.json.data).toMatchObject({ ok: false });
+    expect(bad.json.data).toMatchObject({ ok: false, message: expect.stringMatching(/tidak dikenali PLN/) });
     expect((await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: '123' })).status).toBe(422);
     await sql`DELETE FROM ppob_pln_cache WHERE meter_no = '99999999999'`;
   });
@@ -142,7 +143,9 @@ suite('PPOB tahap 3 — token listrik manual', () => {
     expect(notices.slice(n0).filter((x) => /konfigurasi Digiflazz/.test(x.text))).toHaveLength(1); // maks 1×/jam
     const tmp = await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: '66666666666' });
     expect(tmp.json.data).toMatchObject({ ok: false, cached: false });
-    expect((await sql`SELECT count(*)::int AS n FROM ppob_pln_cache WHERE meter_no IN ('55555555555', '66666666666')`)[0]!.n).toBe(0);
+    const rc02 = await req('POST', '/v1/ppob/pln/inquiry', token, { meterNo: '77777777777' });
+    expect(rc02.json.data).toMatchObject({ ok: false, cached: false, message: expect.stringMatching(/tidak dikenali PLN/) });
+    expect((await sql`SELECT count(*)::int AS n FROM ppob_pln_cache WHERE meter_no IN ('55555555555', '66666666666', '77777777777')`)[0]!.n).toBe(0);
   });
 
   let fulfilledId = '';
