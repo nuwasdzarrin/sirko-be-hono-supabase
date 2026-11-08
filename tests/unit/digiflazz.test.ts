@@ -7,7 +7,10 @@ import {
   normalizePhone,
   detectOperator,
   brandKey,
+  inquiryPln,
+  setDigiflazzTransport,
 } from '../../src/ppob/digiflazz.js';
+import { env } from '../../src/config/env.js';
 import { inCutoff, sellPriceFor, cutoffOf, DEFAULT_PPOB_CONFIG } from '../../src/services/ppob.service.js';
 
 const md5 = (s: string) => createHash('md5').update(s).digest('hex');
@@ -17,6 +20,27 @@ describe('Digiflazz — tanda tangan & status (dokumentasi resmi)', () => {
     expect(sign('depo')).toBe(md5('test-df-user' + 'test-df-key' + 'depo'));
     expect(sign('pricelist')).toBe(md5('test-df-usertest-df-keypricelist'));
     expect(sign('ref-123')).toBe(md5('test-df-usertest-df-keyref-123'));
+  });
+
+  it('dua key: transaksi ikut DIGIFLAZZ_TESTING, cek meter PLN selalu pakai production key', async () => {
+    const saved = { dev: env.DIGIFLAZZ_DEV_KEY, prod: env.DIGIFLAZZ_PROD_KEY, testing: env.DIGIFLAZZ_TESTING };
+    const bodies: Array<{ path: string; sign: unknown }> = [];
+    const restore = setDigiflazzTransport(async (path, body) => (bodies.push({ path, sign: body.sign }), { status: 'Sukses', rc: '00', name: 'X' }));
+    try {
+      Object.assign(env, { DIGIFLAZZ_DEV_KEY: 'dev-k', DIGIFLAZZ_PROD_KEY: 'prod-k', DIGIFLAZZ_TESTING: true });
+      expect(sign('depo')).toBe(md5('test-df-user' + 'dev-k' + 'depo'));
+      await inquiryPln('86300988184');
+      expect(bodies.at(-1)).toEqual({ path: '/inquiry-pln', sign: md5('test-df-user' + 'prod-k' + '86300988184') });
+      Object.assign(env, { DIGIFLAZZ_TESTING: false });
+      expect(sign('depo')).toBe(md5('test-df-user' + 'prod-k' + 'depo'));
+      // Tanpa production key: cek meter memakai key transaksi (cadangan DIGIFLAZZ_API_KEY).
+      Object.assign(env, { DIGIFLAZZ_DEV_KEY: undefined, DIGIFLAZZ_PROD_KEY: undefined, DIGIFLAZZ_TESTING: true });
+      await inquiryPln('86300988184');
+      expect(bodies.at(-1)!.sign).toBe(md5('test-df-user' + 'test-df-key' + '86300988184'));
+    } finally {
+      restore();
+      Object.assign(env, { DIGIFLAZZ_DEV_KEY: saved.dev, DIGIFLAZZ_PROD_KEY: saved.prod, DIGIFLAZZ_TESTING: saved.testing });
+    }
   });
 
   it('pemetaan status: field status, RC 03/99 selalu pending', () => {

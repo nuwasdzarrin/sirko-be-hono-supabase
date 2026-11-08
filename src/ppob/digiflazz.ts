@@ -56,14 +56,24 @@ export class DigiflazzError extends Error {
   }
 }
 
+/** Key untuk transaksi, price-list & cek saldo: ikut mode DIGIFLAZZ_TESTING. */
+function transactionKey(): string | undefined {
+  return (env.DIGIFLAZZ_TESTING ? env.DIGIFLAZZ_DEV_KEY : env.DIGIFLAZZ_PROD_KEY) || env.DIGIFLAZZ_API_KEY || undefined;
+}
+
+/** Key untuk cek meter PLN: selalu production bila ada (development key ditolak, RC 41). */
+function inquiryKey(): string | undefined {
+  return env.DIGIFLAZZ_PROD_KEY || transactionKey();
+}
+
 export function digiflazzConfigured(): boolean {
-  return Boolean(env.DIGIFLAZZ_USERNAME && env.DIGIFLAZZ_API_KEY);
+  return Boolean(env.DIGIFLAZZ_USERNAME && transactionKey());
 }
 
 const md5 = (s: string) => createHash('md5').update(s, 'utf8').digest('hex');
 
-export function sign(suffix: string): string {
-  return md5(`${env.DIGIFLAZZ_USERNAME ?? ''}${env.DIGIFLAZZ_API_KEY ?? ''}${suffix}`);
+export function sign(suffix: string, key: string | undefined = transactionKey()): string {
+  return md5(`${env.DIGIFLAZZ_USERNAME ?? ''}${key ?? ''}${suffix}`);
 }
 
 async function httpTransport(path: string, body: Record<string, unknown>): Promise<unknown> {
@@ -165,7 +175,7 @@ export async function inquiryPln(customerNo: string): Promise<{ ok: boolean; nam
   const data = (await transport('/inquiry-pln', {
     username: env.DIGIFLAZZ_USERNAME,
     customer_no: customerNo,
-    sign: sign(customerNo),
+    sign: sign(customerNo, inquiryKey()),
   })) as { status?: string; name?: string; segment_power?: string; message?: string; rc?: string };
   return { ok: data.status === 'Sukses', name: data.name, segmentPower: data.segment_power, message: data.message, rc: data.rc };
 }

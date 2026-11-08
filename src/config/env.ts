@@ -43,7 +43,12 @@ const rawSchema = z.object({
     .optional()
     .transform((v) => v === 'true' || v === '1'),
   DIGIFLAZZ_USERNAME: z.string().optional(),
-  DIGIFLAZZ_API_KEY: z.string().optional(),
+  DIGIFLAZZ_API_KEY: z.string().optional(), // lama: satu key untuk semua (cadangan bila dua key di bawah kosong)
+  // Dua key berdampingan: transaksi/price-list/cek saldo memakai key sesuai DIGIFLAZZ_TESTING
+  // (true → DEV, false → PROD); cek meter PLN (inquiry-pln, gratis) selalu memakai PROD bila ada,
+  // karena Digiflazz menolak development key untuk inquiry-pln (RC 41).
+  DIGIFLAZZ_DEV_KEY: z.string().optional(),
+  DIGIFLAZZ_PROD_KEY: z.string().optional(),
   DIGIFLAZZ_WEBHOOK_SECRET: z.string().optional(),
   // true = kirim `testing: true` ke Digiflazz (mode uji, tak memotong deposit).
   DIGIFLAZZ_TESTING: z
