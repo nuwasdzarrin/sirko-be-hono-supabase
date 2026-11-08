@@ -151,6 +151,33 @@ export function renderStoreReport(d: BusinessDetail, r: StoreReport): string {
 
 // ── Detail transaksi ─────────────────────────────────────────────────────────
 
+const PPOB_STATUS: Record<string, { label: string; cls: string }> = {
+  success: { label: 'Sukses', cls: 'ok' },
+  failed: { label: 'Gagal', cls: 'bad' },
+  pending: { label: 'Diproses penyedia', cls: 'warn' },
+  processing: { label: 'Diproses', cls: 'warn' },
+  waiting_admin: { label: 'Menunggu admin', cls: 'warn' },
+};
+
+/**
+ * Baris PPOB: nama tanpa status saat jual (yang dibekukan app, mis. "DIPROSES, token menyusul"),
+ * ditambah status & SN/token TERKINI dari order server + tautan ke detail order.
+ */
+function ppobCell(name: unknown, o: NonNullable<TransactionDetail['items'][number]['ppob']>): string {
+  const parts = String(name ?? '')
+    .split(' · ')
+    .filter((p) => !/^#[0-9a-f]{8}$/i.test(p.trim()) && !/^(DIPROSES|DIPROSESKAN|SUKSES|BERHASIL|GAGAL|PENDING|MENUNGGU)\b/i.test(p.trim()));
+  const st = PPOB_STATUS[o.status] ?? { label: o.status, cls: '' };
+  const snLabel = o.category === 'pln' ? 'Token' : 'SN';
+  return `${esc(parts.join(' · ') || '—')}
+    <div style="margin-top:3px;font-size:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span class="pill ${st.cls}">${esc(st.label)}</span>${o.refunded ? ' <span class="pill">Poin dikembalikan</span>' : ''}
+      ${o.sn ? `<span>${snLabel}: <b style="font-family:ui-monospace,Consolas,monospace">${esc(o.sn)}</b></span>` : ''}
+      ${o.completedAt ? `<span class="mut">${dt(o.completedAt)}</span>` : ''}
+      <a class="mini" href="/dashboard/ppob/orders/${esc(o.id)}">Order →</a>
+    </div>`;
+}
+
 export function renderTransactionDetail(d: BusinessDetail, x: TransactionDetail): string {
   const id = String(d.business.id);
   const t = x.tx;
@@ -164,7 +191,7 @@ export function renderTransactionDetail(d: BusinessDetail, x: TransactionDetail)
     .map((r) => {
       const profit = (Number(r.unit_price ?? 0) - Number(r.cost_price_snapshot ?? 0)) * Number(r.qty ?? 0) - Number(r.discount ?? 0);
       return `<tr${deleted(r) ? ' style="opacity:.55"' : ''}>
-        <td>${esc(r.name_snapshot ?? '—')}${r.variantName ? ` <span class="mut">· ${esc(r.variantName)}</span>` : ''}${delTag(r)}</td>
+        <td>${r.ppob ? ppobCell(r.name_snapshot, r.ppob) : esc(r.name_snapshot ?? '—')}${r.variantName ? ` <span class="mut">· ${esc(r.variantName)}</span>` : ''}${delTag(r)}</td>
         <td class="num">${num(r.qty)}</td><td class="num">${rp(r.unit_price)}</td>
         <td class="num">${Number(r.discount ?? 0) ? `− ${rp(r.discount)}` : dash}</td>
         <td class="num"><b>${rp(r.line_total)}</b></td>

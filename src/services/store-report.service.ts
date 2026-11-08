@@ -215,11 +215,52 @@ export async function getStoreReport(businessId: string, range: ReportRange): Pr
 
 // ── Detail satu transaksi ────────────────────────────────────────────────────
 
+/** Status PPOB terkini (dari ppob_orders server) untuk baris nota PPOB yang dicatat app. */
+export interface PpobItemStatus {
+  id: string;
+  category: string;
+  status: string;
+  sn: string | null;
+  plnName: string | null;
+  refunded: boolean;
+  completedAt: number | null;
+}
+
+/**
+ * Baris nota PPOB dari app memuat status saat dijual (mis. "DIPROSES, token menyusul · #6ef05a49")
+ * dan tidak diperbarui HP setelahnya. Catatan transaksi berisi "PPOB <orderId>" → cocokkan prefix
+ * #xxxxxxxx di nama item dengan order asli agar dashboard menampilkan status & token terkini.
+ */
+async function ppobStatusFor(businessId: string, note: unknown, items: Record<string, unknown>[]): Promise<Map<string, PpobItemStatus>> {
+  const ids = [...String(note ?? '').matchAll(/PPOB ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi)].map((m) => m[1]!.toLowerCase());
+  const out = new Map<string, PpobItemStatus>();
+  if (!ids.length) return out;
+  const orders = await sql<Record<string, unknown>[]>`
+    SELECT id, category, status, sn, pln_name, refunded, completed_at FROM ppob_orders
+    WHERE business_id = ${businessId} AND id IN ${sql(ids)}`;
+  for (const it of items) {
+    const prefix = /#([0-9a-f]{8})\s*$/i.exec(String(it.name_snapshot ?? ''))?.[1]?.toLowerCase();
+    const o = prefix ? orders.find((x) => String(x.id).startsWith(prefix)) : undefined;
+    if (o) {
+      out.set(String(it.id), {
+        id: o.id as string,
+        category: o.category as string,
+        status: o.status as string,
+        sn: (o.sn as string) ?? null,
+        plnName: (o.pln_name as string) ?? null,
+        refunded: Boolean(o.refunded),
+        completedAt: o.completed_at == null ? null : n(o.completed_at),
+      });
+    }
+  }
+  return out;
+}
+
 export interface TransactionDetail {
   tx: Record<string, unknown>;
   cashierName: string | null;
   customer: { id: string; name: string | null; phone: string | null } | null;
-  items: Array<Record<string, unknown> & { variantName: string | null }>;
+  items: Array<Record<string, unknown> & { variantName: string | null; ppob: PpobItemStatus | null }>;
   payments: Record<string, unknown>[];
   installments: Record<string, unknown>[];
   creditPayments: Record<string, unknown>[];
@@ -266,6 +307,7 @@ export async function getTransactionDetail(businessId: string, txId: string): Pr
   ]);
 
   const live = <T extends Record<string, unknown>>(r: T) => r.deleted_at === null || r.deleted_at === undefined;
+  const ppobOf = await ppobStatusFor(businessId, tx.note, items);
   const itemsProfit = items
     .filter(live)
     .reduce((s, r) => s + (n(r.unit_price) - n(r.cost_price_snapshot)) * n(r.qty) - n(r.discount), 0);
@@ -277,7 +319,7 @@ export async function getTransactionDetail(businessId: string, txId: string): Pr
     tx,
     cashierName: cashier[0]?.name ?? null,
     customer: customer[0] ?? null,
-    items: items.map((r) => ({ ...r, variantName: (r.variant_name as string | null) ?? null })),
+    items: items.map((r) => ({ ...r, variantName: (r.variant_name as string | null) ?? null, ppob: ppobOf.get(String(r.id)) ?? null })),
     payments,
     installments,
     creditPayments,
