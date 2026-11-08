@@ -27,6 +27,12 @@ order pending berkala), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `PUBLIC_
 Di dashboard Digiflazz: whitelist IP `151.243.222.93`, webhook ke `https://sirko.produkdesa.com/v1/webhooks/digiflazz`
 dengan secret = `DIGIFLAZZ_WEBHOOK_SECRET`. Perubahan `.env` → `FORCE=1 bash scripts/update.sh` (restart).
 
+**Bot admin Telegram** (interaktif: /ringkasan, /token, /topup, /saldo, isi token PLN & konfirmasi top-up
+lewat chat): setelah deploy/ganti `TELEGRAM_BOT_TOKEN` jalankan sekali
+`node --env-file=.env --import tsx src/cli/telegram-setup.ts` (pasang webhook `/v1/webhooks/telegram` +
+daftar perintah). Admin menautkan Telegram-nya sendiri di dashboard → **Profil → Hubungkan Telegram**;
+notifikasi dikirim ke semua admin tertaut (+ `TELEGRAM_ADMIN_CHAT_ID` lama).
+
 **Aturan:** server = mirror. Jangan edit/commit di server; `.env` & `backups/` tak
 di-commit. Migrasi baru cukup ditaruh di `src/db/migrations/` — dijalankan update.sh.
 
@@ -129,6 +135,9 @@ Project → **Settings → Environment Variables** (scope **Production**):
 
 > `APP_ENV=production` membuat `config/env.ts` **mewajibkan** semua `S3_*` lengkap (gagal-cepat bila kurang).
 > Bila `DASHBOARD_USER`/`DASHBOARD_PASSWORD` kosong, `/dashboard` **terbuka** — di produksi sebaiknya diisi.
+> Sejak migrasi 0014 akun admin disimpan di tabel `admin_users`: `DASHBOARD_USER`/`PASSWORD` hanya
+> **membuat admin pertama** saat tabel kosong. Setelah itu ganti password / lupa password (OTP email)
+> dilakukan di dashboard — mengubah `.env` tidak lagi mengganti password admin.
 
 ---
 

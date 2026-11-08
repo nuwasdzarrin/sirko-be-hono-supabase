@@ -484,11 +484,11 @@ export async function createOrder(
         `Produk: <b>${tgEsc(o.product_name)}</b>\n` +
         `No meter: <code>${tgEsc(target)}</code>${plnName ? ` (${tgEsc(plnName)})` : ''}\n` +
         `Poin dibayar: ${tgEsc(rupiah(n(o.price)))}\n\n` +
-        `1. Ketuk nomor meter di atas untuk menyalin.\n` +
-        `2. Beli tokennya di aplikasi PLN Mobile.\n` +
-        `3. Buka order di bawah → tempel token → email terkirim ke pelanggan.`,
+        `1. Tekan <b>Salin no meter</b>, beli tokennya di PLN Mobile.\n` +
+        `2. Tekan <b>Kirim token</b>, balas dengan token 20 digit → email terkirim ke pelanggan.`,
+      buttons: plnOrderButtons(id, target),
       linkPath: `/dashboard/ppob/orders/${id}`,
-      linkLabel: '⚡ Buka & tempel token',
+      linkLabel: 'Buka di dashboard',
     });
     return orderView(o);
   }
@@ -1103,6 +1103,17 @@ export async function adminResendPlnEmail(orderId: string): Promise<{ ok: boolea
     : { ok: false, message: 'Email tidak terkirim — lihat jejak kejadian (Resend belum dikonfigurasi / tanpa alamat email).' };
 }
 
+/** Tombol Telegram untuk order token: salin no meter, kirim token, gagalkan (diproses bot admin). */
+export function plnOrderButtons(orderId: string, meter: string) {
+  return [
+    [{ text: `📋 Salin no meter ${meter}`, copy_text: { text: meter } }],
+    [
+      { text: '✍️ Kirim token', callback_data: `pln:f:${orderId}` },
+      { text: '❌ Gagalkan', callback_data: `pln:x:${orderId}` },
+    ],
+  ];
+}
+
 /** Pengingat Telegram untuk order token yang belum diproses > 30 menit (maks 1×/30 menit per order). */
 export async function remindWaitingPln(): Promise<number> {
   const ts = nowMs();
@@ -1118,6 +1129,7 @@ export async function remindWaitingPln(): Promise<number> {
       rows.slice(0, 5).map((r) => `• ${tgEsc(r.product_name)} → <code>${tgEsc(r.customer_no)}</code>`).join('\n') +
       (rows.length > 5 ? `\n…dan ${rows.length - 5} lagi` : '') +
       `\nTerlama menunggu ±${Math.round(oldest / 60_000)} menit.`,
+    buttons: [[{ text: '⚡ Tampilkan antrean di sini', callback_data: 'm:token' }]],
     linkPath: '/dashboard/ppob?status=waiting_admin',
     linkLabel: 'Buka antrean token',
   });

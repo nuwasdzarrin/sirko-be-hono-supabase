@@ -2,14 +2,12 @@ import { Hono, type Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { ZodError } from 'zod';
 import { AppError } from '../lib/errors.js';
-import {
-  checkCredentials,
-  dashboardAuthEnabled,
-  endSession,
-  safeNext,
-  sessionUser,
-  startSession,
-} from '../lib/dashboard-session.js';
+import { dashboardAuthEnabled, endSession, safeNext, sessionInfo, startSession } from '../lib/dashboard-session.js';
+import * as adminSvc from '../services/admin.service.js';
+import { clientIp, hitRateLimit } from '../services/account.service.js';
+import * as usersAdmin from '../services/users-admin.service.js';
+import { botUsername, tgSend } from '../lib/telegram.js';
+import { renderForgot, renderReset, renderProfile, renderUsers, renderUserDetail } from '../views/admin.view.js';
 import { parseVerified } from '../services/catalog.service.js';
 import {
   getOverview,
@@ -55,12 +53,12 @@ import * as contributions from '../services/catalog-contribution.service.js';
  *  - `/login`        halaman login (sesi cookie) · `POST /logout`
  * Digerbang login bila DASHBOARD_USER & DASHBOARD_PASSWORD diisi. Baca lintas-tenant.
  */
-type DashEnv = { Variables: { admin: string; flash: Flash | null } };
+type DashEnv = { Variables: { admin: string; adminUser: adminSvc.AdminUser | null; flash: Flash | null } };
 export const dashboardRoutes = new Hono<DashEnv>();
 
 dashboardRoutes.get('/login', async (c) => {
   const next = safeNext(c.req.query('next'));
-  if (!dashboardAuthEnabled || (await sessionUser(c))) return c.redirect(next);
+  if (!dashboardAuthEnabled || (await currentAdmin(c))) return c.redirect(next);
   return c.html(renderLogin({ next, error: null, user: '' }));
 });
 
@@ -69,13 +67,68 @@ dashboardRoutes.post('/login', async (c) => {
   const user = typeof body.user === 'string' ? body.user.trim() : '';
   const password = typeof body.password === 'string' ? body.password : '';
   const next = safeNext(typeof body.next === 'string' ? body.next : undefined);
-  if (!checkCredentials(user, password)) {
+  let a: adminSvc.AdminUser | null;
+  try {
+    a = await adminSvc.login(user, password, clientIp(c.req.raw.headers));
+  } catch (e) {
+    if (e instanceof AppError && e.code === 'ACCOUNT_LOCKED') return c.html(renderLogin({ next, error: e.message, user }), 429);
+    throw e;
+  }
+  if (!a) {
     // Perlambat tebakan beruntun (murah, tanpa state).
     await new Promise((r) => setTimeout(r, 600));
-    return c.html(renderLogin({ next, error: 'Username atau password salah.', user }), 401);
+    return c.html(renderLogin({ next, error: 'Email atau password salah.', user }), 401);
   }
-  await startSession(c, user, body.remember === 'on');
+  await startSession(c, a.email, body.remember === 'on');
   return c.redirect(next);
+});
+
+/** Admin dari sesi yang masih berlaku (sesi gugur bila terbit sebelum password diganti). */
+async function currentAdmin(c: Context): Promise<adminSvc.AdminUser | null> {
+  const s = await sessionInfo(c);
+  if (!s) return null;
+  await adminSvc.ensureBootstrap();
+  const a = await adminSvc.adminByEmail(s.user);
+  if (!a || s.iat < a.passwordChangedAt) return null;
+  return a;
+}
+
+// ── Lupa password (tanpa sesi): OTP 6 digit ke email admin ───────────────────
+
+dashboardRoutes.get('/forgot', (c) => c.html(renderForgot({ email: c.req.query('email') ?? '' })));
+
+dashboardRoutes.post('/forgot', async (c) => {
+  const body = await c.req.parseBody();
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!email) return c.html(renderForgot({ email, error: 'Isi email admin Anda.' }), 422);
+  try {
+    await hitRateLimit(`adm-forgot:${clientIp(c.req.raw.headers)}`, 10, 3_600_000, 'Terlalu sering meminta kode. Coba lagi nanti.');
+    const r = await adminSvc.forgotPassword(email);
+    return c.html(renderReset({ email, notice: `Jika email terdaftar sebagai admin, kode 6 digit sudah dikirim ke ${r.sentTo ?? email}. Berlaku 10 menit.`, devCode: r.devCode }));
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    return c.html(renderForgot({ email, error: msg }), 429);
+  }
+});
+
+dashboardRoutes.get('/reset', (c) => c.html(renderReset({ email: c.req.query('email') ?? '' })));
+
+dashboardRoutes.post('/reset', async (c) => {
+  const body = await c.req.parseBody();
+  const str = (k: string) => (typeof body[k] === 'string' ? (body[k] as string) : '');
+  const email = str('email').trim();
+  if (str('password') !== str('confirm')) return c.html(renderReset({ email, error: 'Konfirmasi password baru tidak sama.' }), 422);
+  try {
+    const a = await adminSvc.resetPassword(email, str('code'), str('password'));
+    await startSession(c, a.email, false);
+    flash(c, 'ok', 'Password baru tersimpan. Sesi di perangkat lain sudah dikeluarkan.');
+    return c.redirect('/dashboard');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    return c.html(renderReset({ email, error: msg }), 422);
+  }
 });
 
 dashboardRoutes.post('/logout', (c) => {
@@ -87,15 +140,17 @@ dashboardRoutes.post('/logout', (c) => {
 dashboardRoutes.use('*', async (c, next) => {
   if (!dashboardAuthEnabled) {
     c.set('admin', 'dev');
+    c.set('adminUser', null);
     return next();
   }
-  const admin = await sessionUser(c);
+  const admin = await currentAdmin(c);
   if (!admin) {
     const url = new URL(c.req.url);
     const target = safeNext(url.pathname + url.search);
     return c.redirect(`/dashboard/login?next=${encodeURIComponent(target)}`);
   }
-  c.set('admin', admin);
+  c.set('admin', admin.email);
+  c.set('adminUser', admin);
   return next();
 });
 
@@ -140,11 +195,22 @@ async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 4
   html = html.replace('<!--pp-badge-->', ppAttention > 0 ? ` <span class="nb">${ppAttention}</span>` : '');
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
   html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
+  html = withAdminName(html, c.get('adminUser'));
   const f = c.get('flash');
   const toast = f
     ? `<div class="flash ${f.type === 'error' ? 'err' : 'ok'}" role="status">${escapeHtml(f.msg)}</div>`
     : '';
   return c.html(html.replace('<!--flash-->', toast), status);
+}
+
+/** Nama & email admin di menu akun (navbar). */
+export function withAdminName(html: string, a: adminSvc.AdminUser | null | undefined): string {
+  if (!a) return html;
+  const name = escapeHtml(a.name || a.email);
+  return html
+    .replace('<!--admin-initial-->A', escapeHtml((a.name || a.email).trim().charAt(0).toUpperCase() || 'A'))
+    .replace('<!--admin-name-->Akun', name)
+    .replace('<!--admin-who--><b>Admin</b>', `<b>${name}</b>${escapeHtml(a.email)}`);
 }
 
 function escapeHtml(s: string) {
@@ -590,4 +656,92 @@ dashboardRoutes.post('/feedback/:id', async (c) => {
 dashboardRoutes.get('/transactions', async (c) => {
   const page = intParam(c.req.query('page'), 1);
   return sendPage(c, renderTransactions(await getTransactionsPage({ page, limit: 20 })));
+});
+
+// ── Admin: profil (password & Telegram) ─────────────────────────────────────
+
+async function profilePage(c: Context<DashEnv>, extra: { error?: string | null; tgLink?: { url: string; expiresAt: number } | null } = {}, status: 200 | 422 = 200) {
+  const a = c.get('adminUser');
+  if (!a) return sendPage(c, renderNotFound('Profil admin hanya tersedia saat login dashboard aktif.', '/dashboard'), 404);
+  return sendPage(c, renderProfile(a, { botUsername: await botUsername(), serverTime: Date.now(), ...extra }), status);
+}
+
+dashboardRoutes.get('/profile', (c) => profilePage(c));
+
+dashboardRoutes.post('/profile', async (c) => {
+  const a = c.get('adminUser');
+  if (!a) return c.redirect('/dashboard/profile');
+  try {
+    const updated = await adminSvc.updateProfile(a.id, await c.req.parseBody());
+    if (updated.email !== a.email) await startSession(c, updated.email, false);
+    flash(c, 'ok', 'Profil disimpan.');
+    return c.redirect('/dashboard/profile');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    return profilePage(c, { error: msg }, 422);
+  }
+});
+
+dashboardRoutes.post('/profile/password', async (c) => {
+  const a = c.get('adminUser');
+  if (!a) return c.redirect('/dashboard/profile');
+  const body = await c.req.parseBody();
+  const str = (k: string) => (typeof body[k] === 'string' ? (body[k] as string) : '');
+  try {
+    const updated = await adminSvc.changePassword(a.id, str('current'), str('password'), str('confirm'));
+    await startSession(c, updated.email, false); // sesi ini tetap, perangkat lain keluar
+    flash(c, 'ok', 'Password diganti. Sesi di perangkat lain sudah dikeluarkan.');
+    return c.redirect('/dashboard/profile');
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    return profilePage(c, { error: msg }, 422);
+  }
+});
+
+dashboardRoutes.post('/profile/telegram/link', async (c) => {
+  const a = c.get('adminUser');
+  if (!a) return c.redirect('/dashboard/profile');
+  const bot = await botUsername();
+  if (!bot) return profilePage(c, { error: 'Bot Telegram belum dikonfigurasi di server (TELEGRAM_BOT_TOKEN).' }, 422);
+  const t = await adminSvc.createTelegramLinkToken(a.id);
+  return profilePage(c, { tgLink: { url: `https://t.me/${bot}?start=${t.token}`, expiresAt: t.expiresAt } });
+});
+
+dashboardRoutes.post('/profile/telegram/unlink', async (c) => {
+  const a = c.get('adminUser');
+  if (a) await adminSvc.unlinkTelegram(a.id);
+  flash(c, 'ok', 'Telegram diputuskan. Notifikasi tidak lagi dikirim ke akun Telegram itu.');
+  return c.redirect('/dashboard/profile');
+});
+
+dashboardRoutes.post('/profile/telegram/test', async (c) => {
+  const a = c.get('adminUser');
+  if (!a?.telegramChatId) return c.redirect('/dashboard/profile');
+  const r = await tgSend(a.telegramChatId, `✅ <b>Uji notifikasi</b>\nTelegram ini tertaut ke admin <b>${escapeHtml(a.name || a.email)}</b>.`);
+  flash(c, r ? 'ok' : 'error', r ? 'Pesan uji terkirim ke Telegram.' : 'Gagal mengirim pesan uji — cek log server.');
+  return c.redirect('/dashboard/profile');
+});
+
+// ── Admin: pengguna terdaftar ────────────────────────────────────────────────
+
+dashboardRoutes.get('/users', async (c) => {
+  const s = c.req.query('status') ?? 'semua';
+  const status = (usersAdmin.USER_FILTERS as string[]).includes(s) ? (s as usersAdmin.UserStatusFilter) : 'semua';
+  const d = await usersAdmin.listUsers({ page: intParam(c.req.query('page'), 1), limit: 25, q: (c.req.query('q') ?? '').slice(0, 80), status });
+  return sendPage(c, renderUsers(d, Date.now()));
+});
+
+dashboardRoutes.get('/users/:id', async (c) => {
+  const d = await usersAdmin.userDetail(c.req.param('id'));
+  if (!d) return sendPage(c, renderNotFound('Pengguna tidak ditemukan.', '/dashboard/users'), 404);
+  return sendPage(c, renderUserDetail(d, Date.now()));
+});
+
+dashboardRoutes.post('/users/:id/unlock', async (c) => {
+  const id = c.req.param('id');
+  await usersAdmin.unlockUser(id);
+  flash(c, 'ok', 'Kunci login pengguna dibuka.');
+  return c.redirect(`/dashboard/users/${id}`);
 });

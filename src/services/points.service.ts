@@ -370,9 +370,16 @@ export async function createTopup(auth: { businessId: string; userId: string; ro
 ` +
           `Transfer: <b>${rupiah(t.transferAmount)}</b> (kode unik ${t.uniqueCode})
 ` +
-          `Cek mutasi rekening lalu konfirmasi di dashboard.`,
+          `Cek mutasi rekening, lalu konfirmasi di sini atau di dashboard.`,
+        buttons: [
+          [{ text: `📋 Salin nominal ${t.transferAmount}`, copy_text: { text: String(t.transferAmount) } }],
+          [
+            { text: '✅ Dana masuk', callback_data: `tu:a:${t.id}` },
+            { text: '❌ Tolak', callback_data: `tu:r:${t.id}` },
+          ],
+        ],
         linkPath: '/dashboard/points?tab=topups',
-        linkLabel: 'Konfirmasi top-up',
+        linkLabel: 'Buka di dashboard',
       });
       return instructionsFor(t, cfg);
     } catch (e) {

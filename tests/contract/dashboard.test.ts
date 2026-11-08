@@ -81,7 +81,7 @@ suite('Dashboard contract', () => {
     const res = await app.request('/dashboard/login', { method: 'POST', headers: h, body });
     expect(res.status).toBe(401);
     expect(res.headers.get('set-cookie')).toBeNull();
-    expect(await res.text()).toContain('Username atau password salah');
+    expect(await res.text()).toContain('Email atau password salah');
   });
 
   it('login benar → cookie HttpOnly SameSite=Lax; next eksternal ditolak (open redirect)', async () => {

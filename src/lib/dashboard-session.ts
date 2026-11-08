@@ -41,8 +41,9 @@ const secure = (c: Context) =>
 
 export async function startSession(c: Context, user: string, remember: boolean): Promise<void> {
   const ttl = remember ? LONG_TTL_S : SHORT_TTL_S;
-  const exp = Date.now() + ttl * 1000;
-  await setSignedCookie(c, SESSION_COOKIE, `${user}|${exp}`, SECRET, {
+  const iat = Date.now();
+  const exp = iat + ttl * 1000;
+  await setSignedCookie(c, SESSION_COOKIE, `${user}|${exp}|${iat}`, SECRET, {
     httpOnly: true,
     secure: secure(c),
     sameSite: 'Lax',
@@ -55,15 +56,24 @@ export function endSession(c: Context): void {
   deleteCookie(c, SESSION_COOKIE, { path: '/', secure: secure(c) });
 }
 
-/** Nama admin dari sesi valid, atau null. */
-export async function sessionUser(c: Context): Promise<string | null> {
+/**
+ * Sesi dari cookie: `<user>|<exp>|<iat>` (format lama `<user>|<exp>` → iat 0).
+ * Pemanggil wajib mencocokkan `iat` dengan password_changed_at admin.
+ */
+export async function sessionInfo(c: Context): Promise<{ user: string; iat: number } | null> {
   const raw = await getSignedCookie(c, SECRET, SESSION_COOKIE);
   if (!raw) return null;
-  const sep = raw.lastIndexOf('|');
-  const user = raw.slice(0, sep);
-  const exp = Number(raw.slice(sep + 1));
-  if (sep < 1 || !Number.isFinite(exp) || exp < Date.now()) return null;
-  return user;
+  const parts = raw.split('|');
+  const iat = parts.length >= 3 ? Number(parts.pop()) : 0;
+  const exp = Number(parts.pop());
+  const user = parts.join('|');
+  if (!user || !Number.isFinite(exp) || exp < Date.now() || !Number.isFinite(iat)) return null;
+  return { user, iat };
+}
+
+/** Nama admin dari sesi (tanpa cek password_changed_at — pakai sessionInfo untuk gerbang). */
+export async function sessionUser(c: Context): Promise<string | null> {
+  return (await sessionInfo(c))?.user ?? null;
 }
 
 /** Hanya izinkan redirect pasca-login ke dalam /dashboard (cegah open redirect). */

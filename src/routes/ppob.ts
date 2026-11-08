@@ -5,6 +5,8 @@ import { requireTenant } from '../middleware/tenant.js';
 import { ok } from '../lib/envelope.js';
 import * as ppob from '../services/ppob.service.js';
 import * as pricing from '../services/ppob-pricing.service.js';
+import { verifyWebhookSecret } from '../lib/telegram.js';
+import { handleUpdate, type TgUpdate } from '../services/telegram-bot.service.js';
 
 /**
  * PPOB untuk app (Bearer + konteks toko). Base `/v1/ppob`. Online-only.
@@ -64,4 +66,13 @@ export const webhookRoutes = new Hono<AppEnv>().post('/digiflazz', async (c) => 
     event: c.req.header('x-digiflazz-event'),
   });
   return c.text(r.body, r.status as 200);
+});
+
+// ── Bot admin Telegram ───────────────────────────────────────────────────────
+/** Webhook bot admin (diverifikasi header X-Telegram-Bot-Api-Secret-Token). Selalu 200 bila sah. */
+webhookRoutes.post('/telegram', async (c) => {
+  if (!verifyWebhookSecret(c.req.header('x-telegram-bot-api-secret-token'))) return c.text('forbidden', 403);
+  const update = (await c.req.json().catch(() => null)) as TgUpdate | null;
+  if (update) await handleUpdate(update);
+  return c.text('ok');
 });
