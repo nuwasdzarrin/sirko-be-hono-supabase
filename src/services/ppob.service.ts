@@ -852,6 +852,7 @@ export async function countNeedsAttention(): Promise<number> {
 const PLN_CACHE_MS = 24 * 3_600_000;
 /** RC inquiry-pln yang berarti nomor meter memang salah/tak ditemukan (boleh di-cache). */
 const PLN_NOT_FOUND_RC = new Set(['14', '54', '57']);
+const PLN_NOT_FOUND_MSG = 'Nomor meter tidak dikenali PLN — periksa lagi nomornya.';
 const PLN_INQUIRY_TROUBLE = 'Cek nomor meter sedang bermasalah. Pastikan nomor benar — pembelian tetap bisa dilanjutkan.';
 let lastInquiryAlarmAt = 0;
 async function alarmPlnInquiry(detail: string) {
@@ -898,7 +899,7 @@ export async function plnInquiry(rawMeter: string): Promise<PlnInquiry> {
   if (!meter) throw validation('Nomor meter / ID pelanggan PLN harus 11–12 digit.');
   const c = await sql<Row[]>`SELECT * FROM ppob_pln_cache WHERE meter_no = ${meter}`;
   if (c[0] && nowMs() - n(c[0].checked_at) < PLN_CACHE_MS) {
-    return { ok: Boolean(c[0].ok), meterNo: meter, name: (c[0].name as string) ?? null, segmentPower: (c[0].segment_power as string) ?? null, message: (c[0].message as string) ?? null, cached: true };
+    return { ok: Boolean(c[0].ok), meterNo: meter, name: (c[0].name as string) ?? null, segmentPower: (c[0].segment_power as string) ?? null, message: c[0].ok ? null : ((c[0].message as string) ?? PLN_NOT_FOUND_MSG), cached: true };
   }
   if (!df.digiflazzConfigured()) {
     return { ok: false, meterNo: meter, name: null, segmentPower: null, message: 'Cek nomor meter belum tersedia — pastikan nomor benar.', cached: false };
@@ -919,15 +920,20 @@ export async function plnInquiry(rawMeter: string): Promise<PlnInquiry> {
     void alarmPlnInquiry(`RC ${r.rc}: ${r.message ?? ''}`);
     return { ok: false, meterNo: meter, name: null, segmentPower: null, message: PLN_INQUIRY_TROUBLE, cached: false };
   }
+  // RC 02 "Transaksi Gagal" = nomor tak dikenali PLN (Digiflazz tak membedakan dari gagal umum)
+  // → pesan jelas, tapi tidak di-cache karena belum tentu definitif.
+  if (!r.ok && r.rc === '02') {
+    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: PLN_NOT_FOUND_MSG, cached: false };
+  }
   // Cache hanya hasil definitif: nama ditemukan, atau nomor meter memang salah/tak dikenal.
   if (!r.ok && !PLN_NOT_FOUND_RC.has(r.rc ?? '')) {
-    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: r.message ? `Cek meter belum berhasil: ${r.message}` : PLN_INQUIRY_TROUBLE, cached: false };
+    return { ok: false, meterNo: meter, name: null, segmentPower: null, message: PLN_INQUIRY_TROUBLE, cached: false };
   }
-  const row = { meter_no: meter, ok: r.ok, name: r.name ?? null, segment_power: r.segmentPower ?? null, message: r.message ?? null, checked_at: nowMs() };
+  const row = { meter_no: meter, ok: r.ok, name: r.name ?? null, segment_power: r.segmentPower ?? null, message: r.ok ? null : PLN_NOT_FOUND_MSG, checked_at: nowMs() };
   await sql`INSERT INTO ppob_pln_cache ${sql(row)}
             ON CONFLICT (meter_no) DO UPDATE SET ok = EXCLUDED.ok, name = EXCLUDED.name,
               segment_power = EXCLUDED.segment_power, message = EXCLUDED.message, checked_at = EXCLUDED.checked_at`;
-  return { ok: r.ok, meterNo: meter, name: row.name, segmentPower: row.segment_power, message: r.ok ? null : (r.message ?? 'Nomor meter tidak ditemukan'), cached: false };
+  return { ok: r.ok, meterNo: meter, name: row.name, segmentPower: row.segment_power, message: row.message, cached: false };
 }
 
 // Produk token PLN dikelola admin (nominal & modal pembelian manual).
