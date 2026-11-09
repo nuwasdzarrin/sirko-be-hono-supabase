@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { sql } from '../db/client.js';
 import { getStorage } from '../lib/storage.js';
 import { nowMs } from '../lib/time.js';
@@ -108,28 +109,75 @@ function formToInput(b: FormBody): Record<string, unknown> {
   };
 }
 
-const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // < batas body Vercel 4.5 MB
+/** Foto katalog dikompres di browser (browser-image-compression) → maks 200 KB. */
+export const MAX_PHOTO_BYTES = 200 * 1024;
+/**
+ * Hanya format yang pasti tampil di app Flutter (Image.network di Android & iOS): JPEG, PNG, WebP.
+ * HEIC/AVIF/SVG/TIFF ditolak (tak didukung decoder Flutter); GIF/BMP tak dipakai untuk foto produk.
+ */
 const PHOTO_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
 };
 
+/** Format sebenarnya dari isi file (bukan dari ekstensi/MIME yang bisa dipalsukan). */
+export function sniffImageType(buf: Uint8Array): keyof typeof PHOTO_TYPES | null {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 && buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a) return 'image/png';
+  if (buf.length >= 12 && String.fromCharCode(...buf.subarray(0, 4)) === 'RIFF' && String.fromCharCode(...buf.subarray(8, 12)) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+const RAND = 'abcdefghijklmnopqrstuvwxyz0123456789';
+function rand6(): string {
+  const b = randomBytes(6);
+  return Array.from(b, (x) => RAND[x % RAND.length]).join('');
+}
+
+/**
+ * Nama file foto: `<nama-asli>-<6 huruf kecil/angka>.<ext>` (mis. `indomie-goreng-k3f9x2.jpg`).
+ * Nama dari browser yang sudah berpola itu dipakai apa adanya; selain itu dibentuk ulang di server.
+ */
+export function photoFileName(original: string, ext: string): string {
+  const base = original.replace(/\.[^.]*$/, '');
+  const ready = /^([a-z0-9]+(?:-[a-z0-9]+)*)-([a-z0-9]{6})$/.exec(base);
+  if (ready && ready[1]!.length <= 60) return `${base}.${ext}`;
+  return `${slug(base).slice(0, 60)}-${rand6()}.${ext}`;
+}
+
+/** URL foto manual: tolak ekstensi yang tak bisa ditampilkan app Flutter. */
+export function assertDisplayablePhotoUrl(url: string | null | undefined): void {
+  if (!url) return;
+  let path = '';
+  try {
+    path = new URL(url).pathname.toLowerCase();
+  } catch {
+    return; // format URL divalidasi skema
+  }
+  if (/\.(heic|heif|avif|svg|svgz|tif|tiff|bmp|gif|ico|psd|raw)$/.test(path)) {
+    throw validation('Format foto tidak bisa ditampilkan di aplikasi. Pakai JPG, PNG, atau WebP.');
+  }
+}
+
 function slug(s: string): string {
   return s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'produk';
 }
 
 /** Upload foto ke bucket (server-side, presigned PUT) → URL publik. */
-async function uploadPhoto(file: File, name: string, idHint: string): Promise<string> {
-  const ext = PHOTO_TYPES[file.type];
-  if (!ext) throw validation('Foto harus JPG, PNG, atau WebP');
-  if (file.size > MAX_PHOTO_BYTES) throw validation('Foto maksimal 4 MB');
+async function uploadPhoto(file: File): Promise<string> {
+  if (file.size > MAX_PHOTO_BYTES) {
+    throw validation(`Foto ${Math.ceil(file.size / 1024)} KB — maksimal 200 KB. Pilih ulang foto agar dikompres otomatis.`);
+  }
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const type = sniffImageType(bytes);
+  if (!type) throw validation('Foto harus JPG, PNG, atau WebP (format lain tidak bisa ditampilkan di aplikasi).');
   const storage = getStorage();
-  const key = `catalog/${slug(name)}_${idHint}-${Date.now()}.${ext}`;
-  const res = await fetch(storage.signPut(key, file.type), {
+  const key = `catalog/${photoFileName(file.name || 'produk', PHOTO_TYPES[type]!)}`;
+  const res = await fetch(storage.signPut(key, type), {
     method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: Buffer.from(await file.arrayBuffer()),
+    headers: { 'Content-Type': type },
+    body: bytes,
     signal: AbortSignal.timeout(30000),
   });
   if (!res.ok) throw new AppError('INTERNAL', `Upload foto gagal (HTTP ${res.status})`);
@@ -145,7 +193,8 @@ function photoFile(b: FormBody): File | null {
 export async function saveFromForm(id: string, body: FormBody): Promise<string> {
   const input = formToInput(body);
   const file = photoFile(body);
-  if (file) input.photoUrl = await uploadPhoto(file, String(input.name || 'produk'), String(input.barcode || id.slice(0, 8)));
+  if (file) input.photoUrl = await uploadPhoto(file);
+  else assertDisplayablePhotoUrl(input.photoUrl as string | null | undefined);
   await catalog.update(id, catalogUpdateSchema.parse(input));
   return id;
 }
@@ -154,7 +203,8 @@ export async function saveFromForm(id: string, body: FormBody): Promise<string> 
 export async function createFromForm(body: FormBody): Promise<string> {
   const input = formToInput(body);
   const file = photoFile(body);
-  if (file) input.photoUrl = await uploadPhoto(file, String(input.name || 'produk'), String(input.barcode || 'baru'));
+  if (file) input.photoUrl = await uploadPhoto(file);
+  else assertDisplayablePhotoUrl(input.photoUrl as string | null | undefined);
   const row = await catalog.create(catalogCreateSchema.parse(input));
   return row.id as string;
 }
