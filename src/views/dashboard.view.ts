@@ -1000,7 +1000,7 @@ const CATALOG_FORM_TPL = `
     <div class="panel">
       <h3>Foto</h3>
       <div class="photo-box" id="photo-box"><% if (p.photoUrl) { %><img src="<%= p.photoUrl %>" alt="" id="photo-img"><% } else { %><span class="none" id="photo-none">Belum ada foto</span><% } %></div>
-      <div class="f"><label for="photo">Unggah foto baru</label><input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"><div class="hint">JPG/PNG/WebP, maks 4 MB. Menggantikan foto lama saat disimpan.</div></div>
+      <div class="f"><label for="photo">Unggah foto baru</label><input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"><div class="hint" id="photo-hint">JPG/PNG/WebP. Otomatis dikompres ≤ 200 KB sebelum diunggah. Menggantikan foto lama saat disimpan.</div></div>
       <div class="f" style="margin-top:10px"><label for="photoUrl">atau URL foto</label><input type="url" id="photoUrl" name="photoUrl" maxlength="1000" value="<%= p.photoUrl || '' %>"></div>
     </div>
     <div class="panel" style="margin-top:12px">
@@ -1033,19 +1033,55 @@ const CATALOG_FORM_TPL = `
 <% } %>
 `;
 
-const CATALOG_FORM_JS = `<script>
+const IMG_COMPRESS_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.js';
+const IMG_COMPRESS_SRI = 'sha512-AqNGerESFmfQYTtyWZDQv8WSi4ICG16z/O+8JyAD5Iaafp+fnAU4xbJipYZ0bU9DrhXAsx1Vylli0oebd9l55g==';
+
+/**
+ * Foto katalog: hanya JPG/PNG/WebP (tampil di app Flutter), dikompres di browser dengan
+ * browser-image-compression sampai ≤ 200 KB (JPG tetap JPG; PNG/WebP → WebP agar transparansi
+ * aman), lalu dinamai `<nama-asli>-<6 acak a-z0-9>.<ext>`. Server memvalidasi ulang semuanya.
+ */
+const CATALOG_FORM_JS = `<script src="${IMG_COMPRESS_LIB}" integrity="${IMG_COMPRESS_SRI}" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
 (function(){
-  var f=document.getElementById('photo'), box=document.getElementById('photo-box'); if(!f) return;
-  f.addEventListener('change',function(){
-    var file=f.files&&f.files[0]; if(!file) return;
-    if(file.size>4*1024*1024){alert('Foto maksimal 4 MB');f.value='';return}
-    var img=document.getElementById('photo-img');
-    if(!img){box.innerHTML='';img=document.createElement('img');img.id='photo-img';box.appendChild(img)}
-    img.src=URL.createObjectURL(file);
+  var MAX=200*1024, OK={'image/jpeg':1,'image/png':1,'image/webp':1};
+  var f=document.getElementById('photo'), box=document.getElementById('photo-box'), hint=document.getElementById('photo-hint'); if(!f) return;
+  var form=document.getElementById('prod-form'), save=form.querySelector('.btn.primary'), busy=false, hintText=hint?hint.textContent:'';
+  function kb(n){return (n/1024).toLocaleString('id-ID',{maximumFractionDigits:0})+' KB'}
+  function slug(s){return (s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'produk'}
+  function rand6(){var c='abcdefghijklmnopqrstuvwxyz0123456789',a=new Uint8Array(6),o='';crypto.getRandomValues(a);for(var i=0;i<6;i++)o+=c[a[i]%36];return o}
+  function say(t,bad){if(hint){hint.textContent=t;hint.style.color=bad?'var(--bad)':''}}
+  function preview(file){var img=document.getElementById('photo-img');if(!img){box.innerHTML='';img=document.createElement('img');img.id='photo-img';box.appendChild(img)}img.src=URL.createObjectURL(file)}
+  function reset(msg){f.value='';say(msg||hintText,!!msg);busy=false;save.disabled=false}
+  async function compress(file,type){
+    var opt={maxSizeMB:0.19,maxWidthOrHeight:1200,useWebWorker:true,fileType:type,initialQuality:0.85,libURL:'${IMG_COMPRESS_LIB}'};
+    var out=await window.imageCompression(file,opt);
+    if(out.size>MAX){opt.maxWidthOrHeight=800;opt.initialQuality=0.7;out=await window.imageCompression(file,opt)}
+    if(out.size>MAX){opt.maxWidthOrHeight=600;opt.initialQuality=0.6;out=await window.imageCompression(file,opt)}
+    return out;
+  }
+  f.addEventListener('change',async function(){
+    if(busy) return;
+    var file=f.files&&f.files[0]; if(!file) return reset();
+    if(!OK[file.type]) return reset('Format '+(file.type||file.name.split('.').pop())+' tidak bisa ditampilkan di aplikasi. Pakai JPG, PNG, atau WebP.');
+    var type=file.type==='image/jpeg'?'image/jpeg':'image/webp', ext=type==='image/jpeg'?'jpg':'webp';
+    var name=slug(file.name.replace(/\\.[^.]*$/,''))+'-'+rand6()+'.'+ext;
+    busy=true; save.disabled=true; say('Mengompres foto…');
+    try{
+      var out;
+      if(window.imageCompression) out=await compress(file,type);
+      else if(file.size<=MAX){out=file;type=file.type;name=name.replace(/\\.[a-z]+$/,'.'+(type==='image/png'?'png':type==='image/webp'?'webp':'jpg'))}
+      else return reset('Pustaka kompres gagal dimuat (cek koneksi) dan foto lebih dari 200 KB. Muat ulang halaman lalu coba lagi.');
+      if(out.size>MAX) return reset('Foto masih '+kb(out.size)+' setelah dikompres. Pilih foto lain (maks 200 KB).');
+      var nf=new File([out],name,{type:type,lastModified:Date.now()}), dt=new DataTransfer(); dt.items.add(nf); f.files=dt.files;
+      preview(nf);
+      say('✓ '+name+' · '+kb(file.size)+' → '+kb(nf.size)+' (siap diunggah)');
+      busy=false; save.disabled=false;
+    }catch(e){reset('Gagal mengompres foto: '+(e&&e.message?e.message:e))}
   });
-  var form=document.getElementById('prod-form');
   form.addEventListener('submit',function(e){
     if(e.submitter&&e.submitter.getAttribute('form')==='del-form') return;
+    if(busy){e.preventDefault();return}
     var b=form.querySelector('.btn.primary'); b.disabled=true; b.textContent='Menyimpan…';
   });
 })();
