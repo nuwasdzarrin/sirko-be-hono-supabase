@@ -93,6 +93,7 @@ export function renderMarkdown(md: string, opts: { siteHost?: string } = {}): Re
         const inner = this.parser.parseInline(t.tokens);
         const href = t.href ?? '';
         let external = false;
+        if (/^(mailto|tel):/i.test(href)) return `<a href="${escAttr(href)}">${inner}</a>`;
         try {
           const u = new URL(href, `https://${host}/`);
           external = u.hostname.toLowerCase() !== host && u.hostname.toLowerCase() !== `www.${host}`;
