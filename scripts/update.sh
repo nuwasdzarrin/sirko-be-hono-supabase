@@ -67,6 +67,9 @@ fi
 log "Migrasi database"
 npm run --silent migrate
 
+log "Konten awal website (hanya yang belum ada)"
+npm run --silent seed:site
+
 log "Restart aplikasi"
 if changed ecosystem.config.cjs || ! pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
   # reload tak menerapkan perubahan ecosystem (interpreter/args/env) → stop→start.

@@ -342,6 +342,15 @@ const LAYOUT = `<!doctype html><html lang="id"><head>
           <a class="<%= active==='contributions'?'active':'' %>" href="/dashboard/contributions">Kontribusi<% if (pendingContrib>0){ %> <span class="nb"><%= pendingContrib %></span><% } %><small>Usulan produk dari toko</small></a>
         </div>
       </details>
+      <details class="grp <%= active==='site'?'active':'' %>">
+        <summary>Website <span class="chev"></span></summary>
+        <div class="dd">
+          <a class="<%= active==='site'?'active':'' %>" href="/dashboard/site/posts">Artikel blog<small>Tulis &amp; jadwalkan artikel SEO</small></a>
+          <a href="/dashboard/site/pages">Halaman<small>Halaman fitur, privasi, ketentuan</small></a>
+          <a href="/dashboard/site/leads">Pesan masuk<!--lead-badge--><small>Daftar tunggu, kontak, hapus akun</small></a>
+          <a href="/" target="_blank" rel="noopener">Lihat situs ↗<small>sirkopos.com</small></a>
+        </div>
+      </details>
       <a class="tab <%= active==='feedback'?'active':'' %>" href="/dashboard/feedback">Saran<!--fb-badge--></a>
     </div>
     <span class="spacer"></span>

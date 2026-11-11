@@ -15,6 +15,7 @@ import { feedbackRoutes } from './routes/feedback.js';
 import { pointsRoutes } from './routes/points.js';
 import { ppobRoutes, webhookRoutes } from './routes/ppob.js';
 import { juraganRoutes } from './routes/juragan.js';
+import { siteRoutes } from './routes/site.js';
 
 /**
  * Aplikasi Hono inti + middleware global. Modul ini melakukan kerja berat saat
@@ -48,7 +49,7 @@ export function createApp() {
 
   // Halaman admin (HTML) — di luar /v1. `/` diarahkan ke dashboard.
   app.route('/dashboard', dashboardRoutes);
-  app.get('/', (c) => c.redirect('/dashboard'));
+  app.route('/', siteRoutes); // website publik sirkopos.com — PALING AKHIR (punya /:slug & *)
 
   return app;
 }
