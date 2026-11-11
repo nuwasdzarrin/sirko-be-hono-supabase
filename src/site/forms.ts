@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { escAttr, escHtml } from './markdown.js';
-import { breadcrumbsHtml, renderPage, siteUrl, ORG_ID, type Crumb } from './layout.js';
+import { breadcrumbsHtml, renderPage, siteUrl, waDisplay, waHref, ORG_ID, type Crumb } from './layout.js';
 
 /**
  * Halaman formulir publik: /kontak, /hapus-akun, dan formulir daftar tunggu di beranda.
@@ -48,13 +48,14 @@ export function waitlistForm(s: FormState = {}): string {
 </form>`;
 }
 
-function formPage(o: { path: string; title: string; metaTitle: string; description: string; lead: string; body: string; type?: 'ContactPage' | 'WebPage' }) {
+function formPage(o: { path: string; title: string; metaTitle: string; description: string; lead: string; body: string; type?: 'ContactPage' | 'WebPage'; waAsk?: string }) {
   const crumbs: Crumb[] = [{ name: 'Beranda', path: '/' }, { name: o.title, path: o.path }];
   return renderPage({
     title: o.metaTitle,
     description: o.description,
     path: o.path,
     crumbs,
+    waAsk: o.waAsk,
     extraHead: `<style>${FORM_CSS}</style>`,
     body: `<main id="isi"><div class="wrap"><div class="doc">
   ${breadcrumbsHtml(crumbs)}
@@ -67,13 +68,16 @@ function formPage(o: { path: string; title: string; metaTitle: string; descripti
 
 export function renderContact(s: FormState = {}): string {
   const email = env.SITE_CONTACT_EMAIL;
+  const wa = waHref('Halo Admin Sirko, saya dari halaman Kontak (https://sirkopos.com/kontak). Saya mau tanya tentang: ');
   return formPage({
     path: '/kontak',
     title: 'Hubungi Sirko',
     metaTitle: 'Kontak Sirko — Tanya, Saran, dan Kerja Sama',
     description: 'Hubungi tim Sirko untuk pertanyaan seputar aplikasi kasir warung, saran fitur, kerja sama, atau bantuan akun. Kami balas lewat WhatsApp atau email.',
     lead: `Ada pertanyaan tentang aplikasi kasir Sirko, saran fitur, atau ingin bekerja sama? Kirim pesan di bawah, kami balas lewat WhatsApp atau email.${email ? ` Bisa juga langsung ke <a href="mailto:${escAttr(email)}">${escHtml(email)}</a>.` : ''}`,
-    body: `${notice(s, 'Pesan terkirim. Terima kasih — kami akan membalas secepatnya.')}
+    waAsk: 'aplikasi kasir Sirko',
+    body: `${wa ? `<p style="margin:0 0 20px"><a class="btn btn-primary" style="background:#13753F" href="${escAttr(wa)}" target="_blank" rel="noopener">Chat WhatsApp ${escHtml(waDisplay())}</a></p><p class="hint" style="margin:0 0 16px">Atau kirim pesan lewat formulir:</p>` : ''}
+${notice(s, 'Pesan terkirim. Terima kasih — kami akan membalas secepatnya.')}
 ${
   s.ok
     ? ''
@@ -93,6 +97,7 @@ export function renderDeleteAccount(s: FormState = {}): string {
   return formPage({
     path: '/hapus-akun',
     type: 'WebPage',
+    waAsk: 'penghapusan akun saya',
     title: 'Hapus akun Sirko',
     metaTitle: 'Hapus Akun Sirko dan Datanya',
     description: 'Ajukan penghapusan akun Sirko beserta data toko Anda tanpa perlu memasang aplikasi. Isi email atau nomor WhatsApp yang terdaftar, kami proses dan konfirmasi.',

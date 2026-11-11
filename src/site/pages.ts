@@ -100,6 +100,7 @@ ${related.length ? `<section class="related" aria-labelledby="terkait" style="pa
     path,
     body,
     ogType: 'article',
+    waAsk: `artikel "${p.title}"`,
     ogImage: p.coverUrl,
     ogImageAlt: p.coverAlt || p.title,
     noindex: p.noindex || opts.preview,
@@ -150,6 +151,7 @@ export function renderStaticPage(p: SitePost, opts: { preview?: boolean } = {}):
     description: descOf(p, r),
     path,
     body,
+    waAsk: legal ? `${p.title.toLowerCase()}` : `${p.title}`,
     ogImage: p.coverUrl,
     ogImageAlt: p.coverAlt || p.title,
     noindex: p.noindex || opts.preview,
@@ -210,6 +212,7 @@ export function renderBlogIndex(d: {
     path,
     body,
     crumbs,
+    waAsk: 'tips mengelola warung dan aplikasi kasir Sirko',
     noindex: d.items.length === 0,
     jsonLd: [
       {

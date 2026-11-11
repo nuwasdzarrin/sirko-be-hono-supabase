@@ -33,6 +33,8 @@ export interface PageOpts {
   jsonLd?: object[];
   crumbs?: Crumb[];
   article?: { publishedAt: number; modifiedAt: number; section?: string; tags?: string[] };
+  /** Konteks pesan WhatsApp: topik yang ingin ditanyakan pengunjung di halaman ini. */
+  waAsk?: string;
   preload?: string; // URL gambar LCP
   preloadSrcset?: string;
   extraHead?: string;
@@ -57,6 +59,7 @@ export function orgJsonLd() {
       availableLanguage: ['Indonesian'],
       url: siteUrl('/kontak'),
       ...(env.SITE_CONTACT_EMAIL ? { email: env.SITE_CONTACT_EMAIL } : {}),
+      ...(env.SITE_WHATSAPP ? { telephone: `+${env.SITE_WHATSAPP}` } : {}),
     },
   };
 }
@@ -218,6 +221,11 @@ footer.site .legal{margin-top:32px;padding-top:20px;border-top:1px solid var(--l
 .related h2{font-size:26px;margin-bottom:18px}
 .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
 .tags span{background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:14px;color:var(--mut)}
+.wa-float{position:fixed;right:18px;bottom:18px;z-index:40;display:inline-flex;align-items:center;gap:10px;background:#13753F;color:#fff;text-decoration:none;font-weight:700;font-size:15px;border-radius:999px;padding:12px 18px 12px 14px;box-shadow:0 12px 28px -10px rgba(10,60,35,.55)}
+.wa-float:hover{background:#0F6234;transform:translateY(-2px)}
+.wa-float svg{width:26px;height:26px;flex:none}
+@media (max-width:640px){.wa-float{padding:14px;right:14px;bottom:14px}.wa-float span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+@media print{.wa-float{display:none}}
 .preview-bar{background:var(--mango);color:#14213D;text-align:center;padding:8px 16px;font-weight:700;font-size:14px}
 `;
 
@@ -268,6 +276,7 @@ export function footer(): string {
     <nav aria-label="Perusahaan"><h3>Perusahaan</h3><ul>
       <li><a href="/tentang">Tentang Sirko</a></li>
       <li><a href="/kontak">Kontak</a></li>
+      ${env.SITE_WHATSAPP ? `<li><a href="${escAttr(waHref('Halo Admin Sirko, saya mau tanya tentang aplikasi kasir Sirko: ')!)}" target="_blank" rel="noopener">WhatsApp ${escHtml(waDisplay())}</a></li>` : ''}
       <li><a href="/hapus-akun">Hapus akun</a></li>
     </ul></nav>
     <nav aria-label="Legal"><h3>Legal</h3><ul>
@@ -277,6 +286,26 @@ export function footer(): string {
   </div>
   <div class="legal">© ${year} Sirko${env.SITE_OPERATOR ? ` · dikelola oleh ${escHtml(env.SITE_OPERATOR)}` : ''} · ${TAGLINE}</div>
 </div></footer>`;
+}
+
+const WA_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8S23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.6-5.6C5.2 10 10 5.3 16 5.3s10.8 4.7 10.8 10.5S22 26.4 16 26.4zm5.9-7.8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.1-1.2 2.7 1.2 3.2 1.4 3.4 2.4 3.6 5.8 5c2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>`;
+
+/** Tautan wa.me ke admin dengan pesan awal (null bila SITE_WHATSAPP belum diisi). */
+export function waHref(text: string): string | null {
+  return env.SITE_WHATSAPP ? `https://wa.me/${env.SITE_WHATSAPP}?text=${encodeURIComponent(text)}` : null;
+}
+
+/** Pesan awal: dari halaman apa (judul + URL) & mau tanya tentang apa. */
+export function waText(o: Pick<PageOpts, 'title' | 'path' | 'waAsk'>): string {
+  const page = o.title.replace(/\s*[|—–-]\s*Sirko.*$/i, '').trim() || 'Sirko';
+  return `Halo Admin Sirko, saya dari halaman "${page}" (${siteUrl(o.path)}). Saya mau tanya tentang ${o.waAsk ?? 'aplikasi kasir Sirko'}: `;
+}
+
+function waFloat(o: PageOpts): string {
+  const href = waHref(waText(o));
+  return href
+    ? `<a class="wa-float" href="${escAttr(href)}" target="_blank" rel="noopener" aria-label="Chat admin Sirko lewat WhatsApp">${WA_ICON}<span>Tanya via WhatsApp</span></a>`
+    : '';
 }
 
 export function breadcrumbsHtml(crumbs: Crumb[]): string {
@@ -342,6 +371,7 @@ ${LOGO_SYMBOL}
 ${header(o.path)}
 ${o.body}
 ${footer()}
+${waFloat(o)}
 <script>${THEME_JS}</script>
 </body>
 </html>`;
@@ -349,3 +379,10 @@ ${footer()}
 
 /** Nilai script-src CSP situs: hanya skrip sendiri + dua skrip tema inline (via hash). */
 export const SITE_SCRIPT_SRC = `'self' ${scriptHash(THEME_BOOT)} ${scriptHash(THEME_JS)}`;
+
+/** Nomor WA untuk ditampilkan: 628999104916 → 0899-9104-916. */
+export function waDisplay(): string {
+  const n = env.SITE_WHATSAPP ?? '';
+  const local = n.replace(/^62/, '0');
+  return local.replace(/^(\d{4})(\d{4})(\d+)$/, '$1-$2-$3');
+}

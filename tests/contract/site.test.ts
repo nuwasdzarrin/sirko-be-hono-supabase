@@ -305,6 +305,18 @@ suite('Website publik & CMS', () => {
     expect((await sql`SELECT count(*)::int n FROM site_leads WHERE id = ${old}`)[0]!.n).toBe(0);
   });
 
+  it('WhatsApp: tombol melayang dengan pesan awal berisi halaman & topik', async () => {
+    const r = await get(`/blog/${postSlug}`);
+    const href = /class="wa-float" href="([^"]+)"/.exec(r.text)![1]!.replace(/&amp;/g, '&');
+    expect(href.startsWith('https://wa.me/628999104916?text=')).toBe(true);
+    const text = decodeURIComponent(href.split('text=')[1]!);
+    expect(text).toContain(`${SITE}/blog/${postSlug}`);
+    expect(text).toContain('Saya mau tanya tentang artikel');
+    expect((await get('/hapus-akun')).text).toContain(encodeURIComponent('penghapusan akun saya'));
+    expect((await get('/tidak-ada-xyz')).text).toContain('class="wa-float"'); // pengunjung tersesat bisa langsung bertanya
+    expect((await get('/kontak')).text).toContain('0899-9104-916');
+  });
+
   it('kontak & pengelola diisi saat render di halaman legal', () => {
     const html = renderMarkdown('Hubungi **[EMAIL KONTAK]**. Dikelola **[PENGELOLA]**.').html;
     expect(html).toContain('href="/kontak"');
