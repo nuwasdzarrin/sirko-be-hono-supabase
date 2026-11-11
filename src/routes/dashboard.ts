@@ -33,6 +33,8 @@ import {
 } from '../views/dashboard.view.js';
 import * as catalogAdmin from '../services/catalog-admin.service.js';
 import { subscriptionRoutes, withSubscriptionBadge } from './dashboard-subscriptions.js';
+import { siteAdminRoutes } from './dashboard-site.js';
+import * as site from '../services/site.service.js';
 import * as feedback from '../services/feedback.service.js';
 import { getStoreReport, getTransactionDetail, resolveRange } from '../services/store-report.service.js';
 import { renderStoreReport, renderTransactionDetail } from '../views/business.view.js';
@@ -55,6 +57,12 @@ import * as contributions from '../services/catalog-contribution.service.js';
  */
 type DashEnv = { Variables: { admin: string; adminUser: adminSvc.AdminUser | null; flash: Flash | null } };
 export const dashboardRoutes = new Hono<DashEnv>();
+
+// Dashboard tak boleh diindeks mesin pencari.
+dashboardRoutes.use('*', async (c, next) => {
+  await next();
+  c.header('X-Robots-Tag', 'noindex, nofollow');
+});
 
 dashboardRoutes.get('/login', async (c) => {
   const next = safeNext(c.req.query('next'));
@@ -183,6 +191,8 @@ dashboardRoutes.use('*', async (c, next) => {
 });
 
 dashboardRoutes.route('/subscriptions', subscriptionRoutes); // Juragan — setelah sesi & flash
+// ── Website (CMS sirkopos.com) ──
+dashboardRoutes.route('/site', siteAdminRoutes((c, h, st) => sendPage(c as Context<DashEnv>, h, st), flash, (c) => (c as Context<DashEnv>).get('admin')));
 
 /** Kirim halaman HTML + sisipkan flash (marker di layout). */
 async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 422 = 200) {
@@ -195,6 +205,8 @@ async function sendPage(c: Context<DashEnv>, html: string, status: 200 | 404 | 4
   html = html.replace('<!--pp-badge-->', ppAttention > 0 ? ` <span class="nb">${ppAttention}</span>` : '');
   html = html.replace('<!--fb-badge-->', fbNew > 0 ? ` <span class="nb">${fbNew}</span>` : '');
   html = html.replace('<!--pt-badge-->', ptPending > 0 ? ` <span class="nb">${ptPending}</span>` : '');
+  const leads = await site.countNewLeads().catch(() => 0);
+  html = html.replace('<!--lead-badge-->', leads > 0 ? ` <span class="nb">${leads}</span>` : '');
   html = withAdminName(html, c.get('adminUser'));
   const f = c.get('flash');
   const toast = f
@@ -737,6 +749,20 @@ dashboardRoutes.get('/users/:id', async (c) => {
   const d = await usersAdmin.userDetail(c.req.param('id'));
   if (!d) return sendPage(c, renderNotFound('Pengguna tidak ditemukan.', '/dashboard/users'), 404);
   return sendPage(c, renderUserDetail(d, Date.now()));
+});
+
+dashboardRoutes.post('/users/:id/delete', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  try {
+    const r = await usersAdmin.deleteAccount(id, typeof body.confirm === 'string' ? body.confirm : '', c.get('admin'));
+    flash(c, 'ok', `Akun dihapus (${r.stores} toko beserta datanya). Catatan PPOB & pembayaran tetap disimpan.`);
+  } catch (e) {
+    const msg = formError(e);
+    if (!msg) throw e;
+    flash(c, 'error', msg);
+  }
+  return c.redirect(`/dashboard/users/${id}`);
 });
 
 dashboardRoutes.post('/users/:id/unlock', async (c) => {

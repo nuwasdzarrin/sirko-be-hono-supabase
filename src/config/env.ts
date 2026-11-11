@@ -36,6 +36,23 @@ const rawSchema = z.object({
   TELEGRAM_ADMIN_CHAT_ID: z.string().optional(),
   // URL publik dashboard untuk tautan di notifikasi (mis. https://sirko.produkdesa.com).
   PUBLIC_BASE_URL: z.string().optional(),
+  // Website publik (landing + blog). URL kanonik untuk canonical/sitemap/OG.
+  SITE_URL: z.string().url().default('https://sirkopos.com'),
+  // Tautan Google Play (isi saat aplikasi rilis) → tombol unduh & schema downloadUrl.
+  PLAY_STORE_URL: z.string().url().optional(),
+  // Email kontak resmi (halaman privasi, ketentuan, kontak, schema Organization). Kosong → formulir web.
+  SITE_CONTACT_EMAIL: z.string().email().optional(),
+  // Nama pengelola/pengendali data yang tampil di halaman legal & schema.
+  // Isi setelah dikonfirmasi pemilik (penulisan resmi badan hukum). Kosong → "tim pengelola Sirko".
+  SITE_OPERATOR: z.string().optional(),
+  // Kode verifikasi Google Search Console (meta google-site-verification).
+  GOOGLE_SITE_VERIFICATION: z.string().optional(),
+  // true = halaman publik dari host lain (mis. sirko.produkdesa.com) dialihkan 301 ke SITE_URL.
+  // Nyalakan SETELAH domain SITE_URL benar-benar live.
+  SITE_FORCE_HOST: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
 
   // PPOB (Digiflazz). Dipanggil langsung dari VPS (IP di-whitelist di Digiflazz).
   PPOB_ENABLED: z

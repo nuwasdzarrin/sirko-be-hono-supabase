@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { detectBarcodeType } from '../lib/barcode.js';
 import { sql } from '../db/client.js';
 import { getStorage } from '../lib/storage.js';
 import { nowMs } from '../lib/time.js';
@@ -91,7 +92,8 @@ function formToInput(b: FormBody): Record<string, unknown> {
   return {
     name: str(b, 'name'),
     barcode: opt(b, 'barcode'),
-    barcodeType: opt(b, 'barcodeType'),
+    // Jenis kosong → dikenali dari barcode (13/12/8 digit + check digit GS1).
+    barcodeType: opt(b, 'barcodeType') ?? detectBarcodeType(str(b, 'barcode')),
     brand: opt(b, 'brand'),
     category: opt(b, 'category'),
     manufacturer: opt(b, 'manufacturer'),

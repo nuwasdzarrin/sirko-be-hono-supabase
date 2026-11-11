@@ -136,3 +136,86 @@ export async function userDetail(id: string): Promise<UserDetail | null> {
 export async function unlockUser(id: string): Promise<void> {
   await sql`DELETE FROM auth_throttle WHERE key = ${`acct:${id}`}`;
 }
+
+/** Tabel yang DISIMPAN saat hapus akun (catatan keuangan wajib simpan / ledger tak boleh diubah). */
+const RETAINED = new Set(['ppob_orders', 'point_ledger', 'point_topups', 'subscription_payments']);
+
+/**
+ * Hapus akun pemilik + data toko miliknya (permintaan /hapus-akun, kebijakan privasi §Hak Anda).
+ * - Toko milik akun: semua data toko dihapus. Baris toko ikut dihapus bila tak ada catatan PPOB;
+ *   bila masih dirujuk catatan keuangan yang disimpan, baris toko dianonimkan (nama/alamat/telepon/logo
+ *   dikosongkan) & ditandai terhapus. Usulan katalog dari toko ikut dihapus.
+ * - Akun dianonimkan (email/WA/nama/password diganti, sesi & OTP dihapus) — tak bisa dipakai login lagi.
+ * - Disimpan: ppob_orders, point_ledger, point_topups, subscription_payments (kewajiban hukum/pajak).
+ * `confirm` harus sama dengan email/WA akun (cegah salah klik). Atomik.
+ */
+export async function deleteAccount(id: string, confirm: string, admin: string): Promise<{ stores: number }> {
+  const { validation } = await import('../lib/errors.js');
+  const { randomBytes } = await import('node:crypto');
+  const { hashPassword } = await import('../lib/password.js');
+  const acc = (await sql<Row[]>`SELECT id, email::text AS email, phone FROM accounts WHERE id = ${id}`)[0];
+  if (!acc) throw validation('Akun tidak ditemukan.');
+  const c = confirm.trim().toLowerCase();
+  if (!c || (c !== String(acc.email ?? '').toLowerCase() && c !== String(acc.phone ?? ''))) {
+    throw validation('Ketik email atau nomor WA akun persis untuk konfirmasi.');
+  }
+  const pw = await hashPassword(randomBytes(24).toString('hex'));
+  const ts = nowMs();
+  return sql.begin(async (tx) => {
+    const biz = (
+      await tx<{ id: string }[]>`SELECT DISTINCT business_id AS id FROM users WHERE account_id = ${id} AND role = 'owner' AND business_id IS NOT NULL`
+    ).map((r) => r.id);
+    if (biz.length) {
+      // Semua (tabel, kolom) yang merujuk businesses dengan ON DELETE CASCADE — nama kolom dari katalog.
+      const refs = (
+        await tx<{ t: string; col: string }[]>`
+          SELECT c.conrelid::regclass::text AS t, a.attname AS col FROM pg_constraint c
+          JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+          WHERE c.contype = 'f' AND c.confrelid = 'businesses'::regclass AND c.confdeltype = 'c'`
+      ).filter((r) => !RETAINED.has(r.t));
+      // Hapus berulang sampai tuntas (urutan FK antar-tabel toko tak perlu diketahui).
+      let left = [...refs];
+      for (let pass = 0; pass < 8 && left.length; pass++) {
+        const next: typeof refs = [];
+        for (const r of left) {
+          try {
+            await tx.savepoint((sp) => sp`DELETE FROM ${sp(r.t)} WHERE ${sp(r.col)} IN ${sp(biz)}`);
+          } catch {
+            next.push(r);
+          }
+        }
+        left = next;
+      }
+      // Usulan katalog dari toko (tanpa FK) ikut dihapus.
+      await tx`DELETE FROM catalog_contributions WHERE business_id IN ${tx(biz)}`;
+      if (left.length) throw new Error(`Gagal menghapus data toko: ${left.map((r) => `${r.t}.${r.col}`).join(', ')}`);
+      for (const b of biz) {
+        // Catatan keuangan yang disimpan masih merujuk toko → baris toko dianonimkan, bukan dihapus.
+        const kept = await tx`
+          SELECT 1 FROM ppob_orders WHERE business_id = ${b}
+          UNION ALL SELECT 1 FROM point_ledger WHERE business_id = ${b}
+          UNION ALL SELECT 1 FROM point_topups WHERE business_id = ${b}
+          UNION ALL SELECT 1 FROM subscription_payments WHERE business_id = ${b}
+          LIMIT 1`;
+        if (kept.length) {
+          await tx`UPDATE businesses SET name = 'Toko dihapus', address = NULL, phone = NULL, logo_path = NULL, deleted_at = ${ts}, updated_at = ${ts} WHERE id = ${b}`;
+        } else {
+          await tx`DELETE FROM businesses WHERE id = ${b}`;
+        }
+      }
+    }
+    await tx`UPDATE users SET account_id = NULL, deleted_at = coalesce(deleted_at, ${ts}), updated_at = ${ts} WHERE account_id = ${id}`;
+    await tx`DELETE FROM refresh_tokens WHERE account_id = ${id}`;
+    await tx`DELETE FROM auth_otps WHERE account_id = ${id}`;
+    await tx`DELETE FROM auth_throttle WHERE key = ${`acct:${id}`}`;
+    await tx`
+      UPDATE accounts SET email = ${`dihapus-${id.slice(0, 8)}@sirkopos.invalid`}, phone = NULL, name = NULL,
+        password_hash = ${pw}, offline_salt = NULL, offline_hash = NULL, offline_iter = NULL,
+        pending_verification = false, last_business_id = NULL, updated_at = ${ts}
+      WHERE id = ${id}`;
+    await tx`
+      UPDATE site_leads SET status = 'done', handled_at = ${ts}, handled_by = ${admin}
+      WHERE kind = 'delete_account' AND status = 'new' AND (lower(contact) = ${String(acc.email ?? '').toLowerCase()} OR contact = ${String(acc.phone ?? '')})`;
+    return { stores: biz.length };
+  });
+}

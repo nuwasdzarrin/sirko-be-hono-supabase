@@ -239,6 +239,17 @@ export function renderUserDetail(d: UserDetail, serverTime: number): string {
           : '<p class="mut" style="margin:0;font-size:13px">Tidak terkunci. Lupa password? Pengguna bisa reset sendiri lewat OTP email di aplikasi.</p>'
       }
     </div>
+    ${
+      u.email?.endsWith('@sirkopos.invalid')
+        ? '<div class="panel" style="margin-top:12px"><h3>Akun dihapus</h3><p class="mut" style="margin:0;font-size:13px">Akun ini sudah dihapus atas permintaan pemiliknya.</p></div>'
+        : `<form class="panel" style="margin-top:12px;border-color:var(--bad-line)" method="post" action="/dashboard/users/${esc(u.id)}/delete" onsubmit="return confirm('Hapus akun & semua data tokonya? Tidak bisa dibatalkan.')">
+      <h3 style="color:var(--bad)">Hapus akun &amp; data</h3>
+      <p class="mut" style="margin:0 0 10px;font-size:13px">Untuk permintaan di /hapus-akun, setelah pemilik diverifikasi. Data toko dihapus, akun dianonimkan. Catatan PPOB, Poin &amp; pembayaran tetap disimpan (wajib hukum).</p>
+      <label for="confirm" style="display:block;font-size:12px;font-weight:700;margin-bottom:6px">Ketik email atau nomor WA akun untuk konfirmasi</label>
+      <input id="confirm" name="confirm" required autocomplete="off" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit">
+      <button class="btn bad" type="submit" style="margin-top:10px">Hapus akun permanen</button>
+    </form>`
+    }
   </div>
 </div>`;
   return renderLayout({ title: 'Pengguna', active: 'users', body, serverTime });
