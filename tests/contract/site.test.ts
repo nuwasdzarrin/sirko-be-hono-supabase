@@ -294,7 +294,7 @@ suite('Website publik & CMS', () => {
     expect(b.deleted_at).not.toBeNull();
     expect((await sql`SELECT count(*)::int n FROM categories WHERE business_id = ${biz}`)[0]!.n).toBe(0);
     expect((await sql`SELECT count(*)::int n FROM point_ledger WHERE account_id = ${acc}`)[0]!.n).toBe(2); // catatan keuangan disimpan
-    const login = await app.request('/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: email, password: 'rahasia123' }) });
+    const login = await app.request('/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': `10.68.${tag.charCodeAt(3)}.${tag.charCodeAt(4)}` }, body: JSON.stringify({ login: email, password: 'rahasia123' }) });
     expect(login.status).toBe(401);
   });
 
