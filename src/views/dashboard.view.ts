@@ -13,6 +13,7 @@ import type {
 import { UNCATEGORIZED, BUSINESS_TABS } from '../services/dashboard.service.js';
 import type { CatalogDetail } from '../services/catalog-admin.service.js';
 import type { Col } from '../db/backup-tables.js';
+import { detectBarcodeType } from '../lib/barcode.js';
 
 /** Pesan sekali-tampil setelah redirect (disisipkan route di marker `<!--flash-->`). */
 export interface Flash {
@@ -239,6 +240,9 @@ const CSS = `
   .f .hint{font-size:11px;color:var(--mut);margin-top:4px}
   .check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
   .check input{width:16px;height:16px;accent-color:var(--acc)}
+  .bc-row{display:flex;gap:8px;align-items:stretch}
+  .bc-row input{flex:1;min-width:0}
+  .bc-row .btn{white-space:nowrap}
   .photo-box{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px}
   .photo-box img{width:100%;height:100%;object-fit:contain}
   .photo-box .none{color:var(--mut);font-size:12px}
@@ -775,18 +779,7 @@ const CATALOG_TPL = `
 </form>
 <%- pager %>
 
-<dialog class="scan" id="scan-dlg" aria-labelledby="scan-title">
-  <div class="scan-hd"><b id="scan-title">Scan barcode / QR</b><button type="button" class="icon-btn" id="scan-close" aria-label="Tutup">✕</button></div>
-  <div class="scan-bd">
-    <div id="scan-reader"></div>
-    <p class="scan-msg" id="scan-msg" aria-live="polite">Arahkan kamera ke barcode produk…</p>
-  </div>
-  <div class="scan-ft">
-    <label class="btn ghost" for="scan-file">Pilih foto barcode</label>
-    <input type="file" id="scan-file" accept="image/*" class="sr">
-    <button type="button" class="btn ghost" id="scan-cancel">Batal</button>
-  </div>
-</dialog>
+<%- scanDialog %>
 `;
 
 /** Pilih-semua, hitung terpilih, & konfirmasi aksi berbahaya (hapus). */
@@ -809,6 +802,20 @@ const BULK_JS = `<script>
   sync();
 })();
 </script>`;
+
+/** Dialog pemindai kamera (dipakai halaman katalog & form tambah/edit produk). */
+const SCAN_DIALOG = `<dialog class="scan" id="scan-dlg" aria-labelledby="scan-title">
+  <div class="scan-hd"><b id="scan-title">Scan barcode / QR</b><button type="button" class="icon-btn" id="scan-close" aria-label="Tutup">✕</button></div>
+  <div class="scan-bd">
+    <div id="scan-reader"></div>
+    <p class="scan-msg" id="scan-msg" aria-live="polite">Arahkan kamera ke barcode produk…</p>
+  </div>
+  <div class="scan-ft">
+    <label class="btn ghost" for="scan-file">Pilih foto barcode</label>
+    <input type="file" id="scan-file" accept="image/*" class="sr">
+    <button type="button" class="btn ghost" id="scan-cancel">Batal</button>
+  </div>
+</dialog>`;
 
 /** Scanner kamera (html5-qrcode, dimuat malas). Hasil → isi kotak cari & submit (filter tetap). */
 const SCAN_JS = `<script>
@@ -862,6 +869,7 @@ export function renderCatalog(pg: CatalogPage): string {
   const hasFilter = Boolean(f.q || f.category || f.source || f.verified !== undefined);
   const self = catalogUrl(f, pg.page);
   const body = ejs.render(CATALOG_TPL, {
+    scanDialog: SCAN_DIALOG,
     pg,
     f,
     url: (x: Partial<CatalogFilters>) => catalogUrl(x),
@@ -976,7 +984,9 @@ const CATALOG_FORM_TPL = `
     <h3>Data produk</h3>
     <div class="fields">
       <div class="f full"><label for="name">Nama produk <span class="req">*</span></label><input type="text" id="name" name="name" required maxlength="200" value="<%= p.name || '' %>"></div>
-      <div class="f"><label for="barcode">Barcode</label><input type="text" id="barcode" name="barcode" maxlength="64" inputmode="numeric" value="<%= p.barcode || '' %>"><div class="hint">Unik di antara produk aktif.</div></div>
+      <div class="f"><label for="barcode">Barcode</label>
+        <div class="bc-row"><input type="text" id="barcode" name="barcode" maxlength="64" inputmode="numeric" autocomplete="off" value="<%= p.barcode || '' %>"><button type="button" class="btn ghost" id="scan-open" title="Scan barcode dengan kamera">📷 Scan</button></div>
+        <div class="hint" id="barcode-hint">Ketik atau scan. Jenis barcode terisi otomatis. Unik di antara produk aktif.</div></div>
       <div class="f"><label for="barcodeType">Jenis barcode</label>
         <select id="barcodeType" name="barcodeType"><option value="">—</option>
           <% ['EAN13','EAN8','UPC','QR','other'].forEach(function(t){ %><option value="<%= t %>" <%= p.barcodeType === t ? 'selected' : '' %>><%= t %></option><% }) %>
@@ -1031,6 +1041,7 @@ const CATALOG_FORM_TPL = `
   <input type="hidden" name="back" value="<%= back %>">
 </form>
 <% } %>
+<%- scanDialog %>
 `;
 
 const IMG_COMPRESS_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.js';
@@ -1087,6 +1098,72 @@ const CATALOG_FORM_JS = `<script src="${IMG_COMPRESS_LIB}" integrity="${IMG_COMP
 })();
 </script>`;
 
+/**
+ * Form produk: tombol "Scan" mengisi kolom barcode dari kamera / foto barcode, dan jenis barcode
+ * dikenali otomatis (format pemindai, atau check digit untuk barcode yang diketik). Pilihan jenis
+ * yang diubah manual oleh admin tidak ditimpa saat mengetik.
+ */
+const FORM_SCAN_JS = `<script>
+(function(){
+  ${detectBarcodeType.toString()}
+  var LIB=${JSON.stringify(SCANNER_LIB)};
+  var input=document.getElementById('barcode'), sel=document.getElementById('barcodeType'), hint=document.getElementById('barcode-hint');
+  var dlg=document.getElementById('scan-dlg'), msg=document.getElementById('scan-msg'), reader=document.getElementById('scan-reader');
+  if(!input||!sel||!dlg) return;
+  var hintText=hint.textContent, manual=false, scanner=null, done=false;
+  var LABEL={EAN13:'EAN-13',EAN8:'EAN-8',UPC:'UPC',QR:'QR code',other:'lainnya'};
+  function setType(t,from){
+    if(!t) return;
+    sel.value=t;
+    hint.textContent='Jenis: '+(LABEL[t]||t)+' ('+from+'). Unik di antara produk aktif.';
+  }
+  sel.addEventListener('change',function(){manual=true;hint.textContent=sel.value?'Jenis dipilih manual. Unik di antara produk aktif.':hintText});
+  input.addEventListener('input',function(){
+    if(manual) return;
+    var t=detectBarcodeType(input.value,null);
+    if(t) setType(t,'dari angka yang diketik'); else {sel.value='';hint.textContent=hintText}
+  });
+  function say(t,err){msg.textContent=t;msg.className='scan-msg'+(err?' err':'');reader.classList.toggle('off',!!err)}
+  function loadLib(){return new Promise(function(ok,fail){
+    if(window.Html5Qrcode) return ok();
+    var s=document.createElement('script');s.src=LIB;s.onload=ok;s.onerror=function(){fail(new Error('Gagal memuat pemindai'))};document.head.appendChild(s);
+  })}
+  function stop(){
+    var s=scanner; scanner=null;
+    if(s && s.isScanning) return s.stop().then(function(){s.clear()}).catch(function(){});
+    return Promise.resolve();
+  }
+  function found(text,result){
+    if(done) return; done=true;
+    var code=String(text||'').trim();
+    var fmt=result&&result.result&&result.result.format&&result.result.format.formatName;
+    input.value=code; manual=false;
+    setType(detectBarcodeType(code,fmt),'hasil scan'+(fmt?' '+fmt:''));
+    say('Terbaca: '+code);
+    stop().then(function(){dlg.close();input.focus()});
+  }
+  document.getElementById('scan-open').addEventListener('click',function(){
+    done=false; say('Menyiapkan kamera…'); dlg.showModal();
+    loadLib().then(function(){
+      scanner=new Html5Qrcode('scan-reader');
+      return scanner.start({facingMode:'environment'},{fps:10,qrbox:function(w,h){var m=Math.min(w,h);return{width:Math.floor(m*.9),height:Math.floor(m*.55)}}},found,function(){});
+    }).then(function(){say('Arahkan kamera ke barcode atau QR code…')})
+    .catch(function(e){say((e&&e.message?e.message:String(e)).indexOf('Permission')>=0?'Izin kamera ditolak. Izinkan kamera atau pilih foto barcode.':'Kamera tidak tersedia. Pilih foto barcode sebagai gantinya.',true)});
+  });
+  document.getElementById('scan-file').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f) return;
+    say('Membaca gambar…'); done=false;
+    loadLib().then(stop).then(function(){return new Html5Qrcode('scan-reader').scanFileV2(f,false)})
+      .then(function(r){found(r.decodedText,r)}).catch(function(){say('Barcode tidak terbaca dari gambar itu. Coba foto yang lebih jelas.',true)});
+    e.target.value='';
+  });
+  function close(){stop().then(function(){dlg.close()})}
+  document.getElementById('scan-close').addEventListener('click',close);
+  document.getElementById('scan-cancel').addEventListener('click',close);
+  dlg.addEventListener('cancel',function(e){e.preventDefault();close()});
+})();
+</script>`;
+
 export function renderCatalogForm(opts: {
   mode: 'new' | 'edit';
   product: Partial<CatalogDetail>;
@@ -1095,6 +1172,7 @@ export function renderCatalogForm(opts: {
   error: string | null;
 }): string {
   const body = ejs.render(CATALOG_FORM_TPL, {
+    scanDialog: SCAN_DIALOG,
     mode: opts.mode,
     p: opts.product,
     back: opts.back,
@@ -1108,7 +1186,7 @@ export function renderCatalogForm(opts: {
     active: 'catalog',
     body,
     serverTime: Date.now(),
-    extraJs: CATALOG_FORM_JS,
+    extraJs: CATALOG_FORM_JS + FORM_SCAN_JS,
   });
 }
 
