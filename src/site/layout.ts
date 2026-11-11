@@ -191,9 +191,9 @@ footer.site .legal{margin-top:32px;padding-top:20px;border-top:1px solid var(--l
 .prose th,.prose td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .prose th{background:var(--sunk);font-weight:700}
 .prose tr:last-child td{border-bottom:0}
-.cta-box{margin:48px 0 0;background:linear-gradient(140deg,var(--green) 0%,var(--green-d) 100%);color:#fff;border-radius:24px;padding:32px;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.cta-box{margin:48px 0 0;background:#0A5A45;color:#fff;border-radius:24px;padding:32px;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .cta-box b{font-size:22px;display:block;letter-spacing:-.02em}
-.cta-box p{margin:6px 0 0;opacity:.9}
+.cta-box p{margin:6px 0 0;color:#E3F1EC}
 .cta-box .btn{background:var(--mango);color:#14213D;box-shadow:none}
 
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}

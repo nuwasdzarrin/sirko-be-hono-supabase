@@ -25,14 +25,14 @@ const LANDING_CSS = () => `/* hero */
 :root[data-theme="dark"] .phone{background:#000}
 .screen{background:#FFFBF4;color:#14213D;border-radius:28px;overflow:hidden}
 .screen .bar{background:#0F7B5F;color:#fff;padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700}
-.screen .bar small{font-weight:600;opacity:.85}
+.screen .bar small{font-weight:600;color:#E3F1EC}
 .screen .off{background:#FFF3E0;color:#9A5A00;font-size:12px;font-weight:700;padding:7px 18px}
 .nota{padding:14px 18px 18px;font-size:14px}
 .nota .row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #E6E1D6}
 .nota .row b{font-weight:700}
 .nota .row span.s{display:block;font-size:12px;color:#5B6478}
 .tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
-.tag.ppob{background:#FFF3E0;color:#B35F00}
+.tag.ppob{background:#FFF3E0;color:#8A4B00}
 .tag.ok{background:#E7F4EF;color:#0A5A45}
 .nota .tot{display:flex;justify-content:space-between;font-weight:800;font-size:18px;padding-top:12px}
 .nota .pay{margin-top:14px;background:#0F7B5F;color:#fff;text-align:center;border-radius:14px;padding:13px;font-weight:800}
@@ -59,11 +59,12 @@ const LANDING_CSS = () => `/* hero */
 
 /* ppob */
 .ppob .wrap{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
-.ppob-card{background:linear-gradient(140deg,var(--green) 0%,var(--green-d) 100%);color:#fff;border-radius:28px;padding:34px;box-shadow:var(--shadow)}
+.ppob-card{background:#0A5A45;color:#fff;border-radius:28px;padding:34px;box-shadow:var(--shadow)}
 .ppob-card .big{font-size:44px;font-weight:800;letter-spacing:-.03em}
 .ppob-card ul{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px}
-.ppob-card li{background:rgba(255,255,255,.12);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;font-weight:600}
-.ppob-card li b{color:#FFD48A}
+.ppob-card li{background:#16654F;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;font-weight:600}
+.ppob-card li b{color:#FFE3AE}
+.ppob-card .muted{color:#E3F1EC}
 .steps{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:14px;counter-reset:s}
 .steps li{display:flex;gap:14px;align-items:flex-start}
 .steps li::before{counter-increment:s;content:counter(s);flex:none;width:32px;height:32px;border-radius:50%;background:var(--mango);color:#14213D;font-weight:800;display:grid;place-items:center}
@@ -116,7 +117,7 @@ details p{margin:12px 0 0;color:var(--mut)}
 
 /* cta akhir */
 .final{text-align:center}
-.final-box{background:linear-gradient(140deg,var(--mango) 0%,#FFB84D 100%);color:#14213D;border-radius:32px;padding:56px 24px}
+.final-box{background:#FFA62E;color:#14213D;border-radius:32px;padding:56px 24px}
 .final-box h2{color:#14213D}
 .final-box p{font-size:19px;margin:12px auto 26px;max-width:560px}
 .final-box .btn-primary{background:#14213D;box-shadow:none}
@@ -127,9 +128,10 @@ details p{margin:12px 0 0;color:var(--mut)}
 .latest .head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
 .final-box .form{max-width:440px;margin:0 auto}
 .final-box .form label{color:#14213D}
+.final-box .form input::placeholder{color:#5B6478;opacity:1}
 .final-box .form input,.final-box .form select{background:#fff;color:#14213D;border-color:rgba(20,33,61,.2)}
-.final-box .hint{color:#3B4458}
-.final-box .hint a{color:#14213D}
+.final-box .form .hint{color:#14213D;font-size:14px}
+.final-box .form .hint a{color:#14213D;font-weight:700}
 .final-box .note-ok,.final-box .note-err{color:#14213D;background:#fff;max-width:440px;margin:0 auto}
 ${FORM_CSS}
 `;
@@ -231,14 +233,14 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <p class="note">Gagal terkirim? Poin otomatis kembali. Penjualan pulsa &amp; token butuh internet; kasir lainnya tetap jalan offline.</p>
     </div>
     <div class="ppob-card" aria-hidden="true">
-      <div style="opacity:.85;font-weight:600">Contoh untung sehari</div>
+      <div class="muted" style="font-weight:600">Contoh untung sehari</div>
       <div class="big">+Rp40.000</div>
       <ul>
         <li>Token listrik 20rb × 8 <b>+Rp16.000</b></li>
         <li>Pulsa 10rb × 6 <b>+Rp12.000</b></li>
         <li>Paket data × 6 <b>+Rp12.000</b></li>
       </ul>
-      <div style="font-size:13px;opacity:.8;margin-top:14px">Ilustrasi dengan untung Rp2.000 per transaksi. Untung sebenarnya tergantung harga jual Anda.</div>
+      <div class="muted" style="font-size:13px;margin-top:14px">Ilustrasi dengan untung Rp2.000 per transaksi. Untung sebenarnya tergantung harga jual Anda.</div>
     </div>
   </div>
 </section>
