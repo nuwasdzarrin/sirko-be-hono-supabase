@@ -354,6 +354,7 @@ ${latest}
       'Sirko adalah aplikasi kasir gratis untuk warung dan toko kelontong. Catat penjualan, stok, dan kasbon tanpa internet, plus jual pulsa & token listrik.',
     path: '/',
     body,
+    waAsk: 'aplikasi kasir Sirko (harga, cara pakai, atau pulsa & token listrik)',
     extraHead: `<style>${LANDING_CSS()}</style>`,
     jsonLd: [
       { '@type': 'WebSite', '@id': siteUrl('/#website'), url: siteUrl('/'), name: 'Sirko', inLanguage: 'id-ID', publisher: { '@id': ORG_ID() } },

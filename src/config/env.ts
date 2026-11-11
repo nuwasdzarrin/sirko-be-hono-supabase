@@ -42,6 +42,8 @@ const rawSchema = z.object({
   PLAY_STORE_URL: z.string().url().optional(),
   // Email kontak resmi (halaman privasi, ketentuan, kontak, schema Organization). Kosong → formulir web.
   SITE_CONTACT_EMAIL: z.string().email().optional(),
+  // WhatsApp admin (format internasional tanpa +, mis. 628999104916) → tombol WA melayang & tautan wa.me.
+  SITE_WHATSAPP: z.string().regex(/^62\d{8,13}$/).optional(),
   // Nama pengelola/pengendali data yang tampil di halaman legal & schema.
   // Isi setelah dikonfirmasi pemilik (penulisan resmi badan hukum). Kosong → "tim pengelola Sirko".
   SITE_OPERATOR: z.string().optional(),
