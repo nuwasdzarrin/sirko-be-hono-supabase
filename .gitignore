@@ -15,3 +15,7 @@ data/catalog_seed.sqlite-*
 
 # VPS: cadangan DB/.env yang dibuat scripts/update.sh (jangan di-commit)
 backups/
+
+# Python
+__pycache__/
+*.pyc
