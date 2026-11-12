@@ -36,7 +36,7 @@ Paket Warung berharga Rp0 untuk satu toko, tanpa batas waktu. Kami dapat menguba
 
 ### Paket Juragan (berbayar)
 
-Paket Juragan berharga Rp49.000 per bulan atau Rp499.000 per tahun. Paket ini mendukung sampai 3 toko, laporan gabungan, serta salin produk dan kirim stok antar-toko.
+Paket Juragan berharga Rp49.000 per bulan atau Rp499.000 per tahun. Paket ini menambahkan akun karyawan, ekspor laporan ke Excel/PDF, logo toko di struk, serta pengelolaan sampai 3 toko (laporan gabungan, salin produk, dan kirim stok antar-toko).
 
 Ketentuan paket berbayar:
 

@@ -317,6 +317,36 @@ suite('Website publik & CMS', () => {
     expect((await get('/kontak')).text).toContain('0899-9104-916');
   });
 
+  it('IndexNow: berkas kunci, kirim URL saat terbit/ubah slug/hapus, jadwal tayang terdeteksi', async () => {
+    const { setIndexNowTransport } = await import('../../src/site/indexnow.js');
+    const sent: string[][] = [];
+    const restore = setIndexNowTransport(async (b) => void sent.push(b.urlList));
+    try {
+      const key = await get('/sirkotestindexnowkey01.txt');
+      expect(key.status).toBe(200);
+      expect(key.text).toBe('sirkotestindexnowkey01');
+      expect((await get('/kunci-salah-12345.txt')).status).toBe(404);
+      const p = await site.save(null, { kind: 'post', title: `Indeks ${tag}`, slug: `indeks-${tag}`, bodyMd: 'x', category: 'Tips Sirko', status: 'published' }, 'tester');
+      ids.push(p.id);
+      await new Promise((r) => setTimeout(r, 20));
+      expect(sent.at(-1)).toEqual(expect.arrayContaining([`${SITE}/blog/indeks-${tag}`, `${SITE}/blog`, `${SITE}/`]));
+      await site.save(p.id, { ...p, kind: 'post', slug: `indeks-baru-${tag}`, tags: p.tags, coverUrl: '', publishedAt: p.publishedAt }, 'tester');
+      await new Promise((r) => setTimeout(r, 20));
+      expect(sent.at(-1)).toEqual(expect.arrayContaining([`${SITE}/blog/indeks-baru-${tag}`, `${SITE}/blog/indeks-${tag}`]));
+      const n = sent.length;
+      const draft = await site.save(null, { kind: 'post', title: `Draf indeks ${tag}`, slug: `draf-indeks-${tag}`, bodyMd: 'x', status: 'draft' }, 'tester');
+      ids.push(draft.id);
+      await new Promise((r) => setTimeout(r, 20));
+      expect(sent.length).toBe(n); // draf tak dikirim
+      const later = await site.save(null, { kind: 'post', title: `Jadwal ${tag}`, slug: `jadwal-${tag}`, bodyMd: 'x', status: 'published', publishedAt: Date.now() + 50 }, 'tester');
+      ids.push(later.id);
+      await new Promise((r) => setTimeout(r, 80));
+      expect((await site.newlyLive(Date.now() - 1000)).map((x) => x.slug)).toContain(`jadwal-${tag}`);
+    } finally {
+      restore();
+    }
+  });
+
   it('kontak & pengelola diisi saat render di halaman legal', () => {
     const html = renderMarkdown('Hubungi **[EMAIL KONTAK]**. Dikelola **[PENGELOLA]**.').html;
     expect(html).toContain('href="/kontak"');

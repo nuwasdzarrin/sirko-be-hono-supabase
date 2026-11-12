@@ -125,7 +125,7 @@ Kami menyimpan data akun dan data toko selama akun Anda aktif. Bila Anda meminta
 Anda berhak untuk:
 
 - Melihat dan memperbarui data akun dan data toko melalui aplikasi.
-- Mengekspor laporan toko ke Excel atau PDF.
+- Mengekspor laporan toko ke Excel atau PDF (paket Juragan), atau meminta salinan data Anda melalui **[EMAIL KONTAK]**.
 - Menarik izin kamera atau kontak melalui pengaturan HP kapan saja.
 - Meminta penghapusan akun beserta data toko.
 - Mengajukan pertanyaan atau keberatan tentang pengolahan data Anda.

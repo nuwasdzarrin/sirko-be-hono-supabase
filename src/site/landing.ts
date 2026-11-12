@@ -143,7 +143,7 @@ const SHOTS: Array<[string, string, string]> = [
 ];
 
 export const LANDING_FAQ: Array<[string, string]> = [
-  ['Apakah Sirko benar-benar gratis?', 'Ya. Paket Warung gratis untuk satu toko: kasir, stok, kasbon, laporan, dan cadangan data. Paket Juragan Rp49.000 per bulan hanya diperlukan bila Anda mengelola sampai 3 toko sekaligus.'],
+  ['Apakah Sirko benar-benar gratis?', 'Ya. Paket Warung gratis untuk satu toko: kasir, stok, kasbon, laporan, dan cadangan data. Paket Juragan Rp49.000 per bulan diperlukan bila Anda butuh akun karyawan, ekspor laporan ke Excel/PDF, logo di struk, atau mengelola sampai 3 toko.'],
   ['Apakah aplikasi kasir Sirko bisa dipakai tanpa internet?', 'Bisa. Kasir, stok, dan kasbon tersimpan di HP sehingga tetap jalan walau sinyal hilang. Begitu ada internet, data dicadangkan otomatis. Hanya penjualan pulsa, paket data, dan token listrik yang memerlukan internet.'],
   ['Bagaimana cara jualan pulsa dan token listrik di Sirko?', 'Isi Poin Sirko lewat transfer atau QRIS, lalu jual pulsa, paket data, atau token listrik langsung dari layar kasir. Anda menentukan sendiri harga jual dan untungnya, dan item itu tercatat di nota yang sama dengan barang lain.'],
   ['Apakah data toko saya aman kalau HP rusak atau hilang?', 'Aman. Data toko dicadangkan ke cloud setiap ada internet. Masuk dengan email atau nomor WA di HP baru, dan data toko kembali.'],
@@ -206,7 +206,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div><h3>Kasir cepat</h3><p>Cari barang atau scan barcode pakai kamera HP, hitung kembalian otomatis, dan simpan nota sekali tekan.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div><h3>Stok otomatis</h3><p>Stok berkurang tiap penjualan dan bertambah saat barang masuk. Lengkap dengan varian, harga grosir, dan stok opname.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg></div><h3>Kasbon &amp; cicilan</h3><p>Catat utang pelanggan, terima cicilan, dan lihat siapa saja yang belum lunas. <a href="/aplikasi-kasbon">Lihat cara kerjanya</a></p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></svg></div><h3>Laporan laba</h3><p>Lihat penjualan, modal, dan laba per hari atau per bulan. Bisa diekspor ke Excel dan PDF.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></svg></div><h3>Laporan laba</h3><p>Lihat penjualan, modal, dan laba per hari atau per bulan. Ekspor ke Excel &amp; PDF tersedia di paket Juragan.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div><h3>Pulsa &amp; token listrik</h3><p>Jual pulsa, paket data, dan token listrik dari layar kasir yang sama. Untungnya Anda tentukan sendiri. <a href="/jualan-pulsa-token-listrik">Selengkapnya</a></p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z"/><path d="m9.5 13 2 2 3.5-3.5"/></svg></div><h3>Data aman di cloud</h3><p>HP rusak atau hilang? Masuk di HP baru dengan email atau nomor WA, dan data toko kembali.</p></div>
     </div>
@@ -280,7 +280,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
         <ul>
           <li>Kasir, stok &amp; scan barcode</li>
           <li>Kasbon &amp; cicilan pelanggan</li>
-          <li>Laporan laba, ekspor Excel/PDF</li>
+          <li>Laporan penjualan &amp; laba</li>
           <li>Jual pulsa, data &amp; token listrik</li>
           <li>Cadangan data otomatis</li>
         </ul>
@@ -289,12 +289,15 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <div class="plan">
         <h3>Juragan</h3>
         <div class="amt">Rp49.000 <small>/bulan</small></div>
-        <p class="sub">Atau Rp499.000 per tahun. Untuk pemilik beberapa toko.</p>
+        <p class="sub">Atau Rp499.000 per tahun. Untuk toko yang punya karyawan atau beberapa cabang.</p>
         <ul>
           <li>Semua fitur Warung</li>
           <li>Kelola sampai 3 toko</li>
           <li>Laporan gabungan semua toko</li>
           <li>Salin produk &amp; kirim stok antar-toko</li>
+          <li>Akun karyawan (tanpa akses laba &amp; modal)</li>
+          <li>Ekspor laporan ke Excel &amp; PDF</li>
+          <li>Logo toko di struk</li>
         </ul>
         <a class="btn btn-ghost" href="#unduh">Mulai dari Gratis</a>
       </div>

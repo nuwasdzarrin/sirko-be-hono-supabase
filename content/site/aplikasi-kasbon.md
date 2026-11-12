@@ -85,11 +85,11 @@ Catatan kasbon tersimpan di HP, jadi tetap bisa dicatat walau tidak ada internet
 4. **Ingatkan dengan sopan.** Gunakan daftar "belum lunas" untuk mengingatkan secara personal, bukan di depan pembeli lain.
 5. **Periksa daftar setiap minggu.** Pelanggan yang lama tidak membayar sebaiknya tidak ditambah kasbonnya dulu.
 
-Bila toko Anda punya karyawan, tambahkan mereka sebagai pengguna dengan hak akses masing-masing, sehingga setiap orang memakai akunnya sendiri saat melayani pembeli.
+Bila toko Anda punya karyawan dan memakai paket Juragan, tambahkan mereka sebagai pengguna dengan hak akses masing-masing, sehingga setiap orang memakai akunnya sendiri saat melayani pembeli.
 
 ## Harga
 
-Fitur kasbon termasuk di paket **Warung** yang gratis untuk satu toko, selamanya. Paket **Juragan** (Rp49.000 per bulan atau Rp499.000 per tahun) tersedia bila Anda mengelola sampai 3 toko. Lihat [harga](/#harga).
+Fitur kasbon termasuk di paket **Warung** yang gratis untuk satu toko, selamanya. Paket **Juragan** (Rp49.000 per bulan atau Rp499.000 per tahun) tersedia bila Anda butuh akun karyawan, ekspor laporan ke Excel/PDF, logo toko di struk, atau mengelola sampai 3 toko. Lihat [harga](/#harga).
 
 Baca juga: [cara mencatat hutang pelanggan warung agar tidak lupa](/blog/cara-mencatat-hutang-pelanggan-warung).
 

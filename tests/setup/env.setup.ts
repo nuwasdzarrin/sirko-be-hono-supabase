@@ -70,3 +70,4 @@ process.env.S3_BUCKET ??= 'sirko-media';
 process.env.S3_ACCESS_KEY_ID ??= 'test-access-key';
 process.env.S3_SECRET_ACCESS_KEY ??= 'test-secret-key';
 process.env.SITE_WHATSAPP ??= '628999104916';
+process.env.INDEXNOW_KEY ??= 'sirkotestindexnowkey01';

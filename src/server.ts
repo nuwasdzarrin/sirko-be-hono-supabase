@@ -1,7 +1,8 @@
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 import { startPpobJobs } from './services/ppob.service.js';
-import { purgeOldLeads } from './services/site.service.js';
+import { newlyLive, pathOf, purgeOldLeads } from './services/site.service.js';
+import { submitUrls } from './site/indexnow.js';
 
 /**
  * Server produksi untuk VPS (PM2). Vercel tetap memakai `export default app`.
@@ -18,6 +19,18 @@ startPpobJobs();
 const purgeLeads = () => purgeOldLeads().then((n) => n && console.log(`[site] ${n} kiriman formulir lama dihapus`)).catch((e) => console.error('[site] purge', e.message));
 purgeLeads();
 setInterval(purgeLeads, 24 * 3_600_000).unref();
+
+// Artikel terjadwal yang baru tayang → kabari IndexNow (cek tiap 10 menit).
+let indexNowSince = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  newlyLive(indexNowSince, now)
+    .then((posts) => {
+      indexNowSince = now;
+      if (posts.length) void submitUrls(posts.flatMap((p) => [pathOf(p), '/', '/blog']));
+    })
+    .catch((e) => console.error('[indexnow] cek jadwal', e.message));
+}, 10 * 60_000).unref();
 
 serve({ fetch: app.fetch, port, hostname }, (info) => {
   console.log(`Sirko backend → http://${hostname}:${info.port}/v1/health`);
