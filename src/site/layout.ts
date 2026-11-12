@@ -37,6 +37,7 @@ export interface PageOpts {
   waAsk?: string;
   preload?: string; // URL gambar LCP
   preloadSrcset?: string;
+  preloadSizes?: string;
   extraHead?: string;
 }
 
@@ -185,6 +186,9 @@ footer.site .legal{margin-top:32px;padding-top:20px;border-top:1px solid var(--l
 .prose li+li{margin-top:.4em}
 .prose blockquote{margin-left:0;border-left:4px solid var(--mango);background:var(--mango-50);padding:12px 18px;border-radius:0 12px 12px 0}
 .prose img{border-radius:14px;border:1px solid var(--line);height:auto}
+.prose img[height="1280"]{display:block;width:min(300px,78%);margin:0 auto;border-radius:22px;box-shadow:var(--shadow)}
+.prose p:has(> img[height="1280"]){text-align:center}
+.prose p:has(> img[height="1280"]) + p > em:only-child{display:block;text-align:center;font-size:15px;color:var(--mut);margin-top:-6px}
 .prose code{background:var(--sunk);padding:2px 6px;border-radius:6px;font-size:.9em}
 .prose pre{background:var(--sunk);padding:14px;border-radius:12px;overflow:auto}
 .prose pre code{background:none;padding:0}
@@ -360,7 +364,7 @@ ${art}
 <meta name="twitter:image:alt" content="${escAttr(o.ogImageAlt ?? `${SITE_NAME} — ${TAGLINE}`)}">
 <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 ${env.GOOGLE_SITE_VERIFICATION ? `<meta name="google-site-verification" content="${escAttr(env.GOOGLE_SITE_VERIFICATION)}">` : ''}
-${o.preload ? `<link rel="preload" as="image" href="${escAttr(o.preload)}"${o.preloadSrcset ? ` imagesrcset="${escAttr(o.preloadSrcset)}" imagesizes="(max-width:800px) 92vw, 760px"` : ''} fetchpriority="high">` : ''}
+${o.preload ? `<link rel="preload" as="image" href="${escAttr(o.preload)}"${o.preloadSrcset ? ` imagesrcset="${escAttr(o.preloadSrcset)}" imagesizes="${o.preloadSizes ?? '(max-width:800px) 92vw, 760px'}"` : ''} fetchpriority="high">` : ''}
 <script>${THEME_BOOT}</script>
 <style>${SITE_CSS}</style>
 ${o.extraHead ?? ''}

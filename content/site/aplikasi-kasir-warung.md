@@ -10,6 +10,10 @@ published_at: 2026-11-11T08:00:00+07:00
 ---
 Sirko adalah aplikasi kasir warung di HP Android yang dibuat khusus untuk usaha ritel. Nama Sirko berasal dari "kaSIR toKO", dan memang itu tugasnya: membantu Anda mencatat penjualan, menjaga stok, dan melihat untung toko setiap hari. Tagline kami sederhana: **Kasir toko, untung kelihatan.**
 
+![Layar kasir Sirko dengan keranjang berisi barang sembako dan total belanja](/img/app/01-kasir.webp#w=720&h=1280)
+*Layar kasir Sirko: barang masuk keranjang, diskon dan total dihitung otomatis.*
+
+
 Banyak pemilik warung masih mencatat di buku tulis atau mengandalkan ingatan. Cara itu bisa jalan, tetapi sulit menjawab pertanyaan penting: hari ini untung berapa? Barang apa yang hampir habis? Siapa saja yang belum bayar kasbon? Sirko membantu menjawab semua itu langsung dari HP yang sudah Anda pegang.
 
 ## Untuk siapa aplikasi kasir warung ini?
@@ -92,6 +96,9 @@ Gratis untuk satu toko. Paket **Warung** berharga Rp0 untuk satu toko, selamanya
 5. Layani pembeli pertama Anda.
 
 Tidak ada PIN pemilik yang perlu diingat. Cukup email atau nomor WA dan password.
+
+![Daftar produk Sirko dengan jumlah stok; stok yang menipis ditandai merah](/img/app/05-stok.webp#w=720&h=1280)
+*Daftar stok: barang yang hampir habis ditandai merah.*
 
 Baca juga: [cara menghitung laba toko kelontong](/blog/cara-menghitung-laba-toko-kelontong) dan [cara mencatat hutang pelanggan](/blog/cara-mencatat-hutang-pelanggan-warung).
 

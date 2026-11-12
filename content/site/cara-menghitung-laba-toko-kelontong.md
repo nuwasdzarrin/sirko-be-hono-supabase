@@ -139,6 +139,9 @@ Menghitung HPP setiap hari secara manual cukup melelahkan. Aplikasi kasir dapat 
 
 Biaya operasional seperti listrik dan sewa tetap perlu Anda perhatikan sendiri saat menghitung laba bersih.
 
+![Laporan laba harian di Sirko berisi pendapatan, HPP, laba kotor, dan margin](/img/app/04-laporan-laba.webp#w=720&h=1280)
+*Laporan laba di Sirko: pendapatan, modal (HPP), laba kotor, dan margin otomatis.*
+
 Baca juga: [untung jualan token listrik di warung](/blog/untung-jualan-token-listrik-di-warung).
 
 ## Tanya jawab

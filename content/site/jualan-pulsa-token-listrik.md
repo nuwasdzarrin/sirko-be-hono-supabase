@@ -10,6 +10,10 @@ published_at: 2026-11-11T08:00:00+07:00
 ---
 Jualan pulsa dan token listrik di warung kini bisa dilakukan langsung dari layar kasir Sirko. Pembeli yang datang membeli sembako bisa sekalian isi pulsa, paket data, atau token listrik PLN, dan semuanya masuk dalam satu nota. **Jual sembako sekalian token listrik, satu nota.**
 
+![Layar beli token listrik di Sirko: nomor meter, nama pelanggan, dan pilihan nominal](/img/app/06-ppob-token.webp#w=720&h=1280)
+*Beli token listrik: nama pelanggan muncul dari nomor meter sebelum membayar.*
+
+
 Pulsa dan token listrik adalah kebutuhan rutin. Orang membelinya setiap minggu, bahkan setiap hari. Bagi warung, layanan ini membuat pembeli lebih sering mampir, dan setiap transaksi memberi untung tambahan. Sirko menyatukan layanan pembayaran ini (biasa disebut PPOB) dengan kasir toko, sehingga Anda tidak perlu membuka aplikasi lain.
 
 ## Kenapa memakai aplikasi kasir PPOB?
@@ -91,6 +95,9 @@ Pastikan saldo Poin Sirko cukup, terutama menjelang akhir dan awal bulan, saat p
 5. Layani pembeli dari layar kasir.
 
 Fitur kasir lengkapnya ada di halaman [aplikasi kasir warung](/aplikasi-kasir-warung). Untuk biaya aplikasi, lihat bagian [harga](/#harga). Paket Warung gratis untuk satu toko.
+
+![Nota Sirko berisi token listrik PLN beserta tokennya, beras, dan gula dalam satu transaksi](/img/app/02-nota-ppob.webp#w=720&h=1280)
+*Satu nota untuk token listrik dan sembako, lengkap dengan nomor token.*
 
 Baca juga: [hitungan untung jualan token listrik di warung](/blog/untung-jualan-token-listrik-di-warung).
 

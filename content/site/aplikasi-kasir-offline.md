@@ -10,6 +10,10 @@ published_at: 2026-11-11T08:00:00+07:00
 ---
 Sirko adalah aplikasi kasir offline untuk warung, toko kelontong, dan toko ritel lain yang tidak mau berhenti berjualan hanya karena sinyal hilang. Semua pekerjaan utama, yaitu kasir, stok, dan kasbon, tersimpan di HP dan tetap jalan sebagai aplikasi kasir tanpa internet. Prinsip kami: **Sinyal hilang? Kasir tetap jalan.**
 
+![Kasir Sirko saat tanpa internet: tab PPOB menunggu sinyal, kasir barang tetap berjalan](/img/app/08-offline.webp#w=720&h=1280)
+*Tanpa sinyal: kasir barang tetap berjalan, hanya pulsa dan token yang menunggu internet.*
+
+
 Di banyak daerah, sinyal naik turun. Kuota juga bisa habis di tengah hari. Kalau aplikasi kasir harus selalu online, pembeli terpaksa menunggu, atau Anda kembali mencatat di kertas lalu lupa memindahkannya. Sirko dibuat supaya kejadian seperti itu tidak mengganggu jualan.
 
 ## Kenapa toko butuh aplikasi kasir offline?

@@ -21,22 +21,11 @@ const LANDING_CSS = () => `/* hero */
 @media (max-width:900px){.hero .wrap{grid-template-columns:1fr}.hero{padding-top:36px}}
 
 /* phone mockup */
-.phone{margin:0 auto;width:min(340px,100%);background:var(--ink);border-radius:38px;padding:12px;box-shadow:var(--shadow);transform:rotate(2deg)}
+.phone{margin:0 auto;width:min(320px,78vw);background:#14213D;border-radius:40px;padding:10px;box-shadow:var(--shadow);transform:rotate(2deg)}
+.phone img{display:block;width:100%;height:auto;border-radius:30px}
+.hero-shot{margin:0}
+.hero-shot figcaption{text-align:center;color:var(--mut);font-size:14px;margin-top:18px}
 :root[data-theme="dark"] .phone{background:#000}
-.screen{background:#FFFBF4;color:#14213D;border-radius:28px;overflow:hidden}
-.screen .bar{background:#0F7B5F;color:#fff;padding:16px 18px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700}
-.screen .bar small{font-weight:600;color:#E3F1EC}
-.screen .off{background:#FFF3E0;color:#9A5A00;font-size:12px;font-weight:700;padding:7px 18px}
-.nota{padding:14px 18px 18px;font-size:14px}
-.nota .row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #E6E1D6}
-.nota .row b{font-weight:700}
-.nota .row span.s{display:block;font-size:12px;color:#5B6478}
-.tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
-.tag.ppob{background:#FFF3E0;color:#8A4B00}
-.tag.ok{background:#E7F4EF;color:#0A5A45}
-.nota .tot{display:flex;justify-content:space-between;font-weight:800;font-size:18px;padding-top:12px}
-.nota .pay{margin-top:14px;background:#0F7B5F;color:#fff;text-align:center;border-radius:14px;padding:13px;font-weight:800}
-.token{margin-top:10px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:#F6F1E7;border-radius:10px;padding:8px 10px;color:#14213D}
 
 /* masalah */
 .pain{background:var(--sunk)}
@@ -124,6 +113,14 @@ details p{margin:12px 0 0;color:var(--mut)}
 
 
 .h1-kicker{display:block;font-size:13px;letter-spacing:.08em;margin-bottom:14px;line-height:1.4}
+.shots{background:var(--sunk)}
+.shot-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;margin-top:40px;text-align:left}
+.shot{margin:0;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:10px 10px 14px}
+.shot img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line)}
+.shot figcaption{font-size:14px;color:var(--mut);margin-top:10px;line-height:1.45}
+.shot figcaption b{display:block;color:var(--ink);font-size:15px}
+@media (max-width:1100px){.shot-row{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:700px){.shot-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding-bottom:8px;margin-inline:-20px;padding-inline:20px}.shot{flex:0 0 62vw;scroll-snap-align:center}}
 .feat p a,.lead a{color:var(--green-tx);font-weight:700;text-underline-offset:3px}
 .latest .head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
 .final-box .form{max-width:440px;margin:0 auto}
@@ -135,6 +132,15 @@ details p{margin:12px 0 0;color:var(--mut)}
 .final-box .note-ok,.final-box .note-err{color:#14213D;background:#fff;max-width:440px;margin:0 auto}
 ${FORM_CSS}
 `;
+
+const SHOTS: Array<[string, string, string]> = [
+  ['01-kasir', 'Kasir cepat', 'Keranjang, diskon, dan total otomatis.'],
+  ['03-kasbon', 'Kasbon rapi', 'Siapa yang masih berutang dan berapa sisanya.'],
+  ['04-laporan-laba', 'Laba kelihatan', 'Pendapatan, modal, laba, dan margin hari ini.'],
+  ['05-stok', 'Stok terpantau', 'Barang yang hampir habis ditandai merah.'],
+  ['06-ppob-token', 'Token listrik', 'Cek nama pelanggan dari nomor meter.'],
+  ['08-offline', 'Tetap jalan offline', 'Tanpa sinyal, kasir barang tetap bisa dipakai.'],
+];
 
 export const LANDING_FAQ: Array<[string, string]> = [
   ['Apakah Sirko benar-benar gratis?', 'Ya. Paket Warung gratis untuk satu toko: kasir, stok, kasbon, laporan, dan cadangan data. Paket Juragan Rp49.000 per bulan hanya diperlukan bila Anda mengelola sampai 3 toko sekaligus.'],
@@ -172,22 +178,10 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
         <li>Tanpa alat khusus, cukup HP</li>
       </ul>
     </div>
-    <div aria-hidden="true">
-      <div class="phone">
-        <div class="screen">
-          <div class="bar">Nota #0127 <small>Warung Bu Sri</small></div>
-          <div class="off">● Offline — tetap tersimpan di HP</div>
-          <div class="nota">
-            <div class="row"><div><b>Beras 5 kg</b><span class="s">1 × Rp68.000</span></div><b>Rp68.000</b></div>
-            <div class="row"><div><b>Minyak Goreng 1 L</b><span class="s">2 × Rp17.500</span></div><b>Rp35.000</b></div>
-            <div class="row"><div><b>Token Listrik 20rb</b> <span class="tag ppob">PPOB</span><span class="s">Meter 5123 4567 890</span></div><b>Rp22.500</b></div>
-            <div class="tot"><span>Total</span><span>Rp125.500</span></div>
-            <div class="token">Token: 8054-0896-3210-7854-2136 <span class="tag ok">Terbit</span></div>
-            <div class="pay">Bayar Tunai</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <figure class="hero-shot">
+      <div class="phone"><img src="/img/app/02-nota-ppob.webp" srcset="/img/app/02-nota-ppob-360.webp 360w, /img/app/02-nota-ppob.webp 720w" sizes="(max-width:900px) 70vw, 320px" width="720" height="1280" alt="Layar aplikasi kasir Sirko: satu nota berisi token listrik PLN beserta tokennya, beras, dan gula" fetchpriority="high" decoding="async"></div>
+      <figcaption>Tampilan asli aplikasi: sembako &amp; token listrik dalam satu nota.</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -215,6 +209,17 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></svg></div><h3>Laporan laba</h3><p>Lihat penjualan, modal, dan laba per hari atau per bulan. Bisa diekspor ke Excel dan PDF.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div><h3>Pulsa &amp; token listrik</h3><p>Jual pulsa, paket data, dan token listrik dari layar kasir yang sama. Untungnya Anda tentukan sendiri. <a href="/jualan-pulsa-token-listrik">Selengkapnya</a></p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z"/><path d="m9.5 13 2 2 3.5-3.5"/></svg></div><h3>Data aman di cloud</h3><p>HP rusak atau hilang? Masuk di HP baru dengan email atau nomor WA, dan data toko kembali.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="shots" id="tampilan">
+  <div class="wrap center">
+    <span class="eyebrow">Lihat aplikasinya</span>
+    <h2>Begini rasanya pakai Sirko di warung</h2>
+    <p class="lead">Semua tangkapan layar di bawah ini diambil dari aplikasi Sirko yang sebenarnya, dengan data contoh.</p>
+    <div class="shot-row" role="list">
+      ${SHOTS.map(([f, t, d]) => `<figure class="shot" role="listitem"><img src="/img/app/${f}.webp" srcset="/img/app/${f}-360.webp 360w, /img/app/${f}.webp 720w" sizes="(max-width:700px) 62vw, 220px" width="720" height="1280" alt="${escAttr(`${t}: ${d}`)}" loading="lazy" decoding="async"><figcaption><b>${t}</b>${d}</figcaption></figure>`).join('')}
     </div>
   </div>
 </section>
@@ -340,6 +345,7 @@ ${latest}
     inLanguage: 'id-ID',
     description: 'Aplikasi kasir untuk warung, toko kelontong, dan toko sembako. Bisa offline, catat stok dan kasbon, jual pulsa dan token listrik.',
     image: siteUrl('/img/og-image.png'),
+    screenshot: SHOTS.map(([f]) => siteUrl(`/img/app/${f}.webp`)),
     publisher: { '@id': ORG_ID() },
     offers: [
       { '@type': 'Offer', name: 'Paket Warung', price: '0', priceCurrency: 'IDR' },
@@ -356,6 +362,9 @@ ${latest}
     body,
     waAsk: 'aplikasi kasir Sirko (harga, cara pakai, atau pulsa & token listrik)',
     extraHead: `<style>${LANDING_CSS()}</style>`,
+    preload: '/img/app/02-nota-ppob.webp',
+    preloadSrcset: '/img/app/02-nota-ppob-360.webp 360w, /img/app/02-nota-ppob.webp 720w',
+    preloadSizes: '(max-width:900px) 70vw, 320px',
     jsonLd: [
       { '@type': 'WebSite', '@id': siteUrl('/#website'), url: siteUrl('/'), name: 'Sirko', inLanguage: 'id-ID', publisher: { '@id': ORG_ID() } },
       app,

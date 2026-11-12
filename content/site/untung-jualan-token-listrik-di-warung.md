@@ -111,6 +111,9 @@ Langkah umumnya:
 
 Bila Anda sudah memakai aplikasi kasir, pertimbangkan yang bisa menjual token dalam nota yang sama dengan barang. Di Sirko, misalnya, token listrik, pulsa, dan paket data dijual langsung dari layar kasir. Modal dibayar memakai Poin Sirko yang diisi lewat transfer bank atau QRIS, untung diatur sendiri per kategori (bawaan Rp2.000, dibulatkan ke atas kelipatan Rp500), nama pelanggan bisa dicek dari nomor meter, dan Poin kembali otomatis bila transaksi gagal. Nomor tujuan yang masih diproses juga tidak bisa dibeli dua kali, sehingga risiko transaksi dobel berkurang. Penjelasan lengkapnya ada di halaman [jualan pulsa dan token listrik di warung](/jualan-pulsa-token-listrik).
 
+![Layar beli token listrik di Sirko: nomor meter, nama pelanggan, dan pilihan nominal](/img/app/06-ppob-token.webp#w=720&h=1280)
+*Beli token listrik: nama pelanggan muncul dari nomor meter sebelum membayar.*
+
 Baca juga: [cara menghitung laba toko kelontong](/blog/cara-menghitung-laba-toko-kelontong).
 
 ## Tanya jawab
