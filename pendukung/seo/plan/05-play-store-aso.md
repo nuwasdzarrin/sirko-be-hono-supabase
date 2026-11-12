@@ -9,8 +9,8 @@ menjadi tautan dan sinyal merek untuk sirkopos.com.
 | Nama aplikasi (≤ 30) | **Sirko: Kasir Warung & Kasbon** |
 | Deskripsi singkat (≤ 80) | Kasir gratis untuk warung & toko. Jalan tanpa internet, catat kasbon, jual token. |
 | Deskripsi panjang | Buka dengan tagline, lalu manfaat per paragraf: kasir & barcode, stok, kasbon, laporan laba, offline, pulsa & token listrik, data aman. Sebut kata kunci secara alami (kasir warung, toko kelontong, kasbon, offline). Tutup dengan tautan sirkopos.com, kebijakan privasi, WhatsApp. |
-| Ikon | `branding/out/playstore-icon-512.png` |
-| Feature graphic | `branding/out/playstore-feature-graphic-1024x500.png` |
+| Ikon | `pendukung/brand/out/playstore-icon-512.png` |
+| Feature graphic | `pendukung/brand/out/playstore-feature-graphic-1024x500.png` |
 | Screenshot | 8 layar dari agen mobile (`public/site/img/app/`), tiap layar diberi judul manfaat singkat |
 | Kategori | Bisnis |
 | Kebijakan privasi | https://sirkopos.com/kebijakan-privasi |

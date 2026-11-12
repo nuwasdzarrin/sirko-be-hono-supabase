@@ -73,7 +73,7 @@ export function breadcrumbJsonLd(crumbs: Crumb[]) {
 
 const LOGO_SVG = `<svg viewBox="0 0 512 512" aria-hidden="true" focusable="false"><use href="#sirko-mark"/></svg>`;
 
-/** Simbol logo (sekali per halaman), dibaca dari aset hasil branding/build-brand.py (sumber tunggal). */
+/** Simbol logo (sekali per halaman), dibaca dari aset hasil pendukung/brand/build-brand.py (sumber tunggal). */
 const LOGO_SYMBOL = (() => {
   const raw = readFileSync(fileURLToPath(new URL('../../public/site/img/logo-mark.svg', import.meta.url)), 'utf8');
   const inner = raw.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');

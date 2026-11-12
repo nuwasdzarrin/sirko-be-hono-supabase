@@ -20,7 +20,7 @@ Pembagian: **Pemilik** = akun & keputusan; **Claude** = kode, konten, analisis (
 
 ## Bulan 2
 - [ ] Claude: artikel #9–#16, `/aplikasi-kasir-grosir`, **Kalkulator laba warung** (`/alat/...`).
-- [ ] Claude: laporan bulanan pertama (`seo/laporan/2026-12.md`) + perbarui artikel posisi 5–20.
+- [ ] Claude: laporan bulanan pertama (`pendukung/seo/laporan/2026-12.md`) + perbarui artikel posisi 5–20.
 - [ ] Pemilik: hubungi 3 mitra (koperasi/distributor/komunitas agen pulsa) untuk kemitraan & tautan.
 - [ ] Pemilik: video pendek pertama per fitur (bisa dari screenshot + suara).
 
@@ -30,5 +30,5 @@ Pembagian: **Pemilik** = akun & keputusan; **Claude** = kode, konten, analisis (
 - [ ] Claude: tinjau 90 hari: kata kunci mana yang naik, ganti prioritas kuartal berikutnya.
 
 ## Cara meminta Claude mengerjakan item
-Contoh perintah: "kerjakan minggu 2 dari seo/plan/07-rencana-90-hari.md". Claude akan menulis & menjadwalkan
+Contoh perintah: "kerjakan minggu 2 dari pendukung/seo/plan/07-rencana-90-hari.md". Claude akan menulis & menjadwalkan
 artikel lewat CMS, lalu mencentang item di file ini.
