@@ -106,6 +106,9 @@ Salah satu pilihannya adalah [aplikasi catatan hutang pelanggan](/aplikasi-kasbo
 - **Mencampur hutang pelanggan dengan uang pribadi** pemilik toko.
 - **Membiarkan hutang lama menumpuk** tanpa ditinjau.
 
+![Daftar kasbon pelanggan di Sirko berisi total piutang dan sisa utang tiap pelanggan](/img/app/03-kasbon.webp#w=720&h=1280)
+*Daftar kasbon: total piutang dan sisa utang setiap pelanggan dalam satu layar.*
+
 Baca juga: [cara menghitung laba toko kelontong](/blog/cara-menghitung-laba-toko-kelontong).
 
 ## Tanya jawab

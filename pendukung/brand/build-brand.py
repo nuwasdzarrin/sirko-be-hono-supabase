@@ -4,7 +4,7 @@ Generator aset brand Sirko (sumber tunggal logo).
 Menghasilkan SVG master + PNG untuk: web (favicon, PWA, OG), Play Store (ikon 512, feature
 graphic 1024x500) dan Android launcher (mipmap legacy + adaptive foreground/monochrome).
 
-    python branding/build-brand.py [--flutter C:/project/sirko/sirko-flutter]
+    python pendukung/brand/build-brand.py [--flutter C:/project/sirko/sirko-flutter]
 
 Butuh: playwright (Chromium/Chrome) + Pillow.
 """
@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent
 OUT = ROOT / "out"
-SITE = ROOT.parent / "public" / "site"
+SITE = ROOT.parents[1] / "public" / "site"
 
 GREEN, GREEN_D, MANGO, NAVY, PAPER, LINE, CREAM = "#0F7B5F", "#0A5A45", "#FF9F1C", "#14213D", "#FFFFFF", "#C9D3DD", "#FFE7C2"
 
@@ -159,6 +159,8 @@ def main():
             fgn = int(n * 108 / 48)
             render_svg(pg, fg, fgn, OUT / f"ic_launcher_foreground-{d}.png")
             render_svg(pg, mono, fgn, OUT / f"ic_launcher_monochrome-{d}.png")
+        # Splash Android 12+ (ikon 288dp x 4 = 1152px; framing = adaptive foreground)
+        render_svg(pg, fg, 1152, OUT / "splash_icon.png")
         b.close()
 
     # favicon.ico (16/32/48)
@@ -181,6 +183,9 @@ def main():
         (any26 / "ic_launcher_round.xml").write_text(xml, encoding="utf8")
         (res / "values" / "ic_launcher_background.xml").write_text(
             f'<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">{GREEN}</color>\n</resources>\n', encoding="utf8")
+        nodpi = res / "drawable-nodpi"
+        nodpi.mkdir(exist_ok=True)
+        (nodpi / "splash_icon.png").write_bytes((OUT / "splash_icon.png").read_bytes())
         print("Ikon launcher ditulis ke", res)
     print("Selesai ->", OUT, "dan", SITE / "img")
 

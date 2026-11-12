@@ -13,7 +13,7 @@ const rupiah = (v: number) => 'Rp ' + new Intl.NumberFormat('id-ID').format(v);
  * Server = satu-satunya sumber kebenaran. Setiap perubahan saldo lewat
  * {@link applyLedger}: UPDATE saldo + INSERT ledger dalam SATU transaksi DB.
  * Tidak ada transfer antar-akun & tidak ada penarikan (desain §3).
- * Rancangan: docs/superpowers/specs/2026-11-02-ppob-poin-design.md
+ * Rancangan: pendukung/rancangan/2026-11-02-ppob-poin-design.md
  */
 
 type Row = Record<string, unknown>;

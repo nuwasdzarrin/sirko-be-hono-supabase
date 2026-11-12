@@ -10,6 +10,10 @@ published_at: 2026-11-11T08:00:00+07:00
 ---
 Sirko adalah aplikasi catatan hutang pelanggan yang menyatu dengan kasir toko Anda. Saat pelanggan ngutang, kasbon dicatat langsung di transaksi itu juga, sehingga tidak ada lagi catatan yang terselip di buku atau terlupa. Singkatnya: **buku kasbon pindah ke HP.**
 
+![Daftar kasbon pelanggan di Sirko berisi total piutang dan sisa utang tiap pelanggan](/img/app/03-kasbon.webp#w=720&h=1280)
+*Daftar kasbon: total piutang dan sisa utang setiap pelanggan dalam satu layar.*
+
+
 Kasbon adalah bagian dari kehidupan warung. Tetangga mengambil beras hari ini dan membayar saat gajian. Langganan lama dibolehkan ngebon karena sudah saling percaya. Masalahnya, makin banyak yang ngutang, makin sulit mengingat siapa berutang berapa, sejak kapan, dan sudah dicicil berapa kali. Di sinilah aplikasi kasbon warung membantu.
 
 ## Masalah umum buku kasbon kertas

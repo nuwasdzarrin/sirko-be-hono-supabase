@@ -105,7 +105,7 @@ npm run typecheck   # tsc --noEmit — wajib bersih sebelum commit
 
 ## Deploy ke Vercel
 
-> **Runbook produksi lengkap (Supabase → migrasi → env → deploy → verifikasi): [DEPLOY.md](DEPLOY.md).**
+> **Runbook produksi lengkap (Supabase → migrasi → env → deploy → verifikasi): [DEPLOY.md](pendukung/operasional/DEPLOY.md).**
 
 1. Root project = folder `sirko-backend/`. Vercel **auto-deteksi Hono** (zero-config):
    `src/app.ts` meng-`export default app`, dijalankan sebagai Vercel Function — **tanpa**
@@ -150,7 +150,7 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 | GET | `/v1/catalog/search?q=&cursor=&limit=&verified=` | Bearer (semua toko) | cari name/brand/keywords (trigram), urut relevansi, paginasi (`limit` maks 50). **`q` opsional** (tanpa `q` = semua); **`verified=1\|0`** filter |
 | GET | `/v1/catalog.json?q=&page=&limit=&verified=` | **Basic Auth** (DASHBOARD_*) | versi JSON browser-friendly (tanpa JWT) — paginasi page/pages/total; `q` & `verified` opsional |
 
-> Dokumentasi ringkas untuk mobile dev: [API.md](API.md). Kontrak lengkap: `spec/10-api-contract.md`.
+> Dokumentasi ringkas untuk mobile dev: [API.md](pendukung/kontrak-api/API.md). Kontrak lengkap: `spec/10-api-contract.md`.
 | POST | `/v1/catalog` | **sirko_admin** | buat produk katalog → 201 |
 | PUT | `/v1/catalog/:id` | **sirko_admin** | update sebagian → 200 |
 | DELETE | `/v1/catalog/:id` | **sirko_admin** | soft delete → `{id, deleted:true}` |
@@ -171,7 +171,7 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 | `/dashboard/businesses?page=` | Daftar toko berpaginasi (20/hal) — klik baris → detail |
 | `/dashboard/businesses/:id?tab=report&preset=\|from=&to=` | **Laporan toko**: laba rugi (rumus §9 sama dengan app: pendapatan = Σ lineTotal − diskon nota, HPP = Σ modal-saat-transaksi × qty, void dikecualikan), status pembayaran & piutang, uang masuk per metode + pelunasan, produk terlaris, per hari. Periode WIB: preset `today/7d/30d/month/lastmonth/year` atau `from`/`to` |
 | `/dashboard/businesses/:id/transactions/:txId` | **Detail nota**: item (modal & laba), pembayaran saat transaksi, jadwal cicilan, pelunasan hutang, sisa tagihan |
-| `/dashboard/subscriptions` | **Langganan Juragan**: antrian pembayaran QRIS pending (konfirmasi = aktifkan, tolak = alasan wajib), riwayat pembayaran (`/payments?status=&q=`), akun pelanggan (`/accounts?q=`, `/accounts/:id`: riwayat langganan, perpanjang/potong manual dengan catatan wajib), harga & data QRIS (`/settings`). Lihat [JURAGAN.md](JURAGAN.md) |
+| `/dashboard/subscriptions` | **Langganan Juragan**: antrian pembayaran QRIS pending (konfirmasi = aktifkan, tolak = alasan wajib), riwayat pembayaran (`/payments?status=&q=`), akun pelanggan (`/accounts?q=`, `/accounts/:id`: riwayat langganan, perpanjang/potong manual dengan catatan wajib), harga & data QRIS (`/settings`). Lihat [JURAGAN.md](pendukung/kontrak-api/JURAGAN.md) |
 | `/dashboard/feedback?status=&category=&business=` | **Saran** pengguna (dari `POST /v1/feedback`): filter status/jenis/toko, ubah status + catatan admin (`POST /dashboard/feedback/:id`). Badge jumlah saran baru di menu |
 | `/dashboard/businesses/:id?tab=&page=&deleted=1` | **Detail toko**: profil + akun pemilik + jumlah data per jenis; tab per tabel backup (generik dari registry) dengan relasi tampil sebagai nama; `deleted=1` = data yang dihapus di app. Hanya-baca, `pinHash` tak ditampilkan |
 | `/dashboard/transactions?page=` | Daftar transaksi berpaginasi (20/hal) |
