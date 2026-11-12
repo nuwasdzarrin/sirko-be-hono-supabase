@@ -88,7 +88,7 @@ Fitur lengkapnya bisa Anda baca di halaman [aplikasi kasir warung](/aplikasi-kas
 
 ## Harga
 
-Sirko gratis untuk satu toko lewat paket **Warung** (Rp0, selamanya). Untuk pemilik beberapa toko, paket **Juragan** Rp49.000 per bulan atau Rp499.000 per tahun mendukung sampai 3 toko dengan laporan gabungan. Lihat bagian [harga](/#harga).
+Sirko gratis untuk satu toko lewat paket **Warung** (Rp0, selamanya). Paket **Juragan** Rp49.000 per bulan atau Rp499.000 per tahun menambahkan akun karyawan, ekspor laporan ke Excel/PDF, logo toko di struk, dan pengelolaan sampai 3 toko dengan laporan gabungan. Lihat bagian [harga](/#harga).
 
 ## Tanya jawab
 
@@ -110,6 +110,6 @@ Bisa, asalkan sebelumnya Anda sudah pernah login di HP tersebut. Untuk login per
 
 ### Apakah aplikasi kasir offline ini berbayar?
 
-Tidak untuk satu toko. Paket Warung gratis selamanya. Paket Juragan berbayar hanya untuk Anda yang mengelola sampai 3 toko.
+Tidak untuk satu toko. Paket Warung gratis selamanya. Paket Juragan berbayar hanya bila Anda butuh akun karyawan, ekspor laporan Excel/PDF, logo di struk, atau mengelola sampai 3 toko.
 
 Jangan biarkan sinyal menentukan jam buka toko Anda. Coba Sirko gratis dan rasakan kasir yang tetap jalan walau internet putus.

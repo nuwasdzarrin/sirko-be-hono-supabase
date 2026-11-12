@@ -4,6 +4,7 @@ import { uuid } from '../lib/uuid.js';
 import { nowMs } from '../lib/time.js';
 import { validation } from '../lib/errors.js';
 import { slugify } from '../site/markdown.js';
+import { submitUrls } from '../site/indexnow.js';
 
 /**
  * Konten website publik (tabel site_posts, migrasi 0015).
@@ -269,7 +270,9 @@ export async function save(id: string | null, input: PostInput, admin: string): 
       // Path kini dipakai konten aktif → pengalihan lama dari path ini tak berlaku lagi.
       await tx`DELETE FROM site_redirects WHERE from_path = ${pathOf({ kind: data.kind, slug })}`;
     });
-    return (await getById(newId))!;
+    const created = (await getById(newId))!;
+    if (isLive(created) && !created.noindex) void submitUrls([pathOf(created), ...hubPaths(created)]);
+    return created;
   }
   await sql.begin(async (tx) => {
     // Simpan versi sebelumnya sebagai revisi (30 terakhir).
@@ -288,7 +291,25 @@ export async function save(id: string | null, input: PostInput, admin: string): 
       await tx`DELETE FROM site_redirects WHERE from_path = ${newPath}`;
     }
   });
-  return (await getById(id))!;
+  const after = (await getById(id))!;
+  // Kabari mesin pencari: URL kini (bila tayang) + URL lama bila slug berubah (agar 301-nya cepat terbaca).
+  const changed = [isLive(after) && !after.noindex ? pathOf(after) : null, before && pathOf(before) !== pathOf(after) && isLive(before) ? pathOf(before) : null]
+    .filter((x): x is string => Boolean(x));
+  if (changed.length) void submitUrls([...changed, ...hubPaths(after)]);
+  return after;
+}
+
+/** Halaman daftar yang ikut berubah saat artikel terbit/berubah (beranda, blog, kategori). */
+function hubPaths(p: SitePost): string[] {
+  return p.kind === 'post' ? ['/', '/blog', ...(p.category ? [`/blog/kategori/${slugify(p.category)}`] : [])] : [];
+}
+
+/** Artikel terjadwal yang baru saja tayang (published_at di antara `since` dan sekarang). */
+export async function newlyLive(since: number, now = nowMs()): Promise<SitePost[]> {
+  const r = await sql<Row[]>`
+    SELECT * FROM site_posts WHERE deleted_at IS NULL AND status = 'published' AND NOT noindex
+      AND published_at > ${since} AND published_at <= ${now} AND created_at < published_at`;
+  return r.map(toPost);
 }
 
 /**
@@ -307,6 +328,7 @@ export async function remove(id: string, redirectTo?: string | null): Promise<vo
                ON CONFLICT (from_path) DO UPDATE SET to_path = EXCLUDED.to_path`;
     }
   });
+  if (isLive(p)) void submitUrls([pathOf(p), ...hubPaths(p)]);
 }
 
 export interface SeedDoc {

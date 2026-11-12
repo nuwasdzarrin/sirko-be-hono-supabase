@@ -53,15 +53,15 @@ Buku kasbon pindah ke HP. Saat pelanggan ngutang, catat langsung ketika transaks
 
 ### Laporan untung yang jelas
 
-Sirko menghitung penjualan, modal, dan laba per hari maupun per bulan. Laporan bisa diekspor ke Excel dan PDF, misalnya untuk dikirim ke keluarga atau disimpan sebagai arsip. Ada juga catatan arus kas, sehingga Anda tahu uang di laci dan di dompet usaha bergerak ke mana.
+Sirko menghitung penjualan, modal, dan laba per hari maupun per bulan. Dengan paket Juragan, laporan juga bisa diekspor ke Excel dan PDF, misalnya untuk dikirim ke keluarga atau disimpan sebagai arsip. Ada juga catatan arus kas, sehingga Anda tahu uang di laci dan di dompet usaha bergerak ke mana.
 
 ### Jual pulsa dan token listrik dalam satu nota
 
 Pembeli sering datang beli sembako sekalian isi pulsa atau token listrik. Dengan Sirko, keduanya masuk dalam satu nota. Anda menentukan sendiri untung per kategori. Baca selengkapnya di halaman [jualan pulsa dan token listrik](/jualan-pulsa-token-listrik).
 
-### Tambah kasir dan karyawan
+### Tambah kasir dan karyawan (paket Juragan)
 
-Pemilik bisa menambahkan akun kasir atau karyawan dengan hak akses masing-masing. Misalnya, karyawan boleh melayani penjualan tetapi tidak boleh melihat laporan laba.
+Dengan paket Juragan, pemilik bisa menambahkan akun kasir atau karyawan dengan hak akses masing-masing. Misalnya, karyawan boleh melayani penjualan tetapi tidak boleh melihat laporan laba.
 
 ## Tetap jalan walau sinyal hilang
 
@@ -85,7 +85,7 @@ Tanpa menghitung ulang di kertas, Bu Rina sudah tahu kondisi tokonya hari itu.
 
 ## Harga: gratis untuk satu toko
 
-Gratis untuk satu toko. Paket **Warung** berharga Rp0 untuk satu toko, selamanya. Jika usaha Anda berkembang menjadi beberapa cabang, ada paket **Juragan** seharga Rp49.000 per bulan atau Rp499.000 per tahun. Paket ini mendukung sampai 3 toko, laporan gabungan, serta salin produk dan kirim stok antar-toko. Lihat rincian di bagian [harga](/#harga).
+Gratis untuk satu toko. Paket **Warung** berharga Rp0 untuk satu toko, selamanya. Jika usaha Anda berkembang, ada paket **Juragan** seharga Rp49.000 per bulan atau Rp499.000 per tahun. Paket ini menambahkan akun karyawan, ekspor laporan ke Excel/PDF, logo toko di struk, dan pengelolaan sampai 3 toko (laporan gabungan, salin produk, kirim stok antar-toko). Lihat rincian di bagian [harga](/#harga).
 
 ## Cara mulai memakai Sirko
 
@@ -106,7 +106,7 @@ Baca juga: [cara menghitung laba toko kelontong](/blog/cara-menghitung-laba-toko
 
 ### Apakah aplikasi kasir warung Sirko benar-benar gratis?
 
-Ya. Paket Warung berharga Rp0 untuk satu toko, tanpa batas waktu. Biaya hanya berlaku bila Anda memilih paket Juragan untuk mengelola sampai 3 toko.
+Ya. Paket Warung berharga Rp0 untuk satu toko, tanpa batas waktu. Biaya hanya berlaku bila Anda memilih paket Juragan untuk akun karyawan, ekspor laporan, logo di struk, atau mengelola sampai 3 toko.
 
 ### Apakah Sirko bisa dipakai untuk toko kelontong dan toko sembako?
 

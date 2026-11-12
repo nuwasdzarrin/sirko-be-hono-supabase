@@ -49,6 +49,8 @@ const rawSchema = z.object({
   SITE_OPERATOR: z.string().optional(),
   // Kode verifikasi Google Search Console (meta google-site-verification).
   GOOGLE_SITE_VERIFICATION: z.string().optional(),
+  // Kunci IndexNow (8–128 karakter a-z0-9-) → kirim URL baru/berubah ke Bing dkk. Kosong = nonaktif.
+  INDEXNOW_KEY: z.string().regex(/^[a-zA-Z0-9-]{8,128}$/).optional(),
   // true = halaman publik dari host lain (mis. sirko.produkdesa.com) dialihkan 301 ke SITE_URL.
   // Nyalakan SETELAH domain SITE_URL benar-benar live.
   SITE_FORCE_HOST: z

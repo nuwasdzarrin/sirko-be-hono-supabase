@@ -164,7 +164,7 @@ siteRoutes.get('/llms.txt', async (c) => {
 
 > ${SITE_NAME} adalah aplikasi kasir (POS) Android untuk warung, toko kelontong, toko sembako, dan toko grosir di Indonesia. ${TAGLINE}
 
-- Paket Warung gratis untuk 1 toko; Paket Juragan Rp49.000/bulan atau Rp499.000/tahun untuk sampai 3 toko.
+- Paket Warung gratis untuk 1 toko (pemilik saja); Paket Juragan Rp49.000/bulan atau Rp499.000/tahun menambah akun karyawan, ekspor laporan Excel/PDF, logo di struk, dan sampai 3 toko.
 - Kasir, stok, dan kasbon jalan tanpa internet; data dicadangkan otomatis saat online.
 - Jual pulsa, paket data, dan token listrik dari layar kasir, satu nota dengan barang lain.
 - Tidak dirancang untuk kafe atau restoran.
@@ -177,6 +177,13 @@ ${all.filter((p) => p.kind === 'post').map(line).join('\n')}
 `;
   c.header('Cache-Control', 'public, max-age=3600');
   return c.text(txt);
+});
+
+/** Bukti kepemilikan kunci IndexNow. */
+siteRoutes.get('/:file{[a-zA-Z0-9-]{8,128}\.txt}', (c) => {
+  if (!env.INDEXNOW_KEY || c.req.param('file') !== `${env.INDEXNOW_KEY}.txt`) return notFound(c);
+  c.header('Cache-Control', 'public, max-age=86400');
+  return c.text(env.INDEXNOW_KEY);
 });
 
 siteRoutes.get('/site.webmanifest', (c) => {
