@@ -8,6 +8,9 @@ import * as site from '../../src/services/site.service.js';
 import * as adminSvc from '../../src/services/admin.service.js';
 import { renderMarkdown, extractFaq } from '../../src/site/markdown.js';
 import { loadContent } from '../../src/db/seed-site.js';
+import { formToken, setTurnstileVerifier } from '../../src/site/antispam.js';
+import { setNotifyTransport, type AdminNotice } from '../../src/lib/notify.js';
+import { env } from '../../src/config/env.js';
 
 /**
  * Contract test website publik sirkopos.com + CMS dashboard (migrasi 0015):
@@ -222,11 +225,12 @@ suite('Website publik & CMS', () => {
   });
 
   it('formulir: daftar tunggu, kontak, hapus akun → tersimpan; honeypot & validasi', async () => {
+    // Token waktu formulir yang sah (halaman dibuka 10 detik lalu) — tanpa ini kiriman dianggap spam.
     const post = (path: string, data: Record<string, string>, ip: string) =>
       app.request(path, {
         method: 'POST',
         headers: { host: 'sirkopos.com', 'Content-Type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip },
-        body: new URLSearchParams(data).toString(),
+        body: new URLSearchParams({ ft: formToken(Date.now() - 10_000), ...data }).toString(),
         redirect: 'manual',
       });
     const ip = `10.67.${tag.charCodeAt(1)}.${tag.charCodeAt(2)}`;
@@ -245,6 +249,94 @@ suite('Website publik & CMS', () => {
     expect(rows.map((r) => r.kind)).toEqual(['contact', 'delete_account', 'waitlist']);
     expect((await get('/hapus-akun')).text).toContain('tanpa perlu memasang aplikasi');
     await sql`DELETE FROM site_leads WHERE name LIKE ${'%' + tag}`;
+  });
+
+  it('anti-spam: tanpa token / terlalu cepat / isi spam → disimpan sebagai spam tanpa notifikasi', async () => {
+    const notices: AdminNotice[] = [];
+    const restore = setNotifyTransport(async (n) => void notices.push(n));
+    const post = (data: Record<string, string>, ip: string) =>
+      app.request('/kontak', {
+        method: 'POST',
+        headers: { host: 'sirkopos.com', 'Content-Type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip },
+        body: new URLSearchParams(data).toString(),
+        redirect: 'manual',
+      });
+    const ok = formToken(Date.now() - 10_000);
+    try {
+      const cases: Array<[Record<string, string>, RegExp]> = [
+        [{ name: `S1 ${tag}`, contact: `a-${tag}@contoh.id`, message: 'Halo, mau tanya harga' }, /tanpa token/],
+        [{ name: `S2 ${tag}`, contact: `b-${tag}@contoh.id`, message: 'Halo, mau tanya harga', ft: formToken() }, /terlalu cepat/],
+        [{ name: `S3 ${tag}`, contact: `c-${tag}@contoh.id`, message: 'Halo, mau tanya harga', ft: `${Date.now() - 10_000}.palsu0000000000000000` }, /palsu/],
+        [{ name: `S4 ${tag}`, contact: 'domains@search-sirkopos.com', message: 'Hi there', ft: ok }, /meniru domain/],
+        [{ name: `S5 ${tag}`, contact: `e-${tag}@contoh.id`, message: "Submit sirkopos.com in Google's Search Index to appear in Google search results! List now: domainsubmit.live", ft: ok }, /indeks Google/],
+        [{ name: `S6 ${tag}`, contact: `f-${tag}@gmail.com`, message: "If you're looking to boost your website's visibility, I can help you achieve top Google rankings. SEO plan attached.", ft: ok }, /SEO/],
+      ];
+      for (const [i, [data, why]] of cases.entries()) {
+        const r = await post(data, `10.68.${tag.charCodeAt(1)}.${i + 1}`);
+        expect(r.status).toBe(303); // bot tetap melihat "terkirim"
+        const row = (await sql`SELECT status, spam_reason FROM site_leads WHERE name = ${data.name!}`)[0]!;
+        expect(row.status).toBe('spam');
+        expect(String(row.spam_reason)).toMatch(why);
+      }
+      expect(notices.filter((n) => n.text.includes(tag))).toHaveLength(0);
+      // Pesan asli tetap lolos & memberi notifikasi.
+      expect((await post({ name: `Asli ${tag}`, contact: `asli-${tag}@contoh.id`, message: 'Halo kak, aplikasinya bisa untuk toko bangunan?', ft: ok }, `10.68.${tag.charCodeAt(1)}.50`)).status).toBe(303);
+      expect((await sql`SELECT status FROM site_leads WHERE name = ${`Asli ${tag}`}`)[0]!.status).toBe('new');
+      expect(notices.filter((n) => n.text.includes(`Asli ${tag}`))).toHaveLength(1);
+      // Dashboard: tab Spam memuat alasannya; "Bukan spam" memulihkan.
+      const spamList = await site.leadList({ status: 'spam' });
+      expect(spamList.some((l) => l.name === `S5 ${tag}` && /indeks Google/.test(l.spamReason ?? ''))).toBe(true);
+      expect((await site.leadList({ status: 'semua' })).some((l) => l.name === `S5 ${tag}`)).toBe(false);
+      const id = spamList.find((l) => l.name === `S5 ${tag}`)!.id;
+      await site.markLeadSpam(id, false, 'tester');
+      expect((await site.leadList({ id }))[0]!.status).toBe('new');
+    } finally {
+      restore();
+      await sql`DELETE FROM site_leads WHERE name LIKE ${'%' + tag}`;
+    }
+  });
+
+  it('Cloudflare Turnstile: widget & CSP saat aktif; token wajib & diverifikasi', async () => {
+    const saved = { site: env.TURNSTILE_SITE_KEY, secret: env.TURNSTILE_SECRET_KEY };
+    const calls: Array<{ token: string; ip: string }> = [];
+    const restoreV = setTurnstileVerifier(async (token, ip) => (calls.push({ token, ip }), { success: token === 'lolos', codes: token === 'lolos' ? [] : ['invalid-input-response'] }));
+    Object.assign(env, { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA' });
+    const ip = `10.69.${tag.charCodeAt(1)}.7`;
+    const post = (data: Record<string, string>) =>
+      app.request('/kontak', {
+        method: 'POST',
+        headers: { host: 'sirkopos.com', 'Content-Type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip },
+        body: new URLSearchParams({ ft: formToken(Date.now() - 10_000), name: `TS ${tag}`, contact: `ts-${tag}@contoh.id`, message: 'Halo, tanya fitur', ...data }).toString(),
+        redirect: 'manual',
+      });
+    try {
+      const page = await app.request('/kontak', { headers: { host: 'sirkopos.com' } });
+      const html = await page.text();
+      expect(html).toContain('class="cf-turnstile" data-sitekey="1x00000000000000000000AA"');
+      expect(html).toContain('https://challenges.cloudflare.com/turnstile/v0/api.js');
+      expect(page.headers.get('content-security-policy')).toMatch(/script-src [^;]*https:\/\/challenges\.cloudflare\.com/);
+      expect(page.headers.get('content-security-policy')).toMatch(/frame-src 'self' https:\/\/challenges\.cloudflare\.com/);
+      for (const p of ['/', '/hapus-akun']) expect(await (await app.request(p, { headers: { host: 'sirkopos.com' } })).text()).toContain('cf-turnstile');
+
+      const none = await post({});
+      expect(none.status).toBe(422);
+      expect(await none.text()).toContain('verifikasi keamanan');
+      const bad = await post({ 'cf-turnstile-response': 'palsu' });
+      expect(bad.status).toBe(422);
+      expect(await bad.text()).toContain('Verifikasi keamanan gagal');
+      expect((await sql`SELECT count(*)::int c FROM site_leads WHERE name = ${`TS ${tag}`}`)[0]!.c).toBe(0);
+      expect((await post({ 'cf-turnstile-response': 'lolos' })).status).toBe(303);
+      expect(calls.at(-1)).toEqual({ token: 'lolos', ip });
+      expect((await sql`SELECT status FROM site_leads WHERE name = ${`TS ${tag}`}`)[0]!.status).toBe('new');
+    } finally {
+      restoreV();
+      Object.assign(env, { TURNSTILE_SITE_KEY: saved.site, TURNSTILE_SECRET_KEY: saved.secret });
+      await sql`DELETE FROM site_leads WHERE name LIKE ${'%' + tag}`;
+    }
+    // Nonaktif: tanpa widget, CSP tanpa Cloudflare.
+    const off = await app.request('/kontak', { headers: { host: 'sirkopos.com' } });
+    expect(await off.text()).not.toContain('cf-turnstile"');
+    expect(off.headers.get('content-security-policy')).not.toContain('challenges.cloudflare.com');
   });
 
   it('hapus konten: 410 Gone, atau 301 bila diberi tujuan; seed tak menghidupkan lagi', async () => {

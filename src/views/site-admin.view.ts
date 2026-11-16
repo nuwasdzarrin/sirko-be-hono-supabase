@@ -382,8 +382,8 @@ const EDITOR_JS = `<script src="${IMG_LIB}" integrity="${IMG_SRI}" crossorigin="
 
 const LEAD_LABEL: Record<string, string> = { waitlist: 'Daftar tunggu', contact: 'Kontak', delete_account: 'Hapus akun' };
 
-export function renderLeads(items: import('../services/site.service.js').SiteLead[], o: { status: string; serverTime: number }): string {
-  const tabs = [['new', 'Baru'], ['done', 'Selesai'], ['semua', 'Semua']]
+export function renderLeads(items: import('../services/site.service.js').SiteLead[], o: { status: string; serverTime: number; spamCount?: number }): string {
+  const tabs = [['new', 'Baru'], ['done', 'Selesai'], ['semua', 'Semua'], ['spam', `Spam${o.spamCount ? ` (${o.spamCount})` : ''}`]]
     .map(([k, l]) => `<a class="${o.status === k ? 'on' : ''}" href="/dashboard/site/leads?status=${k}">${l}</a>`)
     .join('');
   const rows = items
@@ -392,14 +392,19 @@ export function renderLeads(items: import('../services/site.service.js').SiteLea
     <td data-l="Jenis"><span class="pill${l.kind === 'delete_account' ? ' bad' : l.kind === 'waitlist' ? ' ok' : ''}">${LEAD_LABEL[l.kind]}</span></td>
     <td data-l="Nama">${esc(l.name || '—')}${l.storeType ? `<div class="mut" style="font-size:12px">${esc(l.storeType)}</div>` : ''}</td>
     <td data-l="Kontak"><code>${esc(l.contact)}</code>${l.kind === 'delete_account' ? `<div><a class="mini" href="/dashboard/users?q=${encodeURIComponent(l.contact.replace(/[\s-]/g, '').replace(/^\+?0(?=8)/, '62').replace(/^\+/, ''))}">Cari akun →</a></div>` : ''}</td>
-    <td data-l="Pesan" style="max-width:420px;white-space:pre-wrap">${esc(l.message || '—')}</td>
+    <td data-l="Pesan" style="max-width:420px;white-space:pre-wrap">${esc(l.message || '—')}${l.spamReason ? `<div class="mut" style="font-size:12px;white-space:normal">🚫 Spam: ${esc(l.spamReason)}</div>` : ''}</td>
     <td data-l="Masuk" class="mut" style="white-space:nowrap">${dt(l.createdAt)}</td>
-    <td><form method="post" action="/dashboard/site/leads/${esc(l.id)}"><input type="hidden" name="done" value="${l.status === 'new' ? '1' : '0'}"><button class="btn ghost" type="submit">${l.status === 'new' ? '✓ Selesai' : '↺ Buka lagi'}</button></form>${l.handledBy ? `<div class="mut" style="font-size:11px">oleh ${esc(l.handledBy)}</div>` : ''}</td></tr>`,
+    <td>${
+      l.status === 'spam'
+        ? `<form method="post" action="/dashboard/site/leads/${esc(l.id)}"><input type="hidden" name="spam" value="0"><button class="btn ghost" type="submit">↺ Bukan spam</button></form>`
+        : `<form method="post" action="/dashboard/site/leads/${esc(l.id)}"><input type="hidden" name="done" value="${l.status === 'new' ? '1' : '0'}"><button class="btn ghost" type="submit">${l.status === 'new' ? '✓ Selesai' : '↺ Buka lagi'}</button></form>
+      <form method="post" action="/dashboard/site/leads/${esc(l.id)}" style="margin-top:4px"><input type="hidden" name="spam" value="1"><button class="btn ghost" type="submit" title="Pindahkan ke Spam">🚫 Spam</button></form>`
+    }${l.handledBy ? `<div class="mut" style="font-size:11px">oleh ${esc(l.handledBy)}</div>` : ''}</td></tr>`,
     )
     .join('');
   const body = `${CSS}<div class="titlebar"><h1>Pesan masuk dari situs</h1></div>
 <div class="site-tabs">${tabs}</div>
-<p class="mut" style="font-size:13px;margin:0 0 12px">Daftar tunggu (sebelum rilis), formulir kontak, dan permintaan hapus akun dari sirkopos.com. Permintaan hapus akun: verifikasi ke kontak pemilik dulu, lalu proses maksimal 30 hari.</p>
+<p class="mut" style="font-size:13px;margin:0 0 12px">Daftar tunggu (sebelum rilis), formulir kontak, dan permintaan hapus akun dari sirkopos.com. Permintaan hapus akun: verifikasi ke kontak pemilik dulu, lalu proses maksimal 30 hari.${o.status === 'spam' ? ' Tab Spam: pesan yang disaring otomatis (tanpa notifikasi Telegram). Pulihkan bila ternyata pesan asli.' : ''}</p>
 <div class="tablewrap"><table><thead><tr><th>Jenis</th><th>Nama</th><th>Kontak</th><th>Pesan</th><th>Masuk</th><th></th></tr></thead>
 <tbody>${rows || '<tr><td colspan="6" class="empty">Tidak ada pesan.</td></tr>'}</tbody></table></div>`;
   return renderLayout({ title: 'Website · Pesan masuk', active: 'site', body, serverTime: o.serverTime });

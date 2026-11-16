@@ -8,6 +8,7 @@ import { sessionInfo } from '../lib/dashboard-session.js';
 import { renderLanding } from '../site/landing.js';
 import { render404, renderBlogIndex, renderPost, renderStaticPage } from '../site/pages.js';
 import { siteHost, siteUrl, SITE_NAME, SITE_SCRIPT_SRC, TAGLINE } from '../site/layout.js';
+import { contentSpamReason, formTokenProblem, turnstileEnabled, turnstileProblem, TURNSTILE_ORIGIN } from '../site/antispam.js';
 import { escHtml } from '../site/markdown.js';
 import { renderContact, renderDeleteAccount, type FormState } from '../site/forms.js';
 import { clientIp, hitRateLimit } from '../services/account.service.js';
@@ -50,7 +51,8 @@ siteRoutes.use('*', async (c, next) => {
   if ((c.res.headers.get('content-type') ?? '').startsWith('text/html')) {
     c.header(
       'Content-Security-Policy',
-      `default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src ${SITE_SCRIPT_SRC}; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'`,
+      // Turnstile aktif → izinkan skrip & iframe challenges.cloudflare.com.
+      `default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src ${SITE_SCRIPT_SRC}${turnstileEnabled() ? ` ${TURNSTILE_ORIGIN}` : ''}; font-src 'self'; connect-src 'self'${turnstileEnabled() ? ` ${TURNSTILE_ORIGIN}` : ''}${turnstileEnabled() ? `; frame-src 'self' ${TURNSTILE_ORIGIN}` : ''}; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'`,
     );
   }
   c.header('X-Content-Type-Options', 'nosniff');
@@ -225,7 +227,12 @@ async function submitLead(c: Context, kind: site.LeadKind): Promise<{ ok: true }
   try {
     const ip = clientIp(c.req.raw.headers);
     await hitRateLimit(`lead:${ip}`, 8, 3_600_000, 'Terlalu banyak kiriman dari jaringan ini. Coba lagi dalam 1 jam.');
-    await site.createLead({ kind, ...values }, ip);
+    // Turnstile: gagal → tampilkan pesan (manusia bisa coba lagi). Lolos/nonaktif → lanjut.
+    const ts = await turnstileProblem(body['cf-turnstile-response'], ip);
+    if (ts) return { error: ts, values };
+    // Jebakan waktu & saringan isi: disimpan sebagai spam tanpa notifikasi; bot tetap melihat "terkirim".
+    const spamReason = formTokenProblem(body.ft) ?? contentSpamReason(values);
+    await site.createLead({ kind, ...values }, ip, { spamReason });
     return { ok: true };
   } catch (e) {
     const m = formErr(e);

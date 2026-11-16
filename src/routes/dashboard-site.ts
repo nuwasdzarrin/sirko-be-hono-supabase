@@ -61,11 +61,17 @@ export function siteAdminRoutes(send: Send, flash: Flash, adminName: (c: Context
 
   // ── Pesan masuk dari situs (daftar tunggu, kontak, hapus akun) ──
   r.get('/leads', async (c) => {
-    const s = c.req.query('status') === 'done' ? 'done' : c.req.query('status') === 'semua' ? 'semua' : 'new';
-    return send(c, renderLeads(await site.leadList({ status: s }), { status: s, serverTime: Date.now() }));
+    const q = c.req.query('status');
+    const s = q === 'done' || q === 'semua' || q === 'spam' ? q : 'new';
+    const [items, spamCount] = await Promise.all([site.leadList({ status: s }), site.countSpamLeads()]);
+    return send(c, renderLeads(items, { status: s, serverTime: Date.now(), spamCount }));
   });
   r.post('/leads/:id', async (c) => {
     const body = (await c.req.parseBody()) as Record<string, string>;
+    if (body.spam === '1' || body.spam === '0') {
+      await site.markLeadSpam(c.req.param('id'), body.spam === '1', adminName(c));
+      return c.redirect(`/dashboard/site/leads${body.spam === '0' ? '?status=spam' : ''}`);
+    }
     await site.markLead(c.req.param('id'), body.done === '1', adminName(c));
     return c.redirect('/dashboard/site/leads');
   });

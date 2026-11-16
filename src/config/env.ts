@@ -42,6 +42,10 @@ const rawSchema = z.object({
   PLAY_STORE_URL: z.string().url().optional(),
   // Email kontak resmi (halaman privasi, ketentuan, kontak, schema Organization). Kosong → formulir web.
   SITE_CONTACT_EMAIL: z.string().email().optional(),
+  // Cloudflare Turnstile untuk formulir publik (kontak, daftar tunggu, hapus akun). Keduanya diisi →
+  // widget tampil & token wajib diverifikasi. Kosong → dilewati (jebakan waktu & saringan isi tetap jalan).
+  TURNSTILE_SITE_KEY: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
   // WhatsApp admin (format internasional tanpa +, mis. 628999104916) → tombol WA melayang & tautan wa.me.
   SITE_WHATSAPP: z.string().regex(/^62\d{8,13}$/).optional(),
   // Nama pengelola/pengendali data yang tampil di halaman legal & schema.
