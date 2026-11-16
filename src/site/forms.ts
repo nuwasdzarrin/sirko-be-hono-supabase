@@ -1,6 +1,10 @@
 import { env } from '../config/env.js';
 import { escAttr, escHtml } from './markdown.js';
 import { breadcrumbsHtml, renderPage, siteUrl, waDisplay, waHref, ORG_ID, type Crumb } from './layout.js';
+import { formToken, turnstileWidget } from './antispam.js';
+
+/** Field anti-spam tiap formulir: token waktu (tanpa JS) + widget Cloudflare Turnstile bila aktif. */
+const guard = () => `<input type="hidden" name="ft" value="${formToken()}">${turnstileWidget()}`;
 
 /**
  * Halaman formulir publik: /kontak, /hapus-akun, dan formulir daftar tunggu di beranda.
@@ -15,6 +19,7 @@ export const FORM_CSS = `
 .form .hint{font-size:14px;color:var(--mut);margin-top:4px}
 .form .btn{justify-self:start}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.cf-turnstile{min-height:65px}
 .note-ok{background:var(--green-50);border:1px solid var(--green);border-radius:14px;padding:14px 16px;font-weight:600}
 .note-err{background:var(--mango-50);border:1px solid var(--mango);border-radius:14px;padding:14px 16px;font-weight:600}
 `;
@@ -43,6 +48,7 @@ export function waitlistForm(s: FormState = {}): string {
   <div><label for="w-name">Nama</label><input id="w-name" name="name" autocomplete="name" maxlength="80" value="${val(s, 'name')}" placeholder="mis. Bu Sri"></div>
   <div><label for="w-contact">Nomor WhatsApp atau email</label><input id="w-contact" name="contact" required maxlength="120" inputmode="email" autocomplete="email" value="${val(s, 'contact')}" placeholder="0812xxxx atau nama@email.com"></div>
   <div><label for="w-type">Jenis usaha</label><select id="w-type" name="storeType">${STORE_TYPES.map((t) => `<option${s.values?.storeType === t ? ' selected' : ''}>${escHtml(t)}</option>`).join('')}</select></div>
+  ${guard()}
   <button class="btn btn-primary" type="submit">Kabari saya saat rilis</button>
   <p class="hint" style="margin:0">Kami hanya memakai kontak ini untuk mengabari peluncuran Sirko. Lihat <a href="/kebijakan-privasi">kebijakan privasi</a>.</p>
 </form>`;
@@ -86,6 +92,7 @@ ${
   <div><label for="c-name">Nama</label><input id="c-name" name="name" autocomplete="name" maxlength="80" value="${val(s, 'name')}"></div>
   <div><label for="c-contact">Nomor WhatsApp atau email</label><input id="c-contact" name="contact" required maxlength="120" value="${val(s, 'contact')}" placeholder="0812xxxx atau nama@email.com"></div>
   <div><label for="c-msg">Pesan</label><textarea id="c-msg" name="message" required minlength="5" maxlength="2000" rows="6">${escHtml(s.values?.message ?? '')}</textarea></div>
+  ${guard()}
   <button class="btn btn-primary" type="submit">Kirim pesan</button>
   <p class="hint" style="margin:0">Data ini hanya dipakai untuk membalas pesan Anda. Lihat <a href="/kebijakan-privasi">kebijakan privasi</a>.</p>
 </form>`
@@ -128,6 +135,7 @@ ${
   <div><label for="d-contact">Email atau nomor WhatsApp yang terdaftar</label><input id="d-contact" name="contact" required maxlength="120" value="${val(s, 'contact')}"></div>
   <div><label for="d-name">Nama pemilik / nama toko</label><input id="d-name" name="name" maxlength="80" value="${val(s, 'name')}"></div>
   <div><label for="d-msg">Alasan (opsional)</label><textarea id="d-msg" name="message" maxlength="2000" rows="3">${escHtml(s.values?.message ?? '')}</textarea></div>
+  ${guard()}
   <button class="btn btn-primary" type="submit">Ajukan penghapusan akun</button>
 </form>`
 }`,

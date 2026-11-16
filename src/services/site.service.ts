@@ -416,7 +416,8 @@ export interface SiteLead {
   contact: string;
   storeType: string;
   message: string;
-  status: 'new' | 'done';
+  status: 'new' | 'done' | 'spam';
+  spamReason: string | null;
   createdAt: number;
   handledAt: number | null;
   handledBy: string | null;
@@ -437,13 +438,21 @@ export const leadInput = z.object({
 
 const LEAD_LABEL: Record<LeadKind, string> = { waitlist: '📝 Daftar tunggu', contact: '✉️ Pesan kontak', delete_account: '🗑 Permintaan hapus akun' };
 
-/** Simpan formulir publik + beri tahu admin (Telegram). Batas laju per IP dicek pemanggil. */
-export async function createLead(input: unknown, ip: string): Promise<SiteLead> {
+/**
+ * Simpan formulir publik + beri tahu admin (Telegram). Batas laju per IP dicek pemanggil.
+ * `spamReason` terisi (jebakan waktu / saringan isi) → disimpan berstatus spam, TANPA notifikasi.
+ */
+export async function createLead(input: unknown, ip: string, opts: { spamReason?: string | null } = {}): Promise<SiteLead> {
   const p = leadInput.parse(input);
   if (p.kind === 'contact' && p.message.length < 5) throw validation('Tulis pesan Anda (minimal 5 karakter).');
   const id = uuid();
   const ts = nowMs();
-  await sql`INSERT INTO site_leads ${sql({ id, kind: p.kind, name: p.name, contact: p.contact, store_type: p.storeType, message: p.message, ip, created_at: ts })}`;
+  const spam = opts.spamReason ?? null;
+  await sql`INSERT INTO site_leads ${sql({ id, kind: p.kind, name: p.name, contact: p.contact, store_type: p.storeType, message: p.message, ip, created_at: ts, status: spam ? 'spam' : 'new', spam_reason: spam })}`;
+  if (spam) {
+    console.log(`[site] lead spam disaring (${spam}) dari ${ip}`);
+    return (await leadList({ id }))[0]!;
+  }
   const { notifyAdmin, tgEsc } = await import('../lib/notify.js');
   void notifyAdmin({
     text:
@@ -457,11 +466,11 @@ export async function createLead(input: unknown, ip: string): Promise<SiteLead> 
   return (await leadList({ id }))[0]!;
 }
 
-export async function leadList(opts: { id?: string; status?: 'new' | 'done' | 'semua'; kind?: LeadKind } = {}): Promise<SiteLead[]> {
+export async function leadList(opts: { id?: string; status?: 'new' | 'done' | 'spam' | 'semua'; kind?: LeadKind } = {}): Promise<SiteLead[]> {
   const rows = await sql<Row[]>`
     SELECT * FROM site_leads WHERE true
       ${opts.id ? sql`AND id = ${opts.id}` : sql``}
-      ${opts.status && opts.status !== 'semua' ? sql`AND status = ${opts.status}` : sql``}
+      ${opts.status && opts.status !== 'semua' ? sql`AND status = ${opts.status}` : opts.id ? sql`` : sql`AND status <> 'spam'`}
       ${opts.kind ? sql`AND kind = ${opts.kind}` : sql``}
     ORDER BY (status = 'new') DESC, created_at DESC LIMIT 300`;
   return rows.map((r) => ({
@@ -472,6 +481,7 @@ export async function leadList(opts: { id?: string; status?: 'new' | 'done' | 's
     storeType: (r.store_type as string) ?? '',
     message: (r.message as string) ?? '',
     status: r.status as SiteLead['status'],
+    spamReason: (r.spam_reason as string) ?? null,
     createdAt: Number(r.created_at),
     handledAt: r.handled_at == null ? null : Number(r.handled_at),
     handledBy: (r.handled_by as string) ?? null,
@@ -484,6 +494,16 @@ export async function countNewLeads(): Promise<number> {
 
 export async function markLead(id: string, done: boolean, admin: string): Promise<void> {
   await sql`UPDATE site_leads SET status = ${done ? 'done' : 'new'}, handled_at = ${done ? nowMs() : null}, handled_by = ${done ? admin : null} WHERE id = ${id}`;
+}
+
+/** Tandai spam / pulihkan dari spam (kembali ke "baru"). */
+export async function markLeadSpam(id: string, spam: boolean, admin: string): Promise<void> {
+  await sql`UPDATE site_leads SET status = ${spam ? 'spam' : 'new'}, spam_reason = ${spam ? `ditandai ${admin}` : null},
+    handled_at = ${spam ? nowMs() : null}, handled_by = ${spam ? admin : null} WHERE id = ${id}`;
+}
+
+export async function countSpamLeads(): Promise<number> {
+  return (await sql<{ c: number }[]>`SELECT count(*)::int c FROM site_leads WHERE status = 'spam'`)[0]?.c ?? 0;
 }
 
 /** Sampul: JPG 1200×630 + kembaran 600×315 (`-600.jpg`) untuk srcset. JPG agar pratinjau WhatsApp andal. */

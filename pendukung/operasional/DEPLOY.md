@@ -33,6 +33,11 @@ lewat chat): setelah deploy/ganti `TELEGRAM_BOT_TOKEN` jalankan sekali
 daftar perintah). Admin menautkan Telegram-nya sendiri di dashboard → **Profil → Hubungkan Telegram**;
 notifikasi dikirim ke semua admin tertaut (+ `TELEGRAM_ADMIN_CHAT_ID` lama).
 
+**Anti-spam formulir situs** (kontak, daftar tunggu, hapus akun): `TURNSTILE_SITE_KEY` +
+`TURNSTILE_SECRET_KEY` dari Cloudflare → Turnstile (widget di sirkopos.com). Keduanya diisi → widget tampil &
+token wajib; kosong → dilewati. Jebakan waktu (token `ft`, < 3 detik = spam) & saringan isi selalu aktif:
+pesan spam disimpan berstatus `spam` tanpa notifikasi Telegram (dashboard → Website → Pesan masuk → tab Spam).
+
 **Aturan:** server = mirror. Jangan edit/commit di server; `.env` & `backups/` tak
 di-commit. Migrasi baru cukup ditaruh di `src/db/migrations/` — dijalankan update.sh.
 
