@@ -156,7 +156,7 @@ Idempotency: **LWW** (mutable: master + header transaksi — update bila `update
 | DELETE | `/v1/catalog/:id` | **sirko_admin** | soft delete → `{id, deleted:true}` |
 | POST | `/v1/media/sign-upload` | Bearer | signed URL S3 (PUT langsung ke storage). scope `catalog` khusus sirko_admin |
 
-`public_products` = tabel **GLOBAL** (tanpa `business_id`, **tanpa harga/stok**), dibaca semua toko, ditulis hanya `sirko_admin`. Pencarian pakai `pg_trgm` (GIN pada name/brand + keywords). Skema di [migrations/0003](src/db/migrations/0003_catalog.sql). Storage lewat **presigner SigV4 zero-dependency** ([lib/storage.ts](src/lib/storage.ts)) — portabel Supabase Storage ↔ MinIO/VPS via env `S3_*` + `S3_PUBLIC_BASE_URL`. Tak ada SDK Supabase.
+`public_products` = tabel **GLOBAL** (tanpa `business_id`, **tanpa harga/stok**), dibaca semua toko, ditulis hanya `sirko_admin`. Pencarian pakai `pg_trgm` (GIN pada name/brand + keywords). Skema di [migrations/0003](src/db/migrations/0003_catalog.sql). Storage lewat **presigner SigV4 zero-dependency** ([lib/storage.ts](src/lib/storage.ts)) — produksi memakai **Cloudflare R2** (tetap portabel ke MinIO/Supabase Storage via env `S3_*` + `S3_PUBLIC_BASE_URL`). Tak ada SDK.
 
 **Dashboard admin (HTML/EJS)** — lintas-tenant, login sesi cookie, tema terang/gelap
 
@@ -219,6 +219,28 @@ Sumber byte = berkas bundle `data/assets/public_products/` (fallback: unduh dari
 
 Semua respons memakai **envelope**: sukses `{ data, meta? }`, error `{ error: { code, message, details? } }`.
 Bentuk payload persis mengikuti `spec/10-api-contract.md`.
+
+### Storage media: Cloudflare R2
+
+Semua upload (foto katalog, upload app, gambar artikel, QRIS) lewat [lib/storage.ts](src/lib/storage.ts) ke bucket `sirko-media`. Objek diberi folder lingkungan `STORAGE_ENV` (`dev`/`staging`/`prod`) → satu bucket dipakai bersama tanpa saling timpa:
+
+```
+sirko-media/
+  prod/catalog/…        foto Katalog Umum
+  prod/product/…        upload app (signed URL)
+  prod/site/YYYY/MM/…   gambar artikel situs
+  prod/config/…         QRIS top-up Poin & langganan
+  dev/…  staging/…      lingkungan lain
+```
+
+Pindah dari storage lama (Supabase) — isi `MEDIA_SRC_S3_*` di `.env` (lihat `.env.example`), lalu:
+
+```bash
+npm run migrate:media-r2              # dry run: jumlah objek & baris DB yang akan diganti
+npm run migrate:media-r2 -- --apply   # salin semua objek → ganti URL lama di seluruh DB (1 transaksi)
+```
+
+Idempotent (objek yang sudah ada dilewati). URL di DB hanya diganti bila SEMUA objek berhasil disalin. Script: [db/migrate-media-r2.ts](src/db/migrate-media-r2.ts).
 
 ## Struktur folder
 

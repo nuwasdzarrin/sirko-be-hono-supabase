@@ -22,6 +22,7 @@
     "export:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/export-catalog-assets.ts",
     "mirror:catalog": "node --env-file=.env --import tsx src/db/mirror-catalog-photos.ts",
     "mirror:catalog:prod": "node --env-file=.env.production.local --import tsx src/db/mirror-catalog-photos.ts",
+    "migrate:media-r2": "node --env-file=.env --import tsx src/db/migrate-media-r2.ts",
     "curate:catalog": "node data/curate-catalog.js",
     "curate:catalog:apply": "node --env-file=.env.production.local data/curate-catalog.js --apply",
     "build:seed": "node data/build-seed.js",
