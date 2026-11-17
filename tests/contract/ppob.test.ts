@@ -304,6 +304,48 @@ suite('PPOB tahap 2 — pulsa & data', () => {
     expect((await orderRow(r.json.data.id)).status).toBe('success');
   });
 
+  it('order pending awet: event tak menumpuk, cek makin jarang, admin dikabari sekali & bisa menutup', async () => {
+    const start = await balance();
+    replyFor(tsel(20), { status: 'Pending', rc: '03' });
+    const id = (await buy(pTsel10, tsel(20))).json.data.id as string;
+    const events = async () => (await sql<{ event: string }[]>`SELECT event FROM ppob_order_events WHERE order_id = ${id}`).map((e) => e.event);
+    const n0 = (await events()).length;
+
+    // Cek ulang berkali-kali dengan hasil sama → tak menambah event.
+    for (let i = 0; i < 3; i++) {
+      await sql`UPDATE ppob_orders SET last_checked_at = ${Date.now() - 120_000} WHERE id = ${id}`;
+      expect((await ppob.checkStatus(id)).checked).toBe(true);
+    }
+    expect((await events()).length).toBe(n0);
+
+    // Umur 2 jam → jeda cek berkala 15 menit.
+    const now = Date.now();
+    await sql`UPDATE ppob_orders SET created_at = ${now - 2 * 3_600_000}, last_checked_at = ${now - 10 * 60_000} WHERE id = ${id}`;
+    calls.length = 0;
+    await ppob.reconcilePending(500);
+    expect(calls.some((c) => c.body.ref_id === id)).toBe(false);
+    await sql`UPDATE ppob_orders SET last_checked_at = ${now - 16 * 60_000} WHERE id = ${id}`;
+    await ppob.reconcilePending(500);
+    expect(calls.some((c) => c.body.ref_id === id)).toBe(true);
+
+    // Pending ≥ 6 jam → admin dikabari SEKALI.
+    await sql`UPDATE ppob_orders SET created_at = ${now - 7 * 3_600_000} WHERE id = ${id}`;
+    notices.length = 0;
+    await ppob.alertStalePending(500);
+    await ppob.alertStalePending(500);
+    await new Promise((res) => setTimeout(res, 20));
+    expect(notices.filter((x) => x.text.includes(tsel(20)))).toHaveLength(1);
+
+    // Admin menutup: alasan wajib → gagal + refund; order < 1 jam ditolak.
+    expect((await ppob.adminFailStuck(id, ' ', 'admin-uji')).ok).toBe(false);
+    expect((await ppob.adminFailStuck(id, 'macet pending', 'admin-uji')).ok).toBe(true);
+    expect(await orderRow(id)).toMatchObject({ status: 'failed', refunded: true, fulfilled_by: 'admin-uji' });
+    expect(await balance()).toBe(start);
+    replyFor(tsel(21), { status: 'Pending', rc: '03' });
+    const young = (await buy(pTsel10, tsel(21))).json.data.id as string;
+    expect((await ppob.adminFailStuck(young, 'macet', 'admin-uji')).ok).toBe(false);
+  });
+
   it('riwayat order app + isolasi antar-toko', async () => {
     const list = await req('GET', '/v1/ppob/orders?limit=3', token);
     expect(list.json.data).toHaveLength(3);

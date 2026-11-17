@@ -561,7 +561,10 @@ dashboardRoutes.post('/ppob/orders/:id/fulfill', async (c) => {
 dashboardRoutes.post('/ppob/orders/:id/fail', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  const r = await ppob.adminFailPln(id, typeof body.reason === 'string' ? body.reason : '', c.get('admin'));
+  const reason = typeof body.reason === 'string' ? body.reason : '';
+  const r = body.kind === 'stuck'
+    ? await ppob.adminFailStuck(id, reason, c.get('admin'))
+    : await ppob.adminFailPln(id, reason, c.get('admin'));
   flash(c, r.ok ? 'ok' : 'error', r.message);
   return c.redirect(`/dashboard/ppob/orders/${id}`);
 });

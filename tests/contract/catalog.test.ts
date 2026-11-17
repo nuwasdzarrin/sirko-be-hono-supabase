@@ -5,6 +5,7 @@ import { runMigrations } from '../../src/db/migrate.js';
 import { uuid } from '../../src/lib/uuid.js';
 import { signAccessToken } from '../../src/lib/jwt.js';
 import { registerOwnerStore } from '../helpers/owner-store.js';
+import { env } from '../../src/config/env.js';
 
 /**
  * Contract test Katalog (Fitur 2). Butuh Postgres nyata; skip bila tak tersambung.
@@ -196,7 +197,7 @@ suite('Catalog contract', () => {
     expect(d.uploadUrl).toContain('X-Amz-Algorithm=AWS4-HMAC-SHA256');
     expect(d.uploadUrl).toContain('X-Amz-Signature=');
     expect(d.uploadUrl).toContain('X-Amz-Credential=');
-    expect(d.uploadUrl).toContain('/sirko-media/catalog/');
-    expect(d.publicUrl).toContain('/catalog/');
+    expect(d.uploadUrl).toContain(`/sirko-media/${env.STORAGE_ENV}/catalog/`);
+    expect(d.publicUrl).toContain(`/${env.STORAGE_ENV}/catalog/`);
   });
 });

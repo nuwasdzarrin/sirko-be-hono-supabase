@@ -23,6 +23,10 @@ const rawSchema = z.object({
   // URL publik dasar untuk objek (Supabase: .../object/public/<bucket>). Bila kosong
   // → `${S3_ENDPOINT}/${S3_BUCKET}` (pola MinIO/VPS). Portabel: cukup ganti env.
   S3_PUBLIC_BASE_URL: z.string().optional(),
+  // Folder teratas di bucket per lingkungan: `<STORAGE_ENV>/<scope>/…` (mis. prod/catalog/…)
+  // → dev, staging, & prod bisa berbagi satu bucket R2 tanpa saling timpa.
+  // Kosong → `prod` bila APP_ENV=production, selain itu `dev`.
+  STORAGE_ENV: z.enum(['dev', 'staging', 'prod']).optional(),
 
   APP_ENV: z.enum(['development', 'production']).default('development'),
 
@@ -105,7 +109,10 @@ if (!parsed.success) {
   throw new Error(`Konfigurasi environment tidak valid:\n${details}`);
 }
 
-const env = parsed.data;
+const env = {
+  ...parsed.data,
+  STORAGE_ENV: parsed.data.STORAGE_ENV ?? (parsed.data.APP_ENV === 'production' ? 'prod' : 'dev'),
+};
 
 // S3 wajib lengkap saat production (foundation belum memakainya, tapi gagal cepat lebih baik).
 if (env.APP_ENV === 'production') {

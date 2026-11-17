@@ -242,6 +242,12 @@ export function renderPpobOrderDetail(d: OrderDetailData, extra: { attention: nu
     <h3 style="margin-top:14px">Mutasi Poin</h3>
     <table class="stmt">${d.ledger.map((l) => `<tr><td>${esc(l.type)} · ${dt(l.createdAt)}</td><td class="v">${l.amount > 0 ? '+' : ''}${rp(l.amount)}</td></tr>`).join('') || '<tr><td class="mut">—</td></tr>'}</table>
     ${canCheck ? `<form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/check" style="margin-top:14px"><button class="btn primary" type="submit">↻ Cek status ke Digiflazz</button><div class="mut" style="font-size:11px;margin-top:6px">Maks 1× per menit per order (aturan Digiflazz).</div></form>` : ''}
+    ${canCheck && o.provider === 'digiflazz' && Date.now() - o.createdAt >= 3_600_000 ? `<form method="post" action="/dashboard/ppob/orders/${esc(o.id)}/fail" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)" onsubmit="return confirm('Sudah dipastikan di dashboard Digiflazz bahwa transaksi ini TIDAK berhasil? Order ditutup gagal & Poin dikembalikan; hasil Digiflazz sesudahnya diabaikan.')">
+    <input type="hidden" name="kind" value="stuck">
+    <input name="reason" required maxlength="150" placeholder="Alasan, mis. macet pending, tidak ada di Digiflazz" style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px">
+    <button class="btn bad" type="submit">Tutup order &amp; kembalikan Poin</button>
+    <div class="mut" style="font-size:11px;width:100%">Order macet ≥ 1 jam. Pastikan dulu di dashboard Digiflazz.</div>
+  </form>` : ''}
   </div>
 </div>`;
   return renderLayout({ title: `Order PPOB`, active: 'ppob', body, serverTime: extra.serverTime });

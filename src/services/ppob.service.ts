@@ -30,6 +30,12 @@ const rupiah = (v: number) => 'Rp ' + new Intl.NumberFormat('id-ID').format(v);
 const STATUS_CHECK_MIN_GAP_MS = 60_000; // Digiflazz: jangan cek status trx sama > 1×/menit
 const STATUS_CHECK_MAX_AGE_MS = 85 * 86_400_000; // > 90 hari → Digiflazz membuat trx BARU
 const PRICELIST_MIN_GAP_MS = 5 * 60_000; // Digiflazz: price-list maks 1× per 5 menit
+// Order pending yang awet: cek berkala makin jarang (umur < 1 jam: 2 mnt · < 24 jam: 15 mnt · lebih: 6 jam).
+const RECHECK_GAP_YOUNG_MS = 2 * STATUS_CHECK_MIN_GAP_MS;
+const RECHECK_GAP_DAY_MS = 15 * 60_000;
+const RECHECK_GAP_OLD_MS = 6 * 3_600_000;
+const STALE_ALERT_MS = 6 * 3_600_000; // pending ≥ 6 jam → kabari admin (sekali per order)
+const STALE_CLOSE_MIN_AGE_MS = 3_600_000; // admin boleh menutup manual order Digiflazz pending ≥ 1 jam
 
 // ── Konfigurasi (app_config.ppob) ────────────────────────────────────────────
 
@@ -572,6 +578,11 @@ export async function applyResult(orderId: string, res: Partial<df.DfTransaction
       if (res.rc && df.ALARM_RC.has(res.rc)) alarm = `RC ${res.rc}: ${res.message ?? ''}`;
     } else {
       await tx`UPDATE ppob_orders SET ${tx({ ...common, status: 'pending' })} WHERE id = ${orderId}`;
+      // Pending berulang tanpa perubahan (rc & pesan sama) tak dicatat lagi — cek berkala
+      // pada order awet dulu menimbun ribuan event identik.
+      const unchanged = o.status === 'pending' && (o.provider_rc ?? null) === common.provider_rc
+        && (o.provider_message ?? null) === common.provider_message;
+      if (unchanged) return 'pending';
     }
     await addEvent(tx, orderId, `${source}_${mapped}`, detail);
     return mapped === 'success' ? 'success' : mapped === 'failed' ? 'failed' : 'pending';
@@ -680,14 +691,17 @@ export async function listOrdersForBusiness(businessId: string, opts: { cursor?:
 
 // ── Tugas berkala (proses VPS) ───────────────────────────────────────────────
 
-/** Selesaikan order pending/processing (≥ 1 menit, < 85 hari) lewat cek ulang. */
+/** Selesaikan order pending/processing (≥ 1 menit, < 85 hari) lewat cek ulang — jeda makin jarang seiring umur order. */
 export async function reconcilePending(limit = 20): Promise<number> {
   const ts = nowMs();
   const rows = await sql<{ id: string }[]>`
     SELECT id FROM ppob_orders
     WHERE status IN ('pending', 'processing') AND provider = 'digiflazz'
       AND created_at <= ${ts - STATUS_CHECK_MIN_GAP_MS} AND created_at >= ${ts - STATUS_CHECK_MAX_AGE_MS}
-      AND (last_checked_at IS NULL OR last_checked_at <= ${ts - 2 * STATUS_CHECK_MIN_GAP_MS})
+      AND (last_checked_at IS NULL OR last_checked_at <= ${ts} - CASE
+        WHEN created_at > ${ts - 3_600_000} THEN ${RECHECK_GAP_YOUNG_MS}::bigint
+        WHEN created_at > ${ts - 86_400_000} THEN ${RECHECK_GAP_DAY_MS}::bigint
+        ELSE ${RECHECK_GAP_OLD_MS}::bigint END)
     ORDER BY created_at LIMIT ${limit}`;
   let done = 0;
   for (const r of rows) {
@@ -700,6 +714,26 @@ export async function reconcilePending(limit = 20): Promise<number> {
   return done;
 }
 
+/** Order Digiflazz pending ≥ 6 jam → kabari admin sekali (event `stale_alert`) agar dicek & ditutup. */
+export async function alertStalePending(limit = 10): Promise<number> {
+  const rows = await sql<{ id: string; product_name: string; customer_no: string; created_at: number }[]>`
+    SELECT o.id, o.product_name, o.customer_no, o.created_at FROM ppob_orders o
+    WHERE o.status IN ('pending', 'processing') AND o.provider = 'digiflazz'
+      AND o.created_at <= ${nowMs() - STALE_ALERT_MS}
+      AND NOT EXISTS (SELECT 1 FROM ppob_order_events e WHERE e.order_id = o.id AND e.event = 'stale_alert')
+    ORDER BY o.created_at LIMIT ${limit}`;
+  for (const r of rows) {
+    await addEvent(sql, r.id, 'stale_alert');
+    const hours = Math.floor((nowMs() - n(r.created_at)) / 3_600_000);
+    void notifyAdmin({
+      text: `⏳ <b>Order PPOB masih pending ${hours} jam</b>\n${tgEsc(r.product_name)} → ${tgEsc(r.customer_no)}\nCek di dashboard Digiflazz; bila tidak berhasil, tutup order (Poin dikembalikan).`,
+      linkPath: `/dashboard/ppob/orders/${r.id}`,
+      linkLabel: 'Lihat order',
+    });
+  }
+  return rows.length;
+}
+
 let jobTimer: NodeJS.Timeout | null = null;
 
 /** Mulai tugas berkala (dipanggil src/server.ts di VPS; tak jalan di test/serverless). */
@@ -710,6 +744,7 @@ export function startPpobJobs(intervalMs = 120_000): void {
     remindWaitingPln().catch((e) => console.error('[ppob-job] pengingat', (e as Error).message));
     if (!df.digiflazzConfigured()) return;
     reconcilePending().catch((e) => console.error('[ppob-job]', (e as Error).message));
+    alertStalePending().catch((e) => console.error('[ppob-job] order awet', (e as Error).message));
   }, intervalMs);
   jobTimer.unref();
 }
@@ -1088,6 +1123,27 @@ export async function adminFailPln(orderId: string, reason: string, admin: strin
   await sql`UPDATE ppob_orders SET fulfilled_by = ${admin} WHERE id = ${orderId}`;
   await emailOrder(orderId, 'failed');
   return { ok: true, message: 'Order digagalkan, Poin dikembalikan, pelanggan diberi tahu lewat email.' };
+}
+
+/**
+ * Admin menutup order Digiflazz yang macet pending (≥ 1 jam) → gagal + refund Poin.
+ * Admin WAJIB memastikan dulu di dashboard Digiflazz bahwa transaksi tidak berhasil:
+ * hasil Digiflazz yang datang sesudahnya diabaikan (order sudah final).
+ */
+export async function adminFailStuck(orderId: string, reason: string, admin: string): Promise<{ ok: boolean; message: string }> {
+  const why = reason.trim();
+  if (!why) return { ok: false, message: 'Alasan wajib diisi.' };
+  const o = await getOrderRow(orderId);
+  if (!o) return { ok: false, message: 'Order tidak ditemukan.' };
+  if (o.provider !== 'digiflazz') return { ok: false, message: 'Bukan order otomatis Digiflazz.' };
+  if (!['pending', 'processing'].includes(o.status as string)) return { ok: false, message: `Order sudah berstatus "${String(o.status)}".` };
+  if (nowMs() - n(o.created_at) < STALE_CLOSE_MIN_AGE_MS) {
+    return { ok: false, message: 'Order belum 1 jam — tunggu hasil Digiflazz atau cek status dulu.' };
+  }
+  const final = await applyResult(orderId, { ref_id: orderId, status: 'Gagal', message: `Ditutup admin: ${why}`.slice(0, 200) }, 'admin_fail');
+  if (final !== 'failed') return { ok: false, message: 'Order tidak bisa ditutup.' };
+  await sql`UPDATE ppob_orders SET fulfilled_by = ${admin} WHERE id = ${orderId}`;
+  return { ok: true, message: 'Order ditutup sebagai gagal, Poin dikembalikan.' };
 }
 
 /** Kirim ulang email token (mis. pelanggan belum menerima). */
