@@ -31,7 +31,7 @@ suite('Juragan — sesi & multi-toko', () => {
     expect(a.status).toBe(201);
     expect(a.data.plan).toMatchObject({ name: 'warung', period: null, expiresAt: null, maxStores: 1, features: [] });
     expect(a.data.plan.serverTime).toBeTypeOf('number');
-    expect(a.data.businesses).toEqual([{ id: a.businessId, name: a.data.business.name, role: 'owner' }]);
+    expect(a.data.businesses).toEqual([{ id: a.businessId, name: a.data.business.name, role: 'owner', storeCode: 'A' }]);
 
     const l = await login(a.email);
     expect(l.status).toBe(200);

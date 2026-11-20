@@ -28,6 +28,16 @@ export interface BusinessSummary {
   id: string;
   name: string;
   role: Role;
+  /** Kode toko per akun (A, B, …) — dipakai app di nomor invoice `INV-<kode>-…` (J12). */
+  storeCode: string;
+}
+
+/** Objek `business` di sesi & /me. */
+export interface SessionBusiness {
+  id: string;
+  name: string;
+  businessType: string | null;
+  storeCode: string;
 }
 
 /**
@@ -40,7 +50,7 @@ export interface AuthPayload {
   refreshToken: string;
   expiresIn: number;
   user: { id: string; name: string; role: Role; businessId: string | null };
-  business: { id: string; name: string; businessType: string | null } | null;
+  business: SessionBusiness | null;
   businesses: BusinessSummary[];
   plan: EffectivePlan;
   /** Akun pemilik (nama, email, WA). null untuk user tanpa akun cloud. */
@@ -81,7 +91,7 @@ async function issueTokens(user: {
 async function listBusinessSummaries(accountId: string | null): Promise<BusinessSummary[]> {
   if (!accountId) return [];
   const rows = await UserRepository.listMembershipsForAuth(accountId);
-  return rows.map((r) => ({ id: r.business_id as string, name: r.business_name, role: r.role }));
+  return rows.map((r) => ({ id: r.business_id as string, name: r.business_name, role: r.role, storeCode: r.store_code ?? 'A' }));
 }
 
 /**
@@ -204,8 +214,9 @@ export async function createBusiness(
     const owned = await UserRepository.countOwnedBusinesses(accountId, tx);
     if (owned > 0 && !plans.hasFeature(plan, 'multi_store')) throw planRequired('Tambah toko cabang hanya bisa dengan Paket Juragan.');
     if (owned >= Math.max(1, plan.maxStores)) throw planLimit(plan.maxStores);
+    const storeCode = await BusinessRepository.nextStoreCode(accountId, tx);
     await BusinessRepository.create(
-      { id: businessId, name: input.name, businessType: input.businessType ?? null, createdAt: ts, updatedAt: ts },
+      { id: businessId, name: input.name, businessType: input.businessType ?? null, storeCode, createdAt: ts, updatedAt: ts },
       tx,
     );
     // Owner versi cloud: tanpa username/PIN (app mengabaikannya saat pull, SYNC.md §8.3).
@@ -333,7 +344,7 @@ export async function me(auth: {
     {
       user: { id: user.id, name: user.name, role: user.role, businessId: auth.businessId },
       business: business
-        ? { id: business.id, name: business.name, businessType: business.business_type }
+        ? { id: business.id, name: business.name, businessType: business.business_type, storeCode: business.store_code ?? 'A' }
         : null,
       permissions: effectivePermissions(user.role, user.permissions),
       plan,
@@ -343,11 +354,9 @@ export async function me(auth: {
   );
 }
 
-async function loadBusinessSummary(
-  businessId: string,
-): Promise<{ id: string; name: string; businessType: string | null } | null> {
+async function loadBusinessSummary(businessId: string): Promise<SessionBusiness | null> {
   const b = await new BusinessRepository(businessId).getSelf();
-  return b ? { id: b.id, name: b.name, businessType: b.business_type } : null;
+  return b ? { id: b.id, name: b.name, businessType: b.business_type, storeCode: b.store_code ?? 'A' } : null;
 }
 
 function isUniqueViolation(err: unknown): boolean {

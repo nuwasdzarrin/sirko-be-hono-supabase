@@ -54,8 +54,8 @@ Lupa password ─/auth/password/forgot {login}─▶ OTP ke email ─/auth/passw
 {
   "accessToken": "eyJ…", "refreshToken": "eyJ…", "expiresIn": 3600,
   "user":     { "id": "uuid", "name": "Sri Wahyuni", "role": "owner", "businessId": "uuid | null" },
-  "business": { "id": "uuid", "name": "Warung Bu Sri", "businessType": "Kelontong" } | null,
-  "businesses": [ { "id": "uuid", "name": "Warung Bu Sri", "role": "owner" } ],
+  "business": { "id": "uuid", "name": "Warung Bu Sri", "businessType": "Kelontong", "storeCode": "A" } | null,
+  "businesses": [ { "id": "uuid", "name": "Warung Bu Sri", "role": "owner", "storeCode": "A" } ],
   "plan": { "name": "warung", "period": null, "expiresAt": null, "maxStores": 1, "features": [], "serverTime": 1793983475652 },
   "account": { "id": "uuid", "name": "Sri Wahyuni", "email": "sri@contoh.id", "phone": "6281234564385", "emailVerified": true },
   "offlineAuth": { "algo": "pbkdf2-sha256", "iterations": 100000, "keyLength": 32,
@@ -70,6 +70,7 @@ Lupa password ─/auth/password/forgot {login}─▶ OTP ke email ─/auth/passw
 - **Sesi toko**: `user.id` = id user di toko itu, `businessId` terisi. Semua endpoint toko boleh.
 - `account` & `offlineAuth` selalu ada untuk pemilik (null hanya untuk user tanpa akun cloud).
 - `plan`, `businesses`, switch toko: lihat `KONTRAK-API-juragan-app.md`.
+- `storeCode`: kode toko per akun (`A`, `B`, …) untuk nomor invoice `INV-<storeCode>-YYYYMMDD-NNNN` — detail di kontrak Juragan §1.2.
 
 ---
 
