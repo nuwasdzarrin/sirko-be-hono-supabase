@@ -245,6 +245,7 @@ table.list tr.strong td { font-weight: 800; }
 /* ── Fase 3: kelola toko ─────────────────────────────────────────────────── */
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; align-items: start; }
 .field input, .field select { width: 100%; min-width: 0; }
+.field input[type="checkbox"], .field input[type="radio"] { width: auto; }
 .form-grid .full { grid-column: 1 / -1; }
 .form-grid .field { margin-bottom: 12px; }
 .field input:disabled { opacity: 0.6; }
