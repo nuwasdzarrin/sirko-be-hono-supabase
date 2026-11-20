@@ -55,6 +55,14 @@ berubah. `public/app/` tidak di-commit.
 - **Fase 1 (selesai):** masuk pemilik (online + offline), buat toko, pindah toko, ganti pengguna &
   PIN karyawan (Paket Juragan), hak akses per peran, sinkron otomatis (30 dtk / saat online / saat
   tab aktif), status sinkron & halaman Data, PWA offline, keluar = hapus data browser.
+- **Fase 2 (selesai):** Kasir — cari/scan barcode (scanner USB = ketik + Enter), kategori, varian,
+  grosir bertingkat, diskon item & transaksi, pajak/pembulatan toko, pelanggan (+ tambah cepat),
+  bayar tunai/non-tunai/split + saran uang, kasbon/sebagian (hutang pelanggan), struk 58/80 mm via
+  dialog cetak browser, Tunda (lokal perangkat), shift buka/tutup + rekap kas (wajib bila
+  `require_open_bill`), keranjang awet saat muat ulang. Riwayat transaksi: rentang tanggal, cari,
+  detail, cetak ulang, void. Pintasan: F2 cari · F4 pelanggan · F8 bayar · F9 tunda · Enter selesai.
+  Logika di `src/pos/` (calc = salinan TransactionCalculator/PaymentCalculator/WholesalePricing,
+  repo = commit/void/shift persis TransactionRepository/CreditRepository/BillRepository).
 - Batasan yang ikut dari aplikasi HP (SYNC §8.7): hutang pelanggan masih LWW; nomor invoice bisa
   kembar antar-perangkat yang aktif bersamaan; foto produk tidak tersinkron.
 - Daftar akun & lupa password masih lewat aplikasi HP.

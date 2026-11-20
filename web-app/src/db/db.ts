@@ -24,7 +24,9 @@ const EXTRA_INDEX: Record<string, string[]> = {
   wholesale_prices: ['productId'],
   customers: ['name', 'phone'],
   users: ['username'],
-  transactions: ['datetime', 'invoiceNo', 'customerId', 'cashierId'],
+  transactions: ['datetime', 'invoiceNo', 'customerId', 'cashierId', 'billId'],
+  bills: ['employeeId'],
+  app_settings: ['key'],
   transaction_items: ['transactionId', 'productId', 'variantId'],
   payments: ['transactionId'],
   installments: ['transactionId'],
@@ -36,14 +38,28 @@ const EXTRA_INDEX: Record<string, string[]> = {
   stock_opname_items: ['opnameId', 'productId'],
 };
 
+/** Transaksi tertunda ("Tunda") — KHUSUS perangkat, tak ikut sync (sama dengan HP, schema v9). */
+export interface HeldSale {
+  id: string;
+  label: string;
+  cashierId: string | null;
+  cart: unknown;
+  itemCount: number;
+  total: number;
+  createdAt: number;
+}
+
 export class StoreDb extends Dexie {
   _meta!: Table<{ key: string; value: unknown }, string>;
+  held_sales!: Table<HeldSale, string>;
 
   constructor(readonly businessId: string) {
     super(`sirko-store-${businessId}`);
     const schema: Record<string, string> = { _meta: '&key' };
     for (const t of SYNC_TABLES) schema[t] = ['&id', 'updatedAt', '_dirty', ...(EXTRA_INDEX[t] ?? [])].join(', ');
-    this.version(1).stores(schema);
+    schema.held_sales = '&id, createdAt';
+    // v2 (Fase 2): + held_sales, indeks billId/employeeId/key. Belum pernah rilis v1 ke produksi.
+    this.version(2).stores(schema);
   }
 
   t(name: SyncTable): Table<Row, string> {

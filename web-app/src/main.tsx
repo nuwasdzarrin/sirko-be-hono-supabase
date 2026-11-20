@@ -5,6 +5,18 @@ import './styles.css';
 import { boot, ready, session, user } from './state';
 import { CreateStorePage, LoginPage, UserPickerPage } from './pages/auth';
 import { DataPage, HomePage, Shell } from './pages/shell';
+import { KasirPage } from './pages/kasir';
+import { TransaksiPage } from './pages/transaksi';
+import { can } from './state';
+import type { Permission } from './lib/permissions';
+import type { Component } from 'solid-js';
+
+/** Gerbang izin per halaman (sama dengan router aplikasi HP). */
+const guard = (perm: Permission, Page: Component) => () => (
+  <Show when={can(perm)} fallback={<p class="mut">Anda tidak punya akses ke halaman ini. Minta pemilik toko mengaturnya.</p>}>
+    <Page />
+  </Show>
+);
 
 /**
  * Gerbang alur (sama dengan aplikasi HP): belum masuk → /masuk · akun tanpa toko → /buat-toko ·
@@ -33,6 +45,8 @@ function App() {
       <Route path="/" component={Gate}>
         <Route path="/" component={HomePage} />
         <Route path="/data" component={DataPage} />
+        <Route path="/kasir" component={guard('transactionList', KasirPage)} />
+        <Route path="/transaksi/:id?" component={guard('transactionList', TransaksiPage)} />
         <Route path="*" component={() => <Navigate href="/" />} />
       </Route>
     </Router>

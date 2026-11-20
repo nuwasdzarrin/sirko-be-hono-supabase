@@ -28,4 +28,4 @@ export const MENU: MenuItem[] = [
 ];
 
 /** Fase yang sudah tersedia di web. */
-export const CURRENT_PHASE = 1;
+export const CURRENT_PHASE = 2;
