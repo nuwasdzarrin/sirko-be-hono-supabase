@@ -215,12 +215,32 @@ table.list tr.strong td { font-weight: 800; }
 .r-hr { border-top: 1px dashed #000; margin: 4px 0; }
 .r-kv { display: flex; justify-content: space-between; gap: 6px; }
 #print-root { display: none; }
+.print-only { display: none; }
 @media print {
-  body > *:not(#print-root) { display: none !important; }
-  #print-root { display: block; }
+  body.printing-receipt > *:not(#print-root) { display: none !important; }
+  body.printing-receipt #print-root { display: block; }
+  .side, .top, .no-print, .toast { display: none !important; }
+  .print-only { display: block; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: none; }
+  .card { break-inside: avoid; }
   #print-root .receipt { padding: 0 2mm; margin: 0; }
   html, body { background: #fff; }
 }
+
+/* ── Fase 5: pembelian, PPOB, Juragan ────────────────────────────────────── */
+.active-store { border-color: var(--green); background: var(--green-50); }
+.qris { display: block; width: 240px; max-width: 100%; margin: 10px 0; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.big-amt { font-size: 20px; }
+.topup ul, .alert ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* ── Fase 4: laporan & kas ───────────────────────────────────────────────── */
+.tabs { flex-wrap: wrap; margin-bottom: 14px; }
+.report .kpi .n { font-size: 22px; }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 160px; padding-top: 8px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+.bar { width: 100%; background: var(--green); border-radius: 4px 4px 0 0; min-height: 2px; }
+.bar-l { font-size: 10px; color: var(--mut); margin-top: 2px; }
 
 /* ── Fase 3: kelola toko ─────────────────────────────────────────────────── */
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; align-items: start; }

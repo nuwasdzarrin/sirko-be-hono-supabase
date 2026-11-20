@@ -70,6 +70,18 @@ berubah. `public/app/` tidak di-commit.
   pengingat WA) · Karyawan (peran + izin khusus, PIN ≥ 6 angka, username unik, admin terakhir
   dijaga; tambah butuh Paket Juragan) · Pengaturan (wajib shift, metode bayar, ganti password) ·
   Daftar akun, verifikasi email & lupa password di web. Logika di `src/manage/repo.ts`.
+- **Fase 4 (selesai):** Laporan (ringkasan, penjualan, laba, kas masuk, mutasi stok, produk
+  terjual, karyawan & riwayat shift; rentang hari ini/7/30 hari/bulan ini/pilih tanggal; ekspor CSV
+  laporan & daftar transaksi; cetak/PDF) dihitung di browser dengan rumus ReportRepository HP ·
+  Kas & dompet (dompet tunai/bank/e-wallet, uang masuk/keluar, transfer, arus kas per dompet) ·
+  Beranda: ringkasan hari ini.
+- **Fase 5 (selesai):** Pembelian (terima barang, harga modal last-cost / rata-rata bergerak, hutang
+  supplier, bayar dari dompet) · Supplier · Stok opname (draft lokal → final) · PPOB di Kasir
+  (pulsa/data/token, kirim maks. 15 dtk per item, gagal keluar nota, diproses tetap di nota) ·
+  Riwayat PPOB, Poin Sirko (saldo, top-up QRIS, mutasi), Harga jual PPOB · Toko Saya (tambah/pindah
+  toko, laporan gabungan, transfer stok antar-toko) · Paket Juragan (checkout QRIS, status otomatis).
+- Item stok opname disimpan lokal (`_dirty = 3`) selama draft dan dikirim saat final, karena tabel
+  itu append-only di server (perubahan setelah kirim pertama diabaikan server).
 - Halaman dimuat terpisah (lazy); build menulis `assets.json` → service worker menyimpan SEMUA
   aset saat dipasang (URL SW memuat id build → tiap rilis terpasang ulang), jadi semua halaman
   bisa dibuka offline. Form memakai salinan data saat dibuka agar sinkron latar tak menimpa ketikan.

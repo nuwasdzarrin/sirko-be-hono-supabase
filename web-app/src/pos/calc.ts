@@ -42,9 +42,11 @@ export interface CartLine {
   discountValue: number;
   availableStock: number;
   unitName?: string | null;
+  /** Item PPOB (pulsa/data/token) — tanpa stok, qty selalu 1. */
+  ppob?: import('../cloud/ppob').PpobLine | null;
 }
 
-export const lineKey = (l: Pick<CartLine, 'productId' | 'variantId'>) => (l.variantId ? `${l.productId}::${l.variantId}` : l.productId);
+export const lineKey = (l: Pick<CartLine, 'productId' | 'variantId' | 'ppob'>) => (l.ppob ? `ppob:${l.ppob.clientRef}` : l.variantId ? `${l.productId}::${l.variantId}` : l.productId);
 
 const idiv = (a: number, b: number) => Math.floor(a / b);
 

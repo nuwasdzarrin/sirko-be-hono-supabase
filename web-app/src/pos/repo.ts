@@ -180,6 +180,7 @@ export async function commitSale(db: StoreDb, req: CommitRequest): Promise<Commi
     const need = new Map<string, number>(); // qty total per sumber stok (baris ganda produk sama)
     for (const r of t.lineResults) {
       const l = r.line;
+      if (l.ppob) continue; // PPOB: tanpa stok (KONTRAK PPOB §8)
       const k = l.variantId ? `v:${l.variantId}` : `p:${l.productId}`;
       need.set(k, (need.get(k) ?? 0) + l.qty);
       let available: number;
@@ -228,7 +229,7 @@ export async function commitSale(db: StoreDb, req: CommitRequest): Promise<Commi
       t.lineResults.map((r, i) =>
         fresh(now + i, {
           transactionId: tx.id,
-          productId: r.line.productId,
+          productId: r.line.ppob ? null : r.line.productId,
           variantId: r.line.variantId ?? null,
           nameSnapshot: r.line.nameSnapshot,
           qty: r.line.qty,
@@ -244,6 +245,7 @@ export async function commitSale(db: StoreDb, req: CommitRequest): Promise<Commi
     // 6. Kurangi stok + stock_logs (sale).
     for (const r of t.lineResults) {
       const l = r.line;
+      if (l.ppob) continue;
       let stockAfter: number;
       if (l.variantId) {
         const v = variants.get(l.variantId)!;

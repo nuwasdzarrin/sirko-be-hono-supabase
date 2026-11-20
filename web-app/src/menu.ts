@@ -8,7 +8,10 @@ export interface MenuItem {
   path: string;
   label: string;
   desc: string;
-  perm?: Permission;
+  /** Izin yang dibutuhkan; array = salah satu cukup. */
+  perm?: Permission | Permission[];
+  /** Hanya pemilik (mis. Toko Saya, Paket Juragan — sama dengan menu Lainnya di HP). */
+  ownerOnly?: boolean;
   phase: number;
 }
 
@@ -22,10 +25,16 @@ export const MENU: MenuItem[] = [
   { path: '/laporan', label: 'Laporan', desc: 'Laba rugi, penjualan, ekspor', perm: 'transactionExport', phase: 4 },
   { path: '/kas', label: 'Kas & dompet', desc: 'Saldo kas, transfer, arus kas', perm: 'walletView', phase: 4 },
   { path: '/pembelian', label: 'Pembelian & supplier', desc: 'Stok masuk, hutang supplier, opname', perm: 'productManagement', phase: 5 },
-  { path: '/ppob', label: 'PPOB & Poin', desc: 'Pulsa, data, token listrik', perm: 'ppobSell', phase: 5 },
+  { path: '/ppob', label: 'PPOB & Poin', desc: 'Riwayat PPOB, Poin Sirko, harga jual', perm: ['ppobSell', 'pointTopup'], phase: 5 },
+  { path: '/toko', label: 'Toko Saya', desc: 'Pindah/tambah toko, laporan gabungan, transfer stok', ownerOnly: true, phase: 5 },
+  { path: '/langganan', label: 'Paket Juragan', desc: 'Langganan & masa berlaku paket', ownerOnly: true, phase: 5 },
   { path: '/data', label: 'Data & sinkron', desc: 'Isi data toko di browser ini', phase: 1 },
   { path: '/pengaturan', label: 'Pengaturan', desc: 'Toko, struk, printer', perm: 'settingCompany', phase: 3 },
 ];
 
 /** Fase yang sudah tersedia di web. */
-export const CURRENT_PHASE = 3;
+export const CURRENT_PHASE = 5;
+
+/** Menu terlihat untuk pengguna ini? (`can` & `isOwner` dari state). */
+export const menuVisible = (m: MenuItem, can: (p: Permission) => boolean, isOwner: boolean) =>
+  (!m.ownerOnly || isOwner) && (!m.perm || (Array.isArray(m.perm) ? m.perm.some(can) : can(m.perm)));

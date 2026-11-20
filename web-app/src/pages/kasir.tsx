@@ -2,9 +2,12 @@ import { createEffect, createMemo, createResource, createSignal, For, Index, onC
 import type { Row, StoreDb } from '../db/db';
 import { createLive } from '../lib/live';
 import { uuid } from '../lib/crypto';
-import { activeStore, db, syncNow, user } from '../state';
+import { activeStore, can, db, online, syncNow, user } from '../state';
+import { ApiError } from '../lib/api';
+import { CATEGORY_LABEL, plnInquiry, ppobNoteTag, ppobProducts, ppobStatus, processLine, receiptName, type PpobCategory, type PpobOutcome, type PpobProduct } from '../cloud/ppob';
+import type { CartLine } from '../pos/calc';
 import {
-  addProduct, bindCart, cart, clearCart, lineKey, removeLine, restoreCart, setCustomer, setLineDiscount, setNote,
+  addPpob, addProduct, bindCart, cart, clearCart, lineKey, removeLine, replaceLines, restoreCart, setCustomer, setLineDiscount, setNote,
   setPosConfig, setQty, setTxDiscount, snapshot, totals,
 } from '../pos/cart';
 import { cashSuggestions, METHOD_LABEL, num, resolvePayment, rp, type DiscountType, type PaymentEntry, type PaymentMethod } from '../pos/calc';
@@ -23,7 +26,8 @@ type Dialog =
   | { kind: 'txDiscount' }
   | { kind: 'customer'; thenPay?: boolean }
   | { kind: 'pay'; credit?: boolean }
-  | { kind: 'done'; result: CommitResult; receipt: ReceiptData | null }
+  | { kind: 'done'; result: CommitResult | null; receipt: ReceiptData | null; outcomes: PpobOutcome[] }
+  | { kind: 'ppob' }
   | { kind: 'held' }
   | { kind: 'shift' }
   | null;
@@ -149,11 +153,40 @@ export function KasirPage() {
     setDialog(null);
   };
 
+  /**
+   * Bayar (CheckoutController.submit): item PPOB dikirim dulu satu per satu (maks. 15 dtk). Sukses /
+   * diterima → tetap di nota (SN/token di nama item); gagal / belum ada jawaban → keluar dari nota &
+   * total dihitung ulang. Keranjang memakai hasil PPOB: bila simpan gagal, PPOB yang sudah berhasil
+   * tidak dibeli ulang saat Bayar diulang.
+   */
   const pay = async (payments: PaymentEntry[], allowCredit: boolean): Promise<string | null> => {
     const d = db();
     const u = user();
     if (!d || !u) return 'Sesi tidak aktif.';
+    const hasPpob = cart.lines.some((l) => l.ppob);
+    if (hasPpob && !online()) return 'Item PPOB butuh internet. Hapus item PPOB atau sambungkan internet.';
     try {
+      const outcomes: PpobOutcome[] = [];
+      if (hasPpob) {
+        const kept: CartLine[] = [];
+        for (const l of snapshot().lines) {
+          if (!l.ppob) {
+            kept.push(l);
+            continue;
+          }
+          const o = await processLine(l.ppob);
+          outcomes.push(o);
+          if (o.kind === 'success' || o.kind === 'accepted') kept.push({ ...l, ppob: o.line, nameSnapshot: receiptName(o.line), costPriceSnapshot: o.line.cost });
+        }
+        replaceLines(kept);
+        if (!kept.length) {
+          clearCart();
+          setDialog({ kind: 'done', result: null, receipt: null, outcomes });
+          return null;
+        }
+      }
+      const tags = cart.lines.filter((l) => l.ppob?.orderId).map((l) => ppobNoteTag(l.ppob!.orderId!));
+      const note = [cart.note?.trim(), ...tags].filter(Boolean).join(' · ');
       const result = await commitSale(d, {
         totals: totals(),
         payments,
@@ -161,11 +194,11 @@ export function KasirPage() {
         customerId: cart.customerId,
         cashierId: u.id,
         billId: bill()?.id ?? null,
-        note: cart.note,
+        note,
       });
       clearCart();
       void syncNow();
-      setDialog({ kind: 'done', result, receipt: await loadReceipt(d, result.transactionId, activeStore()?.name ?? 'Toko') });
+      setDialog({ kind: 'done', result, receipt: await loadReceipt(d, result.transactionId, activeStore()?.name ?? 'Toko'), outcomes });
       return null;
     } catch (e) {
       return e instanceof PosError ? e.message : `Gagal menyimpan: ${(e as Error).message}`;
@@ -188,7 +221,8 @@ export function KasirPage() {
             }}
             aria-label="Cari produk atau scan barcode"
           />
-          <ShiftButton bill={bill()} required={settings().requireBill} onClick={() => setDialog({ kind: 'shift' })} />
+          <Show when={can('ppobSell')}><button class="btn" onClick={() => setDialog({ kind: 'ppob' })} title="Pulsa, paket data, token listrik">PPOB</button></Show>
+          <ShiftButton bill={bill()}required={settings().requireBill} onClick={() => setDialog({ kind: 'shift' })} />
         </div>
         <Show when={categories().length}>
           <div class="chips">
@@ -229,7 +263,7 @@ export function KasirPage() {
           <For each={totals().lineResults} fallback={<p class="mut empty">Scan barcode atau klik produk untuk menambah.</p>}>
             {(r) => {
               const k = lineKey(r.line);
-              const over = () => !settings().allowNegative && r.line.qty > r.line.availableStock;
+              const over = () => !r.line.ppob && !settings().allowNegative && r.line.qty > r.line.availableStock;
               return (
                 <div class="line">
                   <button class="lname" onClick={() => setDialog({ kind: 'line', key: k })} title="Ubah jumlah / diskon">
@@ -239,11 +273,13 @@ export function KasirPage() {
                     </span>
                     <Show when={over()}><span class="small bad-t">Stok tinggal {r.line.availableStock}</span></Show>
                   </button>
-                  <div class="qty">
-                    <button aria-label="Kurangi" onClick={() => setQty(k, r.line.qty - 1)}>−</button>
-                    <input value={r.line.qty} inputmode="numeric" aria-label="Jumlah" onChange={(e) => setQty(k, parseInt(e.currentTarget.value, 10) || 0)} onFocus={(e) => e.currentTarget.select()} />
-                    <button aria-label="Tambah" onClick={() => setQty(k, r.line.qty + 1)}>+</button>
-                  </div>
+                  <Show when={!r.line.ppob} fallback={<button class="btn sm" aria-label="Hapus item PPOB" onClick={() => removeLine(k)}>Hapus</button>}>
+                    <div class="qty">
+                      <button aria-label="Kurangi" onClick={() => setQty(k, r.line.qty - 1)}>−</button>
+                      <input value={r.line.qty} inputmode="numeric" aria-label="Jumlah" onChange={(e) => setQty(k, parseInt(e.currentTarget.value, 10) || 0)} onFocus={(e) => e.currentTarget.select()} />
+                      <button aria-label="Tambah" onClick={() => setQty(k, r.line.qty + 1)}>+</button>
+                    </div>
+                  </Show>
                   <span class="ltotal">{rp(r.lineTotal)}</span>
                 </div>
               );
@@ -282,7 +318,9 @@ export function KasirPage() {
             case 'pay':
               return <PayDialog customer={customer()} initialCredit={d.credit} onPay={pay} onPickCustomer={() => setDialog({ kind: 'customer', thenPay: true })} onClose={close} />;
             case 'done':
-              return <DoneDialog result={d.result} receipt={d.receipt} onClose={close} />;
+              return <DoneDialog result={d.result} receipt={d.receipt} outcomes={d.outcomes} onClose={close} />;
+            case 'ppob':
+              return <PpobPanel onAdded={() => { close(); say('Item PPOB ditambahkan ke keranjang.'); }} onClose={close} />;
             case 'held':
               return <HeldDialog onResume={resume} onClose={close} />;
             case 'shift':
@@ -524,7 +562,7 @@ function PayDialog(props: { customer: Row | null; initialCredit?: boolean; onPay
   );
 }
 
-function DoneDialog(props: { result: CommitResult; receipt: ReceiptData | null; onClose: () => void }) {
+function DoneDialog(props: { result: CommitResult | null; receipt: ReceiptData | null; outcomes: PpobOutcome[]; onClose: () => void }) {
   let newBtn: HTMLButtonElement | undefined;
   onMount(() => queueMicrotask(() => newBtn?.focus()));
   // Enter = transaksi baru (walau fokus di tombol cetak) — kasir langsung lanjut melayani.
@@ -536,13 +574,33 @@ function DoneDialog(props: { result: CommitResult; receipt: ReceiptData | null; 
   };
   onMount(() => document.addEventListener('keydown', onEnter, true));
   onCleanup(() => document.removeEventListener('keydown', onEnter, true));
+  const dropped = () => props.outcomes.filter((o) => o.kind === 'failed' || o.kind === 'pending');
+  const processing = () => props.outcomes.filter((o) => o.kind === 'accepted');
   return (
-    <Modal title="Transaksi berhasil" onClose={props.onClose} wide>
+    <Modal title={props.result ? 'Transaksi berhasil' : 'PPOB tidak terjual'} onClose={props.onClose} wide>
       <div class="done">
         <div class="done-main">
-          <div class="mut">{props.result.invoiceNo}</div>
-          <div class="kv big"><span>Total</span><b>{rp(props.result.grandTotal)}</b></div>
-          <Show when={props.result.change > 0}><div class="kv change big"><span>Kembalian</span><b>{rp(props.result.change)}</b></div></Show>
+          <Show when={dropped().length}>
+            <div class="alert warn small">
+              <b>Tidak masuk nota (jangan tagih ke pembeli):</b>
+              <ul><For each={dropped()}>{(o) => <li>{o.line.productName} {o.line.customerNo} — {o.message}</li>}</For></ul>
+            </div>
+          </Show>
+          <Show when={processing().length}>
+            <div class="alert ok small">
+              <b>Sedang diproses (tetap di nota):</b>
+              <ul><For each={processing()}>{(o) => <li>{o.line.productName} {o.line.customerNo} — {o.message} Cek di menu PPOB → Riwayat.</li>}</For></ul>
+            </div>
+          </Show>
+          <Show when={props.result}>
+            {(r) => (
+              <>
+                <div class="mut">{r().invoiceNo}</div>
+                <div class="kv big"><span>Total</span><b>{rp(r().grandTotal)}</b></div>
+                <Show when={r().change > 0}><div class="kv change big"><span>Kembalian</span><b>{rp(r().change)}</b></div></Show>
+              </>
+            )}
+          </Show>
           <div class="row-btns" style={{ 'margin-top': '16px' }}>
             <Show when={props.receipt}><button class="btn" onClick={() => printReceipt(props.receipt!)}>Cetak struk</button></Show>
             <span class="spacer" />
@@ -550,6 +608,82 @@ function DoneDialog(props: { result: CommitResult; receipt: ReceiptData | null; 
           </div>
         </div>
         <Show when={props.receipt}><div class="done-receipt"><Receipt data={props.receipt!} /></div></Show>
+      </div>
+    </Modal>
+  );
+}
+
+const digits = (s: string) => s.replace(/[^0-9]/g, '');
+
+/** Panel jual PPOB (PpobSellPanel): kategori → nomor (PLN: cek nama) → pilih produk → masuk keranjang. */
+function PpobPanel(props: { onAdded: () => void; onClose: () => void }) {
+  const [cat, setCat] = createSignal<PpobCategory>('pulsa');
+  const [no, setNo] = createSignal('');
+  const [error, setError] = createSignal('');
+  const [pln, setPln] = createSignal<{ name: string | null; segmentPower: string | null } | null>(null);
+  const [status] = createResource(
+    () => online(),
+    () =>
+      ppobStatus().catch((e) => {
+        setError(e instanceof ApiError ? e.message : 'PPOB butuh internet.');
+        return null;
+      }),
+  );
+  const [products, { refetch }] = createResource(
+    () => (status()?.enabled && digits(no()).length >= (cat() === 'pln' ? 6 : 8) ? { c: cat(), n: digits(no()) } : null),
+    ({ c, n }) =>
+      ppobProducts(c, c === 'pln' ? undefined : n).catch((e) => {
+        setError(e instanceof ApiError ? e.message : 'Gagal memuat produk.');
+        return [] as PpobProduct[];
+      }),
+  );
+  const catStatus = () => status()?.categories.find((c) => c.key === cat());
+  const checkPln = async () => {
+    setError('');
+    try {
+      const r = await plnInquiry(digits(no()));
+      if (!r.ok) setError(r.message ?? 'Nomor meter tidak ditemukan.');
+      setPln(r.ok ? { name: r.name, segmentPower: r.segmentPower } : null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Gagal cek nomor meter.');
+    }
+  };
+  const pick = (p: PpobProduct) => {
+    if (!p.available) return;
+    addPpob(p, digits(no()));
+    props.onAdded();
+  };
+  return (
+    <Modal title="Jual PPOB" onClose={props.onClose} wide>
+      <Show when={!online()}><div class="alert warn">PPOB butuh internet.</div></Show>
+      <Show when={status() && !status()!.enabled}><div class="alert warn">PPOB belum aktif untuk toko ini.</div></Show>
+      <Show when={status()?.points}>
+        {(pt) => <p class="small mut">Saldo Poin: <b>{rp(pt().balance)}</b>{pt().reason ? ` · ${pt().reason}` : ''}</p>}
+      </Show>
+      <div class="seg" style={{ 'margin-bottom': '10px' }}>
+        <For each={['pulsa', 'data', 'pln'] as PpobCategory[]}>
+          {(c) => <button type="button" class={cat() === c ? 'on' : ''} onClick={() => { setCat(c); setPln(null); setError(''); }}>{CATEGORY_LABEL[c]}</button>}
+        </For>
+      </div>
+      <Show when={catStatus() && !catStatus()!.available}><div class="alert warn small">{catStatus()!.reason ?? 'Kategori ini sedang tidak tersedia.'}</div></Show>
+      <div class="row-btns">
+        <input class="pos-search" inputmode="numeric" autofocus placeholder={cat() === 'pln' ? 'Nomor meter / ID pelanggan PLN' : 'Nomor HP pembeli'} value={no()} onInput={(e) => { setNo(e.currentTarget.value); setPln(null); }} aria-label="Nomor tujuan" />
+        <Show when={cat() === 'pln'}><button type="button" class="btn" disabled={digits(no()).length < 6} onClick={() => void checkPln()}>Cek nama</button></Show>
+        <button type="button" class="btn sm" onClick={() => void refetch()} title="Muat ulang daftar">Muat ulang</button>
+      </div>
+      <Show when={pln()}><p class="small">a.n. <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p></Show>
+      <Show when={error()}><div class="alert err small">{error()}</div></Show>
+      <Show when={products.loading}><p class="mut small">Memuat produk…</p></Show>
+      <div class="grid" style={{ 'margin-top': '10px' }}>
+        <For each={products() ?? []}>
+          {(p) => (
+            <button type="button" class={`pcard ${p.available ? '' : 'np'}`} disabled={!p.available} onClick={() => pick(p)} title={p.unavailableReason ?? p.description ?? ''}>
+              <span class="pname">{p.name}</span>
+              <span class="pprice">{rp(p.sellPrice)}</span>
+              <span class="pstock">{p.available ? `${p.brand}${can('viewCostProfit') ? ` · untung ${rp(p.margin)}` : ''}` : p.unavailableReason ?? 'Tidak tersedia'}</span>
+            </button>
+          )}
+        </For>
       </div>
     </Modal>
   );

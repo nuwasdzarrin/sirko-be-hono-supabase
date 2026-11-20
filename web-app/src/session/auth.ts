@@ -205,15 +205,15 @@ export async function refreshActive(): Promise<boolean> {
 }
 
 /** Permintaan ber-Bearer toko aktif; 401 → refresh sekali lalu ulangi. */
-export async function authed<T>(method: string, path: string, body?: unknown) {
+export async function authed<T>(method: string, path: string, body?: unknown, opts: { timeoutMs?: number } = {}) {
   const token = await accessToken();
   if (!token) throw new ApiError(401, 'NEEDS_LOGIN', 'Sesi toko ini berakhir. Masuk lagi untuk sinkron.');
   try {
-    return await request<T>(method, path, { token, body });
+    return await request<T>(method, path, { token, body, timeoutMs: opts.timeoutMs });
   } catch (e) {
     if (!(e instanceof ApiError) || e.status !== 401) throw e;
     if (!(await refreshActive())) throw new ApiError(401, 'NEEDS_LOGIN', 'Sesi toko ini berakhir. Masuk lagi untuk sinkron.');
-    return request<T>(method, path, { token: await accessToken(), body });
+    return request<T>(method, path, { token: await accessToken(), body, timeoutMs: opts.timeoutMs });
   }
 }
 

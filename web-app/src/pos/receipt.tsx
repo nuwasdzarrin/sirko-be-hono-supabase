@@ -126,7 +126,9 @@ export function printReceipt(data: ReceiptData): void {
   style.textContent = `@page { size: ${data.paper === 'mm80' ? '80mm' : '58mm'} auto; margin: 0; }`;
   document.head.appendChild(style);
   const dispose = render(() => <Receipt data={data} />, host);
+  document.body.classList.add('printing-receipt');
   const cleanup = () => {
+    document.body.classList.remove('printing-receipt');
     dispose();
     host.remove();
     style.remove();

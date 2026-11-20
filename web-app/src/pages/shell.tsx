@@ -1,11 +1,13 @@
 import { createResource, createSignal, For, Show, type ParentProps } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { Brand } from './auth';
-import { MENU, CURRENT_PHASE } from '../menu';
+import { MENU, CURRENT_PHASE, menuVisible } from '../menu';
 import { SYNC_TABLES } from '../db/db';
 import { switchBusiness } from '../session/auth';
 import { ApiError } from '../lib/api';
 import { daysLeft } from '../lib/plan';
+import { buildReport, makeRange } from '../finance/report';
+import { rp } from '../pos/calc';
 import {
   activeStore, afterSessionChange, can, db, hasFeature, lockToUserPicker, online, session, signOut,
   sync, syncNow, unsyncedEverywhere, user,
@@ -31,7 +33,7 @@ function SyncChip() {
 
 export function Shell(props: ParentProps) {
   const nav = useNavigate();
-  const items = () => MENU.filter((m) => !m.perm || can(m.perm));
+  const items = () => MENU.filter((m) => menuVisible(m, can, !!user()?.isOwner));
   const logout = async () => {
     const n = await unsyncedEverywhere();
     const warn = n
@@ -95,6 +97,11 @@ export function HomePage() {
       return { products: await live('products'), customers: await live('customers'), transactions: await live('transactions') };
     },
   );
+  // Dashboard hari ini (sama dengan Beranda HP; laba hanya untuk izin viewCostProfit).
+  const [today] = createResource(
+    () => [db(), sync.lastAt, sync.dirty] as const,
+    async ([d]) => (d && can('dashboardAccess') ? buildReport(d, makeRange('today')) : null),
+  );
   const plan = () => s()?.plan;
   const left = () => (plan() ? daysLeft(plan()!, Date.now()) : null);
   return (
@@ -104,6 +111,20 @@ export function HomePage() {
         Paket {plan()?.name === 'juragan' ? 'Juragan' : 'Warung'}
         <Show when={left() !== null}> · {left()} hari lagi</Show> · Sinkron terakhir {fmtTime(sync.lastAt)}
       </p>
+      <Show when={today()}>
+        {(t) => (
+          <>
+            <h2>Hari ini</h2>
+            <div class="cards" style={{ 'margin-bottom': '18px' }}>
+              <div class="card kpi"><div class="n">{rp(t().sales.grossRevenue)}</div><div class="mut">Omzet · {t().sales.transactionCount} transaksi</div></div>
+              <Show when={can('viewCostProfit')}><div class="card kpi"><div class="n">{rp(t().profit.grossProfit)}</div><div class="mut">Laba kotor</div></div></Show>
+              <div class="card kpi"><div class="n">{t().sales.itemCount}</div><div class="mut">Item terjual</div></div>
+              <div class="card kpi"><div class={`n ${t().status.outstanding ? 'bad-t' : ''}`}>{rp(t().status.outstanding)}</div><div class="mut">Kasbon hari ini</div></div>
+            </div>
+          </>
+        )}
+      </Show>
+      <h2>Data toko</h2>
       <div class="cards" style={{ 'margin-bottom': '24px' }}>
         <div class="card kpi"><div class="n">{counts()?.products ?? '—'}</div><div class="mut">Produk</div></div>
         <div class="card kpi"><div class="n">{counts()?.customers ?? '—'}</div><div class="mut">Pelanggan</div></div>
@@ -112,7 +133,7 @@ export function HomePage() {
       </div>
       <h2>Menu</h2>
       <div class="cards">
-        <For each={MENU.filter((m) => m.path !== '/' && (!m.perm || can(m.perm)))}>
+        <For each={MENU.filter((m) => m.path !== '/' && menuVisible(m, can, !!user()?.isOwner))}>
           {(m) => (
             <Show
               when={m.phase <= CURRENT_PHASE}

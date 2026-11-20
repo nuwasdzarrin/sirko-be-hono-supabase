@@ -3,6 +3,7 @@ import { createStore, produce, reconcile } from 'solid-js/store';
 import type { Row, StoreDb } from '../db/db';
 import { calculate, lineKey, NO_CONFIG, type CartLine, type DiscountType, type PosConfig, type WholesaleTier } from './calc';
 import type { CartSnapshot } from './repo';
+import { receiptName, type PpobLine, type PpobProduct } from '../cloud/ppob';
 
 /**
  * Keranjang kasir aktif (sama dengan `CartController` di HP). Disimpan per toko di `_meta.cart`
@@ -74,9 +75,21 @@ export function addProduct(p: Row, tiers: WholesaleTier[], variant?: Row): AddRe
   return 'ok';
 }
 
+/** Tambah item PPOB: `clientRef` dibuat sekali & dipakai ulang sampai order final. Harga = sellPrice server. */
+export function addPpob(product: PpobProduct, customerNo: string) {
+  const ppob: PpobLine = { clientRef: crypto.randomUUID(), productId: product.id, category: product.category, productName: product.name, customerNo, cost: product.price };
+  update((c) => {
+    c.lines.push({ productId: '', variantId: null, nameSnapshot: receiptName(ppob), unitPrice: product.sellPrice, wholesaleTiers: [], costPriceSnapshot: product.price, qty: 1, discountType: 'nominal', discountValue: 0, availableStock: 0, unitName: null, ppob });
+  });
+}
+
+/** Ganti semua baris (checkout setelah memproses item PPOB). */
+export const replaceLines = (lines: CartLine[]) => update((c) => void (c.lines = lines));
+
 export function setQty(key: string, qty: number) {
   if (!Number.isFinite(qty)) return;
   if (qty <= 0) return removeLine(key);
+  if (key.startsWith('ppob:')) return; // PPOB selalu 1 per pembelian
   update((c) => {
     const l = c.lines.find((x) => lineKey(x) === key);
     if (l) l.qty = Math.min(Math.floor(qty), 99999);
