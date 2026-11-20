@@ -14,24 +14,8 @@
   --bad-50: #fdecea;
   --radius: 12px;
   --shadow: 0 8px 24px rgba(29, 36, 51, 0.08);
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #11151f;
-    --card: #1a2030;
-    --sunk: #141a27;
-    --line: #2a3246;
-    --ink: #e8ebf2;
-    --mut: #9aa3b8;
-    --green: #2fa866;
-    --green-50: #183626;
-    --mango-50: #3a2c10;
-    --bad: #ff7b6e;
-    --bad-50: #3a1a17;
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    color-scheme: dark;
-  }
+  /* Selalu terang, sama seperti aplikasi HP (tanpa mode gelap). */
+  color-scheme: only light;
 }
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; height: 100%; }
