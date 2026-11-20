@@ -1,0 +1,25 @@
+{
+  "name": "sirko-web-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Sirko di browser (sirkopos.com/app) — SolidJS + Dexie, offline-first, sync ke /v1/backup.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.15.4",
+    "dexie": "^4.4.7",
+    "solid-js": "^1.9.20"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-solid": "^2.11.17",
+    "vitest": "^5.1.1"
+  }
+}

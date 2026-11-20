@@ -1,0 +1,12 @@
+{
+  "name": "Sirko — Kasir Toko",
+  "short_name": "Sirko",
+  "description": "Kasir toko Sirko di komputer. Tetap jalan tanpa internet.",
+  "start_url": "/app",
+  "scope": "/app",
+  "display": "standalone",
+  "background_color": "#FFFBF2",
+  "theme_color": "#13753F",
+  "lang": "id",
+  "icons": [{ "src": "/app/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

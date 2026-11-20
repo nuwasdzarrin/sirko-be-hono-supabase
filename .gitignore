@@ -19,3 +19,6 @@ backups/
 # Python
 __pycache__/
 *.pyc
+
+# Hasil build web app (dibangun scripts/update.sh dari web-app/)
+public/app/

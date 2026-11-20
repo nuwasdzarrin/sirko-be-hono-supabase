@@ -1,0 +1,31 @@
+import type { Permission } from './lib/permissions';
+
+/**
+ * Menu aplikasi = modul aplikasi HP. `phase` = fase pengerjaan web (Fase 1 sudah jadi).
+ * `perm` = izin yang dibutuhkan (sama dengan gerbang izin di aplikasi).
+ */
+export interface MenuItem {
+  path: string;
+  label: string;
+  desc: string;
+  perm?: Permission;
+  phase: number;
+}
+
+export const MENU: MenuItem[] = [
+  { path: '/', label: 'Beranda', desc: 'Ringkasan & status sinkron', phase: 1 },
+  { path: '/kasir', label: 'Kasir', desc: 'Jualan, scan barcode, bayar, struk', perm: 'transactionList', phase: 2 },
+  { path: '/transaksi', label: 'Riwayat transaksi', desc: 'Nota, void, cetak ulang', perm: 'transactionList', phase: 2 },
+  { path: '/produk', label: 'Produk & stok', desc: 'Produk, varian, grosir, stok', perm: 'productManagement', phase: 3 },
+  { path: '/pelanggan', label: 'Pelanggan & kasbon', desc: 'Pelanggan, hutang, cicilan', perm: 'customerManagement', phase: 3 },
+  { path: '/karyawan', label: 'Karyawan', desc: 'Akun karyawan & PIN', perm: 'userService', phase: 3 },
+  { path: '/laporan', label: 'Laporan', desc: 'Laba rugi, penjualan, ekspor', perm: 'transactionExport', phase: 4 },
+  { path: '/kas', label: 'Kas & dompet', desc: 'Saldo kas, transfer, arus kas', perm: 'walletView', phase: 4 },
+  { path: '/pembelian', label: 'Pembelian & supplier', desc: 'Stok masuk, hutang supplier, opname', perm: 'productManagement', phase: 5 },
+  { path: '/ppob', label: 'PPOB & Poin', desc: 'Pulsa, data, token listrik', perm: 'ppobSell', phase: 5 },
+  { path: '/data', label: 'Data & sinkron', desc: 'Isi data toko di browser ini', phase: 1 },
+  { path: '/pengaturan', label: 'Pengaturan', desc: 'Toko, struk, printer', perm: 'settingCompany', phase: 3 },
+];
+
+/** Fase yang sudah tersedia di web. */
+export const CURRENT_PHASE = 1;

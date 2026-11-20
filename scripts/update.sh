@@ -64,6 +64,15 @@ else
   echo "Dependensi tak berubah — lewati npm ci."
 fi
 
+# ── Web app ── SPA /app: bangun ulang bila kodenya (atau registry tabel sync) berubah.
+if [ ! -f public/app/index.html ] || changed web-app src/db/backup-tables.ts; then
+  log "Bangun web app (/app)"
+  npm --prefix web-app ci --no-audit --no-fund
+  npm --prefix web-app run build
+else
+  echo "Web app tak berubah — lewati build."
+fi
+
 log "Migrasi database"
 npm run --silent migrate
 
