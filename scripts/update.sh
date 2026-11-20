@@ -67,8 +67,12 @@ fi
 # ── Web app ── SPA /app: bangun ulang bila kodenya (atau registry tabel sync) berubah.
 if [ ! -f public/app/index.html ] || changed web-app src/db/backup-tables.ts; then
   log "Bangun web app (/app)"
-  npm --prefix web-app ci --no-audit --no-fund
-  npm --prefix web-app run build
+  # Gagal bangun web app TIDAK boleh menghentikan deploy API: /app tetap versi lama (atau 503).
+  if npm --prefix web-app ci --no-audit --no-fund && npm --prefix web-app run build; then
+    echo "✓ Web app dibangun."
+  else
+    printf '\n\033[1;33m⚠ Build web app GAGAL — API tetap dideploy; /app memakai build sebelumnya.\033[0m\n'
+  fi
 else
   echo "Web app tak berubah — lewati build."
 fi
