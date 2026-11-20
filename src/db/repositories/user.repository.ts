@@ -84,10 +84,10 @@ export class UserRepository extends TenantRepository {
   static async listMembershipsForAuth(
     accountId: string,
     client: Sql = defaultSql,
-  ): Promise<Array<UserRow & { business_name: string }>> {
-    return client<Array<UserRow & { business_name: string }>>`
+  ): Promise<Array<UserRow & { business_name: string; store_code: string | null }>> {
+    return client<Array<UserRow & { business_name: string; store_code: string | null }>>`
       SELECT u.id, u.business_id, u.account_id, u.name, u.username, u.role, u.permissions,
-             u.is_active, u.created_at, u.updated_at, u.deleted_at, b.name AS business_name
+             u.is_active, u.created_at, u.updated_at, u.deleted_at, b.name AS business_name, b.store_code
       FROM users u JOIN businesses b ON b.id = u.business_id
       WHERE u.account_id = ${accountId} AND u.deleted_at IS NULL AND u.is_active
         AND b.deleted_at IS NULL

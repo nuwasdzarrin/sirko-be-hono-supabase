@@ -2,11 +2,38 @@
 
 > **Untuk:** agen/engineer backend yang mengerjakan kode backend paket Juragan
 > (bagian aplikasi HP dicatat di §4 sebagai kontrak).
-> **Status:** semua keputusan produk final (§7); kode backend **belum** dikerjakan.
+> **Status (2026-11-20):** keputusan produk final (§7). Backend **selesai & live** di
+> `https://sirkopos.com` sejak 2026-11-06 (contract test `tests/contract/juragan-*.test.ts`); app sudah
+> terhubung (lulus E2E produksi di 1.3.0+16). Sisa pekerjaan & risiko: bagian **Status implementasi** di bawah.
 > **Dokumen terkait:** `SYNC.md` (kontrak sync — wajib dibaca), `API.md`,
 > `docs/superpowers/specs/2026-11-02-ppob-poin-design.md` (PPOB + Poin — pola
 > top-up QRIS & konfirmasi admin dipakai ulang di sini).
-> **Diperbarui:** 2026-11-05 (dari PRD pemilik produk).
+> **Diperbarui:** 2026-11-05 (dari PRD pemilik produk); status implementasi diperbarui 2026-11-20.
+
+---
+
+## Status implementasi (audit 2026-11-20)
+
+| Fitur | Backend | App |
+|---|---|---|
+| Paket di sesi/`/me` + tenggang offline 3 hari (J8) | ✅ `plan.service.ts` + test | ✅ |
+| Login `businessId`, switch-business, daftar toko | ✅ + test | ✅ brankas token per toko |
+| Tambah toko cabang (maks 3, `PLAN_REQUIRED`/`PLAN_LIMIT`) | ✅ + test | ✅ |
+| Checkout QRIS + kode unik, poll status, konfirmasi admin | ✅ + test (dashboard Langganan) | ✅ |
+| Unggah bukti bayar (opsional) | ✅ endpoint, **belum ada test** | — (tidak dipakai, sesuai kontrak) |
+| Laporan gabungan · salin produk + tautan · kirim stok | ✅ + test | ✅ |
+| Katalog toko lain `GET /juragan/products` | ✅ + test | **belum dipakai** (pilih produk tujuan manual saat kirim stok belum ada) |
+| Karyawan, ekspor Excel/PDF, logo struk dikunci per paket | — (di app) | ✅ |
+| Langganan habis (J7) | ✅ + test | ✅ |
+| **J12** kode toko di invoice | ✅ `storeCode` (migrasi 0017, 2026-11-20) | ⏳ app belum memakai — masih `INV-YYYYMMDD-NNNN` |
+| **J13** pemberitahuan sebelum penguncian | — | ⏳ sengaja dilewati selama app belum dipakai umum |
+| **§3.4** dasbor web pemilik (pemilih toko) | ⏳ belum ada (`/dashboard` hanya admin Sirko) | — |
+
+Risiko terbuka (app): E2E Juragan belum diulang di 1.4.0 (alur akun baru); satu refresh token ditolak
+menghapus token semua toko — keduanya sudah dibriefkan ke agen Flutter
+(`C:\project\sirko\docs\prompt\PROMPT-flutter-juragan-e2e-dan-token.md`).
+
+> Tabel §2 di bawah adalah **kondisi awal per 2026-11-05** (sebelum pengerjaan) — disimpan sebagai riwayat.
 
 ---
 
@@ -72,8 +99,8 @@ Backend:
 - Tabel tenant: `id uuid PRIMARY KEY` + `business_id NOT NULL` + RLS jaring
   pengaman. Push LWW di-guard `WHERE t.business_id = :jwt`.
 
-Aplikasi (`sirko-flutter`, per 2026-11-05) — keempat fitur bundle **sudah ada
-sebagian dan saat ini gratis**:
+Aplikasi (`sirko-flutter`, **kondisi awal per 2026-11-05**, sekarang sudah dikerjakan — lihat Status implementasi) — keempat
+fitur bundle waktu itu **sudah ada sebagian dan gratis**:
 | Fitur | Kondisi di app | Selisih dengan PRD |
 |---|---|---|
 | Multi-cabang | Pondasi: daftar toko + satu file DB per toko (`lib/core/database/store_registry.dart`) | Belum ada UI pemilih/tambah toko; menunggu endpoint §3.3 |
@@ -87,7 +114,7 @@ sebagian dan saat ini gratis**:
    `tests/contract/backup.test.ts`, `SYNC.md` §3/§8.2). Sudah di produksi.
 2. **Aplikasi:** daftar toko di perangkat, DB dibuka per toko aktif, toko
    diikat ke `businessId` setelah sync sukses (di `main` sirko-flutter).
-   Default backend aplikasi = `https://sirko.produkdesa.com`.
+   Default backend aplikasi = `https://sirkopos.com` (dulu `sirko.produkdesa.com`, sudah dimatikan).
 
 ---
 
@@ -422,5 +449,5 @@ Kompatibilitas mundur yang **wajib dijaga** backend:
 | J8 | Masa tenggang offline: 3 hari setelah `expiresAt` bila HP belum bisa cek ke server. |
 | J9 | Harga tahunan **Rp499.000/tahun**. |
 | J11 | Pelanggan/supplier per toko (tidak dibagi); laporan gabungan cukup. |
-| J12 | Kode toko di nomor invoice (mis. `INV-A-20261105-0001`) — perubahan di aplikasi. |
+| J12 | Kode toko di nomor invoice (mis. `INV-A-20261105-0001`). Kode dari server (`storeCode`, migrasi 0017: toko pertama A, cabang B, C…, tak pernah berubah/dipakai ulang); app menyusun nomor invoice. |
 | J13 | Pengguna yang sudah memakai karyawan/ekspor diberi pemberitahuan sekali di aplikasi sebelum penguncian berlaku (bukan diam-diam). |
