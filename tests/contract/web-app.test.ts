@@ -34,6 +34,13 @@ describe('Web app /app', () => {
     expect(sw.status).toBe(200);
     expect(sw.headers.get('cache-control')).toBe('no-cache');
     expect(sw.headers.get('service-worker-allowed')).toBe('/app');
+    // Daftar aset untuk pra-simpan service worker: no-cache & memuat semua chunk (termasuk halaman lazy).
+    const list = await app.request('/app/assets.json');
+    expect(list.status).toBe(200);
+    expect(list.headers.get('cache-control')).toBe('no-cache');
+    const files = (await list.json()) as string[];
+    expect(files).toContain(js);
+    expect(files.filter((f) => f.endsWith('.js')).length).toBeGreaterThan(1);
   });
 
   it('API & situs tidak terganggu', async () => {

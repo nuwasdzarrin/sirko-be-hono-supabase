@@ -76,10 +76,11 @@ const KNOWN = new Set<string>(PERMISSIONS);
 /** JSON array nama permission → set (nama asing diabaikan, JSON rusak → kosong). */
 export function decodePermissions(json: unknown): Set<Permission> {
   let v: unknown = json;
-  if (typeof json === 'string') {
-    if (!json.trim()) return new Set();
+  // String JSON (format lokal HP) — bisa juga ter-encode berlapis; buka sampai bukan string.
+  for (let i = 0; i < 3 && typeof v === 'string'; i++) {
+    if (!v.trim()) return new Set();
     try {
-      v = JSON.parse(json);
+      v = JSON.parse(v);
     } catch {
       return new Set();
     }

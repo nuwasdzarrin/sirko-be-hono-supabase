@@ -7,9 +7,20 @@ import { fileURLToPath } from 'node:url';
  * Hasil build → ../public/app (di-gitignore; dibangun scripts/update.sh di VPS).
  * `@shared/*` = kode backend tanpa dependensi yang dipakai bersama (registry tabel sync).
  */
+/** Tulis `assets.json` (daftar semua aset build) → service worker menyimpan semuanya saat dipasang. */
+const assetManifest = {
+  name: 'sirko-asset-manifest',
+  generateBundle(_: unknown, bundle: Record<string, unknown>) {
+    const files = Object.keys(bundle).filter((f) => f.startsWith('assets/')).map((f) => `/app/${f}`);
+    (this as unknown as { emitFile: (f: object) => void }).emitFile({ type: 'asset', fileName: 'assets.json', source: JSON.stringify(files) });
+  },
+};
+
 export default defineConfig({
   base: '/app/',
-  plugins: [solid()],
+  plugins: [solid(), assetManifest],
+  // Id build → URL service worker berubah tiap rilis → browser memasang SW baru & menyimpan aset baru.
+  define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   resolve: {
     alias: { '@shared': fileURLToPath(new URL('../src/db', import.meta.url)) },
   },

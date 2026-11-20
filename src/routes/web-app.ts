@@ -64,7 +64,7 @@ webAppRoutes.use(
   serveStatic({ root: ROOT }),
 );
 webAppRoutes.use(
-  '/:file{(sw\\.js|manifest\\.webmanifest|icon\\.svg)}',
+  '/:file{(sw\\.js|manifest\\.webmanifest|icon\\.svg|assets\\.json)}',
   async (c, next) => {
     await next();
     if (c.res.status === 200) {

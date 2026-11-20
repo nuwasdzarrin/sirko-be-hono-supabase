@@ -5,11 +5,31 @@ import './styles.css';
 import { boot, ready, session, user } from './state';
 import { CreateStorePage, LoginPage, UserPickerPage } from './pages/auth';
 import { DataPage, HomePage, Shell } from './pages/shell';
-import { KasirPage } from './pages/kasir';
-import { TransaksiPage } from './pages/transaksi';
 import { can } from './state';
 import type { Permission } from './lib/permissions';
-import type { Component } from 'solid-js';
+import { lazy, type Component } from 'solid-js';
+
+declare const __BUILD_ID__: string;
+
+// Halaman dimuat terpisah (unduhan awal kecil). Semuanya dipanaskan saat idle → tersimpan service
+// worker → tetap bisa dibuka tanpa internet walau belum pernah dikunjungi.
+const pages = {
+  kasir: () => import('./pages/kasir'),
+  transaksi: () => import('./pages/transaksi'),
+  produk: () => import('./pages/produk'),
+  pelanggan: () => import('./pages/pelanggan'),
+  karyawan: () => import('./pages/karyawan'),
+  pengaturan: () => import('./pages/pengaturan'),
+  account: () => import('./pages/account'),
+};
+const KasirPage = lazy(() => pages.kasir().then((m) => ({ default: m.KasirPage })));
+const TransaksiPage = lazy(() => pages.transaksi().then((m) => ({ default: m.TransaksiPage })));
+const ProdukPage = lazy(() => pages.produk().then((m) => ({ default: m.ProdukPage })));
+const PelangganPage = lazy(() => pages.pelanggan().then((m) => ({ default: m.PelangganPage })));
+const KaryawanPage = lazy(() => pages.karyawan().then((m) => ({ default: m.KaryawanPage })));
+const PengaturanPage = lazy(() => pages.pengaturan().then((m) => ({ default: m.PengaturanPage })));
+const RegisterPage = lazy(() => pages.account().then((m) => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => pages.account().then((m) => ({ default: m.ForgotPasswordPage })));
 
 /** Gerbang izin per halaman (sama dengan router aplikasi HP). */
 const guard = (perm: Permission, Page: Component) => () => (
@@ -42,11 +62,17 @@ function App() {
       <Route path="/masuk" component={LoginPage} />
       <Route path="/buat-toko" component={CreateStorePage} />
       <Route path="/pengguna" component={UserPickerPage} />
+      <Route path="/daftar" component={RegisterPage} />
+      <Route path="/lupa-password" component={ForgotPasswordPage} />
       <Route path="/" component={Gate}>
         <Route path="/" component={HomePage} />
         <Route path="/data" component={DataPage} />
         <Route path="/kasir" component={guard('transactionList', KasirPage)} />
         <Route path="/transaksi/:id?" component={guard('transactionList', TransaksiPage)} />
+        <Route path="/produk/:id?" component={guard('productManagement', ProdukPage)} />
+        <Route path="/pelanggan/:id?" component={guard('customerManagement', PelangganPage)} />
+        <Route path="/karyawan" component={guard('userService', KaryawanPage)} />
+        <Route path="/pengaturan" component={guard('settingCompany', PengaturanPage)} />
         <Route path="*" component={() => <Navigate href="/" />} />
       </Route>
     </Router>
@@ -57,5 +83,8 @@ void boot();
 render(() => <App />, document.getElementById('root')!);
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  void navigator.serviceWorker.register('/app/sw.js', { scope: '/app' });
+  void navigator.serviceWorker.register(`/app/sw.js?v=${__BUILD_ID__}`, { scope: '/app' });
 }
+const warm = () => Object.values(pages).forEach((load) => void load().catch(() => undefined));
+if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 5000 });
+else setTimeout(warm, 3000);

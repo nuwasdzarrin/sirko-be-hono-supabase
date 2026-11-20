@@ -62,6 +62,9 @@ describe('hak akses — sama dengan PermissionResolver', () => {
     expect([...resolvePermissions('custom', '["addProduct","bukanIzin","ppobSell"]')].sort()).toEqual(['addProduct', 'ppobSell']);
     expect(resolvePermissions('custom', ['walletView']).has('walletView')).toBe(true);
     expect(decodePermissions('{rusak').size).toBe(0);
+    // Wire = array; string lokal HP; dan string ter-encode berlapis (data lama) tetap terbaca.
+    expect([...decodePermissions(['transactionList'])]).toEqual(['transactionList']);
+    expect([...decodePermissions(JSON.stringify(JSON.stringify(['transactionList'])))]).toEqual(['transactionList']);
     expect(resolvePermissions('sirko_admin').size).toBe(0);
   });
 });

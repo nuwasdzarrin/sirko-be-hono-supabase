@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
+import { A, useNavigate } from '@solidjs/router';
 import { kvGet } from '../db/db';
 import { createBusiness } from '../session/auth';
 import { ApiError } from '../lib/api';
@@ -68,8 +68,9 @@ export function LoginPage() {
             {busy() ? 'Memeriksa…' : 'Masuk'}
           </button>
         </form>
-        <p class="mut small" style={{ 'margin-top': '16px' }}>
-          Belum punya akun atau lupa password? Daftar / atur ulang lewat aplikasi Sirko di HP.
+        <p class="small" style={{ 'margin-top': '16px', display: 'flex', 'justify-content': 'space-between', gap: '8px' }}>
+          <A href="/daftar">Daftar akun baru</A>
+          <A href="/lupa-password">Lupa password?</A>
         </p>
       </div>
     </main>

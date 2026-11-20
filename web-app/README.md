@@ -63,6 +63,18 @@ berubah. `public/app/` tidak di-commit.
   detail, cetak ulang, void. Pintasan: F2 cari · F4 pelanggan · F8 bayar · F9 tunda · Enter selesai.
   Logika di `src/pos/` (calc = salinan TransactionCalculator/PaymentCalculator/WholesalePricing,
   repo = commit/void/shift persis TransactionRepository/CreditRepository/BillRepository).
+- **Fase 3 (selesai):** Produk & stok (tambah/ubah/hapus/pulihkan, barcode unik produk+varian,
+  kategori & satuan, varian, harga grosir, sesuaikan stok, stok masuk, arus stok, filter stok
+  menipis/kedaluwarsa/perlu harga; harga modal hanya untuk izin `viewCostProfit`) · Pelanggan &
+  kasbon (data pelanggan, bayar hutang FIFO / per nota / per cicilan, jadwal cicilan, riwayat,
+  pengingat WA) · Karyawan (peran + izin khusus, PIN ≥ 6 angka, username unik, admin terakhir
+  dijaga; tambah butuh Paket Juragan) · Pengaturan (wajib shift, metode bayar, ganti password) ·
+  Daftar akun, verifikasi email & lupa password di web. Logika di `src/manage/repo.ts`.
+- Halaman dimuat terpisah (lazy); build menulis `assets.json` → service worker menyimpan SEMUA
+  aset saat dipasang (URL SW memuat id build → tiap rilis terpasang ulang), jadi semua halaman
+  bisa dibuka offline. Form memakai salinan data saat dibuka agar sinkron latar tak menimpa ketikan.
+- Kolom JSON (`users.permissions`) dikirim sebagai array (sama dengan HP); pembacaan izin tahan
+  string ter-encode berlapis.
 - Batasan yang ikut dari aplikasi HP (SYNC §8.7): hutang pelanggan masih LWW; nomor invoice bisa
   kembar antar-perangkat yang aktif bersamaan; foto produk tidak tersinkron.
 - Daftar akun & lupa password masih lewat aplikasi HP.

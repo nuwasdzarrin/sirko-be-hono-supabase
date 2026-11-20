@@ -44,7 +44,7 @@ h2 { font-size: 16px; margin: 0 0 10px; }
 .mut { color: var(--mut); }
 .small { font-size: 13px; }
 
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 9px 14px; font-weight: 600; }
 .btn:hover:not(:disabled) { border-color: var(--green); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn.primary { background: var(--green); border-color: var(--green); color: var(--green-ink); }
@@ -221,6 +221,27 @@ table.list tr.strong td { font-weight: 800; }
   #print-root .receipt { padding: 0 2mm; margin: 0; }
   html, body { background: #fff; }
 }
+
+/* ── Fase 3: kelola toko ─────────────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; align-items: start; }
+.field input, .field select { width: 100%; min-width: 0; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-grid .field { margin-bottom: 12px; }
+.field input:disabled { opacity: 0.6; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 10px; cursor: pointer; }
+.check input { margin-top: 3px; }
+.sec { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.sec h3, h3 { font-size: 14px; margin: 0 0 6px; }
+.sel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.mini { width: 110px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; text-align: right; }
+.plain { flex: 1; border: 0; background: transparent; font-weight: 600; padding: 2px 0; outline: none; }
+.plain:focus { border-bottom: 1px solid var(--green); }
+.tier { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.credit-tx { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 12px; }
+.perm-box { background: var(--sunk); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+.settings { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-items: start; }
+table.list.small td { padding: 6px 8px; }
 
 @media (max-width: 1100px) {
   .pos { grid-template-columns: 1fr 340px; }

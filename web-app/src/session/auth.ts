@@ -216,3 +216,52 @@ export async function authed<T>(method: string, path: string, body?: unknown) {
     return request<T>(method, path, { token: await accessToken(), body });
   }
 }
+
+// ── Daftar akun, verifikasi email, lupa & ganti password (sama dengan aplikasi HP) ──────────
+
+export interface OtpSent {
+  sentTo?: string;
+  expiresAt?: number;
+  /** Hanya server non-produksi dengan AUTH_DEV_OTP_ECHO. */
+  devCode?: string;
+}
+
+export async function register(name: string, email: string, phone: string, password: string): Promise<OtpSent> {
+  return (await request<OtpSent>('POST', '/v1/auth/register', { body: { name: name.trim(), email: email.trim(), phone: phone.trim(), password } })).data;
+}
+
+/** Kode OTP benar → langsung masuk (sesi akun, belum punya toko). */
+export async function verifyEmail(email: string, code: string): Promise<Session> {
+  const r = await request<ServerSession>('POST', '/v1/auth/verify-email', { body: { email: email.trim(), code: code.trim() } });
+  const s = mergeServerSession(await loadSession(), r.data);
+  await saveSession(s);
+  await kvSet('lastLogin', email.trim());
+  return s;
+}
+
+export async function resendVerification(email: string): Promise<OtpSent> {
+  return (await request<OtpSent>('POST', '/v1/auth/resend-verification', { body: { email: email.trim() } })).data;
+}
+
+export async function forgotPassword(login: string): Promise<OtpSent> {
+  return (await request<OtpSent>('POST', '/v1/auth/password/forgot', { body: { login: login.trim() } })).data;
+}
+
+/** Atur ulang password dengan kode OTP → server langsung memberi sesi baru. */
+export async function resetPassword(login: string, code: string, newPassword: string): Promise<Session> {
+  const r = await request<ServerSession>('POST', '/v1/auth/password/reset', { body: { login: login.trim(), code: code.trim(), newPassword } });
+  const s = mergeServerSession(await loadSession(), r.data);
+  await saveSession(s);
+  await kvSet('lastLogin', login.trim());
+  return s;
+}
+
+/** Ganti password (butuh internet); bahan login offline ikut diperbarui. */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const r = await authed<{ account?: AccountInfo; offlineAuth?: OfflineAuth }>('POST', '/v1/auth/password/change', { currentPassword, newPassword });
+  const s = await loadSession();
+  if (!s) return;
+  if (r.data.account) s.account = r.data.account;
+  if (r.data.offlineAuth) s.offlineAuth = r.data.offlineAuth;
+  await saveSession(s);
+}

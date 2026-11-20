@@ -4,11 +4,21 @@
  * - Aset /app/assets : simpan sekali, pakai dari cache (nama file ber-hash → tak pernah basi).
  * - API /v1/*        : TIDAK pernah di-cache (data ada di IndexedDB, sync yang mengurus).
  */
-const CACHE = 'sirko-app-v1';
+const CACHE = 'sirko-app-v2';
 const SHELL = ['/app/', '/app/manifest.webmanifest', '/app/icon.svg'];
 
+// Pasang: simpan kerangka + SEMUA aset build (daftar dari assets.json) → setiap halaman bisa dibuka offline.
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches
+      .open(CACHE)
+      .then(async (c) => {
+        await c.addAll(SHELL);
+        const list = await fetch('/app/assets.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+        await c.addAll(list);
+      })
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (e) => {
