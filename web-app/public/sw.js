@@ -5,7 +5,7 @@
  * - API /v1/*        : TIDAK pernah di-cache (data ada di IndexedDB, sync yang mengurus).
  */
 const CACHE = 'sirko-app-v2';
-const SHELL = ['/app/', '/app/manifest.webmanifest', '/app/icon.svg'];
+const SHELL = ['/app/', '/app/manifest.webmanifest', '/app/icon.svg', '/app/lockup.png'];
 
 // Pasang: simpan kerangka + SEMUA aset build (daftar dari assets.json) → setiap halaman bisa dibuka offline.
 self.addEventListener('install', (e) => {

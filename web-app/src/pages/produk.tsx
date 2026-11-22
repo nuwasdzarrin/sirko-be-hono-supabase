@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, Show, untrack } from 'solid-js';
-import { useNavigate, useParams } from '@solidjs/router';
+import { useNavigate, useParams, useSearchParams } from '@solidjs/router';
 import type { Row } from '../db/db';
 import { createLive } from '../lib/live';
 import { can, db, syncNow } from '../state';
@@ -11,6 +11,8 @@ import {
 } from '../manage/repo';
 import { fmtDateTime } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
+import { isMobile } from '../lib/media';
+import { Icon } from '../ui/icon';
 
 const live = (r: Row) => r.deletedAt == null;
 const byName = (a: Row, b: Row) => String(a.name).localeCompare(String(b.name));
@@ -34,6 +36,10 @@ export function ProdukPage() {
   const [cat, setCat] = createSignal('');
   const [filter, setFilter] = createSignal<Filter>('all');
   const [dlg, setDlg] = createSignal<Dlg>(null);
+  // Pintasan Beranda (HP): ?aksi=stok-masuk membuka Stok Masuk · ?f=menipis menyaring stok menipis.
+  const [search] = useSearchParams();
+  if (search.aksi === 'stok-masuk') setDlg({ kind: 'stockin' });
+  if (search.f === 'menipis') setFilter('low');
   const [toast, setToast] = createSignal('');
   const say = (m: string) => {
     setToast(m);
@@ -73,8 +79,12 @@ export function ProdukPage() {
     return { low: a.filter(isLow).length, expiry: a.filter((p) => ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now))).length, price: a.filter((p) => p.needsPrice === true).length };
   });
 
+  const unitName = createMemo(() => new Map(units().map((u) => [u.id, String(u.name)])));
+  const [menu, setMenu] = createSignal(false);
+  const FILTER_LABEL: Record<Filter, string> = { all: 'Semua', low: 'Stok menipis', expiry: 'Kedaluwarsa', price: 'Perlu harga', deleted: 'Recycle Bin' };
   return (
     <div class="split">
+      <Show when={isMobile()} fallback={
       <section class="split-list">
         <div class="row-btns">
           <h1 style={{ margin: 0 }}>Produk & stok</h1>
@@ -130,6 +140,82 @@ export function ProdukPage() {
         </div>
         <Show when={list().length > 500}><p class="small mut">Menampilkan 500 dari {list().length}. Perjelas pencarian.</p></Show>
       </section>
+      }>
+        {/* HP: ProductListScreen aplikasi (cari + Stok Masuk + Peringatan stok + ⋮, chip kategori, ProductTile, FAB) */}
+        <section class="split-list">
+          <div class="m-toolbar">
+            <input class="pos-search" placeholder="Cari nama atau barcode…" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
+            <button class="m-icon-btn" title="Stok Masuk" onClick={() => setDlg({ kind: 'stockin' })}><Icon name="moveToInbox" /></button>
+            <button class={`m-icon-btn ${filter() === 'low' ? 'm-on' : ''}`} title="Peringatan stok" onClick={() => setFilter(filter() === 'low' ? 'all' : 'low')}>
+              <Icon name="warningAmber" />
+              <Show when={counts().low}><span class="m-badge">{counts().low}</span></Show>
+            </button>
+            <div class="m-menu-wrap">
+              <button class="m-icon-btn" title="Lainnya" onClick={() => setMenu(!menu())}><Icon name="moreVert" /></button>
+              <Show when={menu()}>
+                <div class="m-menu-bg" onClick={() => setMenu(false)} />
+                <div class="m-menu" onClick={() => setMenu(false)}>
+                  <button onClick={() => setDlg({ kind: 'cats' })}>Kategori</button>
+                  <button onClick={() => setDlg({ kind: 'units' })}>Satuan</button>
+                  <button onClick={() => setFilter('expiry')}>Kedaluwarsa ({counts().expiry})</button>
+                  <button onClick={() => setFilter('price')}>Perlu harga ({counts().price})</button>
+                  <Show when={can('recycleBin')}><button onClick={() => setFilter('deleted')}>Recycle Bin</button></Show>
+                </div>
+              </Show>
+            </div>
+          </div>
+          <div class="m-chiprow">
+            <button class={`chip ${!cat() ? 'on' : ''}`} onClick={() => setCat('')}>Semua</button>
+            <For each={categories()}>{(c) => <button class={`chip ${cat() === c.id ? 'on' : ''}`} onClick={() => setCat(c.id)}>{String(c.name)}</button>}</For>
+          </div>
+          <Show when={filter() !== 'all'}>
+            <div class="m-filterbar">
+              <span>Filter: <b>{FILTER_LABEL[filter()]}</b> · {list().length} produk</span>
+              <button class="btn text sm" onClick={() => setFilter('all')}>Hapus filter</button>
+            </div>
+          </Show>
+          <div class="m-list">
+            <For
+              each={list().slice(0, 500)}
+              fallback={
+                <div class="m-empty">
+                  <Show when={products().length} fallback={<><Icon name="inventory2" size={64} style={{ color: 'var(--m-primary)' }} /><b>Belum ada produk</b><span class="small">Tambah produk pertama Anda dengan tombol di bawah.</span></>}>
+                    <Icon name="search" size={56} /><b>Tidak ada produk yang cocok.</b>
+                  </Show>
+                </div>
+              }
+            >
+              {(p) => {
+                const vs = () => varOf().get(p.id) ?? [];
+                const ex = () => expiryStatus(p.expiryDate as number | null, Date.now());
+                const price = () => (p.hasVariants === true && vs().length ? `mulai ${rp(Math.min(...vs().map((v) => Number(v.sellingPrice ?? 0))))}` : rp(Number(p.sellingPrice ?? 0)));
+                return (
+                  <button class="m-row m-row3" onClick={() => nav(`/produk/${p.id}`)}>
+                    <span class="m-avatar lg"><Icon name="inventory2" /></span>
+                    <span class="m-row-text">
+                      <span class="m-row-title">{String(p.name)}</span>
+                      <span class="m-row-sub">
+                        {[catName().get(String(p.categoryId)), p.barcode, p.hasVariants === true ? `${vs().length} varian` : ''].filter(Boolean).join(' • ') || '—'}
+                      </span>
+                      <span class="m-row-line">
+                        <span class="m-price">{p.needsPrice === true ? '—' : price()}</span>
+                        <span class={`m-pill ${isLow(p) ? 'low' : ''}`}>Stok {num(stockOf(p))} {unitName().get(String(p.unitId)) ?? ''}</span>
+                        <Show when={p.needsPrice === true}><span class="m-pill err">Perlu harga</span></Show>
+                        <Show when={ex() === 'expired'}><span class="m-pill err">Kedaluwarsa</span></Show>
+                        <Show when={ex() === 'nearExpiry'}><span class="m-pill low">Hampir kedaluwarsa</span></Show>
+                      </span>
+                    </span>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
+          <Show when={list().length > 500}><p class="m-caption">Menampilkan 500 dari {list().length}. Perjelas pencarian.</p></Show>
+          <Show when={can('addProduct')}>
+            <button class="m-fab" onClick={() => nav('/produk/baru')}><Icon name="add" />Produk</button>
+          </Show>
+        </section>
+      </Show>
 
       <Show when={params.id} keyed fallback={<aside class="split-detail mut empty">Pilih produk untuk mengubah, atau tambah produk baru.</aside>}>
         {(pid) => (

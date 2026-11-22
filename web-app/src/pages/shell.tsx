@@ -8,6 +8,9 @@ import { ApiError } from '../lib/api';
 import { daysLeft } from '../lib/plan';
 import { buildReport, makeRange } from '../finance/report';
 import { rp } from '../pos/calc';
+import { MobileAppBar, MobileNav, MobileSubBar, useFocusClass } from '../ui/mobile-shell';
+import { isMobile } from '../lib/media';
+import { MobileHome } from './beranda';
 import {
   activeStore, afterSessionChange, can, db, hasFeature, lockToUserPicker, online, session, signOut,
   sync, syncNow, unsyncedEverywhere, user,
@@ -31,20 +34,24 @@ function SyncChip() {
   );
 }
 
+/** Keluar akun: peringatkan perubahan yang belum tersinkron, lalu hapus data toko dari browser. */
+export async function confirmLogout(nav: (to: string, o?: { replace?: boolean }) => void): Promise<void> {
+  const n = await unsyncedEverywhere();
+  const warn = n
+    ? `Masih ada ${n} perubahan yang BELUM tersinkron${online() ? ' (akan dicoba dikirim dulu)' : ' dan tidak ada internet — perubahan itu akan HILANG'}.\n\n`
+    : '';
+  if (!confirm(`${warn}Keluar akan menghapus semua data toko dari browser ini. Lanjutkan?`)) return;
+  await signOut();
+  nav('/masuk', { replace: true });
+}
+
 export function Shell(props: ParentProps) {
   const nav = useNavigate();
   const items = () => MENU.filter((m) => menuVisible(m, can, !!user()?.isOwner));
-  const logout = async () => {
-    const n = await unsyncedEverywhere();
-    const warn = n
-      ? `Masih ada ${n} perubahan yang BELUM tersinkron${online() ? ' (akan dicoba dikirim dulu)' : ' dan tidak ada internet — perubahan itu akan HILANG'}.\n\n`
-      : '';
-    if (!confirm(`${warn}Keluar akan menghapus semua data toko dari browser ini. Lanjutkan?`)) return;
-    await signOut();
-    nav('/masuk', { replace: true });
-  };
+  const logout = () => confirmLogout(nav);
+  const focus = useFocusClass();
   return (
-    <div class="shell">
+    <div class="shell" classList={{ 'm-focus': focus() }}>
       <aside class="side">
         <Brand sub={activeStore()?.name} />
         <nav class="nav">
@@ -75,6 +82,8 @@ export function Shell(props: ParentProps) {
           <span class="spacer" />
           <SyncChip />
         </header>
+        <MobileAppBar />
+        <MobileSubBar />
         <Show when={sync.needsLogin}>
           <div class="alert warn" style={{ margin: '16px 24px 0' }}>
             Sesi toko ini di server berakhir. Data tetap aman di browser, tapi belum bisa sinkron.{' '}
@@ -82,6 +91,7 @@ export function Shell(props: ParentProps) {
           </div>
         </Show>
         <div class="content">{props.children}</div>
+        <MobileNav />
       </div>
     </div>
   );
@@ -105,7 +115,7 @@ export function HomePage() {
   const plan = () => s()?.plan;
   const left = () => (plan() ? daysLeft(plan()!, Date.now()) : null);
   return (
-    <>
+    <Show when={!isMobile()} fallback={<MobileHome />}>
       <h1>Halo, {user()?.name}</h1>
       <p class="mut" style={{ margin: '0 0 20px' }}>
         Paket {plan()?.name === 'juragan' ? 'Juragan' : 'Warung'}
@@ -147,7 +157,7 @@ export function HomePage() {
       <Show when={(s()?.businesses.length ?? 0) > 1 && user()?.isOwner}>
         <StoreSwitcher />
       </Show>
-    </>
+    </Show>
   );
 }
 

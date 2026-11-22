@@ -6,6 +6,7 @@ import { decodePermissions, PERMISSION_LABEL, PERMISSIONS, ROLE_DEFAULTS, type P
 import { PosError } from '../pos/repo';
 import { deleteUser, MIN_PIN, saveUser, type UserInput } from '../manage/repo';
 import { Modal, Toast } from './ui';
+import { isMobile } from '../lib/media';
 
 /** Karyawan & PIN (sama dengan Users page HP): tambah butuh Paket Juragan + izin addUser. */
 
@@ -35,7 +36,23 @@ export function KaryawanPage() {
         <div class="alert warn" style={{ 'margin-top': '12px' }}>Akun karyawan (masuk dengan PIN) adalah fitur <b>Paket Juragan</b>. Langganan lewat aplikasi Sirko di HP (menu Langganan).</div>
       </Show>
       <p class="mut small">Karyawan masuk di komputer ini lewat tombol "Ganti pengguna" lalu memilih nama & mengetik PIN.</p>
-      <div class="card flush">
+      <Show when={isMobile()}>
+        <div class="m-list">
+          <For each={users()}>
+            {(u) => (
+              <button class="m-row" onClick={() => can('userService') && setEdit(u)}>
+                <span class="m-avatar">{String(u.name ?? '?').trim().charAt(0).toUpperCase()}</span>
+                <span class="m-row-text">
+                  <span class="m-row-title">{String(u.name)}{u.id === user()?.id ? ' (Anda)' : ''}</span>
+                  <span class="m-row-sub">{ROLE_LABEL[String(u.role)] ?? String(u.role)}{u.username ? ` • ${String(u.username)}` : ''}</span>
+                </span>
+                <span class={`m-pill ${u.isActive === false ? 'low' : ''}`}>{u.isActive === false ? 'Nonaktif' : 'Aktif'}</span>
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+      <div class="card flush d-only">
         <table class="list hover">
           <thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Status</th></tr></thead>
           <tbody>

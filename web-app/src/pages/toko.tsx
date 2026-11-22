@@ -27,7 +27,7 @@ export function TokoPage() {
       <div class="row-btns">
         <h1 style={{ margin: 0 }}>Toko Saya</h1>
         <span class="spacer" />
-        <div class="seg">
+        <div class="seg ptabs">
           <button class={tab() === 'toko' ? 'on' : ''} onClick={() => nav('/toko')}>Daftar toko</button>
           <button class={tab() === 'laporan' ? 'on' : ''} onClick={() => nav('/toko/laporan')}>Laporan gabungan</button>
           <button class={tab() === 'transfer' ? 'on' : ''} onClick={() => nav('/toko/transfer')}>Transfer stok</button>

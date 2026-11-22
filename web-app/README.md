@@ -80,6 +80,12 @@ berubah. `public/app/` tidak di-commit.
   (pulsa/data/token, kirim maks. 15 dtk per item, gagal keluar nota, diproses tetap di nota) ·
   Riwayat PPOB, Poin Sirko (saldo, top-up QRIS, mutasi), Harga jual PPOB · Toko Saya (tambah/pindah
   toko, laporan gabungan, transfer stok antar-toko) · Paket Juragan (checkout QRIS, status otomatis).
+- **Tampilan HP (≤ 860px) = aplikasi Flutter:** Material 3 (seed `#1565C0`), Roboto, app bar + bar
+  turunan "← Judul", NavigationBar bawah (Beranda · Kasir · Produk · Laporan · Lainnya), halaman
+  Lainnya (grid menu), Kasir mode fokus (keranjang = bottom sheet, FAB + bar Bayar), dialog = bottom
+  sheet. Semua di `src/mobile.css` + `src/ui/` (ikon Material SVG dibundel, jalan offline);
+  desktop tidak berubah. Kerangka: `ui/mobile-shell.tsx` · Beranda: `pages/beranda.tsx` ·
+  Lainnya: `pages/lainnya.tsx` · deteksi layar: `lib/media.ts`.
 - Item stok opname disimpan lokal (`_dirty = 3`) selama draft dan dikirim saat final, karena tabel
   itu append-only di server (perubahan setelah kirim pertama diabaikan server).
 - Halaman dimuat terpisah (lazy); build menulis `assets.json` → service worker menyimpan SEMUA

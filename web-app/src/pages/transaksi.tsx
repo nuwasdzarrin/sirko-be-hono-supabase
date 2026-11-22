@@ -6,6 +6,8 @@ import { activeStore, db, syncNow } from '../state';
 import { METHOD_LABEL, rp, type PaymentMethod } from '../pos/calc';
 import { PosError, voidTransaction } from '../pos/repo';
 import { fmtDateTime, loadReceipt, printReceipt, Receipt } from '../pos/receipt';
+import { isMobile } from '../lib/media';
+import { Icon } from '../ui/icon';
 
 /**
  * Riwayat transaksi (sama dengan HP: terbaru dulu, nota yang dibatalkan tersembunyi kecuali diminta)
@@ -65,6 +67,7 @@ export function TransaksiPage() {
 
   return (
     <div class="split">
+      <Show when={isMobile()} fallback={
       <section class="split-list">
         <h1>Riwayat transaksi</h1>
         <div class="filters">
@@ -94,6 +97,39 @@ export function TransaksiPage() {
           </table>
         </div>
       </section>
+      }>
+        {/* HP: daftar seperti TransactionHistoryScreen aplikasi */}
+        <section class="split-list">
+          <div class="m-toolbar">
+            <input class="pos-search" placeholder="Cari no. nota / pelanggan" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
+          </div>
+          <div class="m-chiprow">
+            <For each={RANGES}>{(r) => <button class={`chip ${range() === r.key ? 'on' : ''}`} onClick={() => setRange(r.key)}>{r.label}</button>}</For>
+            <button class={`chip ${showVoid() ? 'on' : ''}`} onClick={() => setShowVoid(!showVoid())}>Dibatalkan</button>
+          </div>
+          <p class="m-caption">{summary().count} nota · {rp(summary().total)}</p>
+          <div class="m-list">
+            <For each={list().slice(0, 500)} fallback={<div class="m-empty"><Icon name="receiptLong" size={64} /><b>Belum ada transaksi</b></div>}>
+              {(t) => {
+                const st = () => String(t.deletedAt != null ? 'void' : t.status);
+                return (
+                  <button class="m-row" onClick={() => nav(`/transaksi/${t.id}`)}>
+                    <span class={`m-avatar tx-${st()}`}><Icon name="receiptLong" /></span>
+                    <span class="m-row-text">
+                      <span class="m-row-title b">{String(t.invoiceNo)}</span>
+                      <span class="m-row-sub">
+                        {fmtDateTime(Number(t.datetime))} • {STATUS[st()]?.[0] ?? st()}
+                        {t.customerId ? ` • ${people().get(String(t.customerId)) ?? ''}` : ''}
+                      </span>
+                    </span>
+                    <span class="m-row-end"><b class={st() === 'void' ? 'mut' : ''}>{rp(Number(t.grandTotal ?? 0))}</b></span>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
+        </section>
+      </Show>
       <Show when={params.id} fallback={<aside class="split-detail mut empty">Pilih nota untuk melihat rincian.</aside>}>
         <TxDetail id={params.id!} people={people()} onClose={() => nav('/transaksi')} />
       </Show>

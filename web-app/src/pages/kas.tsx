@@ -9,6 +9,8 @@ import { makeRange, walletCashFlow, type DateRange } from '../finance/report';
 import { createWallet, deleteWallet, deposit, renameWallet, transfer, WALLET_TYPE_LABEL, withdraw, type WalletType } from '../finance/wallets';
 import { fmtDateTime } from '../pos/receipt';
 import { RangeBar } from './laporan';
+import { isMobile } from '../lib/media';
+import { Icon } from '../ui/icon';
 import { Modal, MoneyInput, Toast } from './ui';
 
 /** Kas & dompet — sama dengan menu Kas/Wallet HP (lihat: walletView; ubah: walletManagement). */
@@ -42,7 +44,24 @@ export function KasPage() {
         </div>
         <p class="mut small">Total saldo semua dompet: <b>{rp(total())}</b>. Penjualan tunai otomatis masuk ke dompet kas utama.</p>
         <RangeBar range={range()} onChange={setRange} />
-        <div class="card flush">
+        <Show when={isMobile()}>
+          <div class="m-list">
+            <For each={flows() ?? []} fallback={<div class="m-empty"><Icon name="wallet" size={48} /><b>Belum ada dompet</b></div>}>
+              {(f) => (
+                <button class="m-row" onClick={() => nav(`/kas/${f.walletId}`)}>
+                  <span class="m-avatar"><Icon name="wallet" /></span>
+                  <span class="m-row-text">
+                    <span class="m-row-title">{f.name}</span>
+                    <span class="m-row-sub">{WALLET_TYPE_LABEL[f.type as WalletType] ?? f.type} • masuk {rp(f.totalIn)} • keluar {rp(f.totalOut)}</span>
+                  </span>
+                  <span class="m-row-end"><b>{rp(f.balance)}</b></span>
+                </button>
+              )}
+            </For>
+          </div>
+          <Show when={manage()}><button class="m-fab" onClick={() => setDlg({ kind: 'new' })}><Icon name="add" />Dompet</button></Show>
+        </Show>
+        <div class="card flush d-only">
           <table class="list hover">
             <thead><tr><th>Dompet</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Transfer ±</th><th class="num">Bersih</th><th class="num">Saldo</th></tr></thead>
             <tbody>

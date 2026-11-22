@@ -1,5 +1,5 @@
 import { createMemo, createSignal, For, Show } from 'solid-js';
-import { useNavigate, useParams } from '@solidjs/router';
+import { useNavigate, useParams, useSearchParams } from '@solidjs/router';
 import type { Row } from '../db/db';
 import { createLive } from '../lib/live';
 import { can, db, syncNow } from '../state';
@@ -8,6 +8,8 @@ import { PosError } from '../pos/repo';
 import { createInstallmentPlan, deleteCustomer, installmentStatus, outstandingFor, payDebt, restoreCustomer, saveCustomer } from '../manage/repo';
 import { fmtDateTime } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
+import { isMobile } from '../lib/media';
+import { Icon } from '../ui/icon';
 
 const live = (r: Row) => r.deletedAt == null;
 const msg = (e: unknown) => (e instanceof PosError ? e.message : `Gagal: ${(e as Error).message}`);
@@ -23,7 +25,9 @@ export function PelangganPage() {
   const params = useParams();
   const nav = useNavigate();
   const [q, setQ] = createSignal('');
-  const [filter, setFilter] = createSignal<Filter>('all');
+  const [search] = useSearchParams();
+  // Pintasan "Kas Bon" di Beranda (HP) → ?f=hutang.
+  const [filter, setFilter] = createSignal<Filter>(search.f === 'hutang' ? 'debt' : 'all');
   const [toast, setToast] = createSignal('');
   const say = (m: string) => {
     setToast(m);
@@ -40,8 +44,10 @@ export function PelangganPage() {
   });
   const totalDebt = createMemo(() => customers().filter(live).reduce((s, c) => s + Number(c.debtBalance ?? 0), 0));
 
+  const debtors = createMemo(() => customers().filter((c) => live(c) && Number(c.debtBalance ?? 0) > 0).length);
   return (
     <div class="split">
+      <Show when={isMobile()} fallback={
       <section class="split-list">
         <div class="row-btns">
           <h1 style={{ margin: 0 }}>Pelanggan & kasbon</h1>
@@ -74,6 +80,43 @@ export function PelangganPage() {
           </table>
         </div>
       </section>
+      }>
+        {/* HP: CustomerListScreen + banner Kas Bon */}
+        <section class="split-list">
+          <Show when={totalDebt() > 0}>
+            <button class="m-debt-banner" onClick={() => setFilter(filter() === 'debt' ? 'all' : 'debt')}>
+              <span class="small">Total piutang</span>
+              <b>{rp(totalDebt())}</b>
+              <span class="small">{debtors()} pelanggan</span>
+            </button>
+          </Show>
+          <div class="m-toolbar">
+            <input class="pos-search" placeholder="Cari nama atau telepon…" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
+          </div>
+          <div class="m-chiprow">
+            <button class={`chip ${filter() === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>Semua</button>
+            <button class={`chip ${filter() === 'debt' ? 'on' : ''}`} onClick={() => setFilter('debt')}>Punya hutang</button>
+            <Show when={can('recycleBin')}><button class={`chip ${filter() === 'deleted' ? 'on' : ''}`} onClick={() => setFilter('deleted')}>Terhapus</button></Show>
+          </div>
+          <div class="m-list">
+            <For each={list().slice(0, 500)} fallback={<div class="m-empty"><Icon name="people" size={48} /><b>Belum ada pelanggan</b><span class="small">Tambah pelanggan dengan tombol di bawah</span></div>}>
+              {(c) => (
+                <button class="m-row" onClick={() => nav(`/pelanggan/${c.id}`)}>
+                  <span class="m-avatar">{String(c.name ?? '?').trim().charAt(0).toUpperCase()}</span>
+                  <span class="m-row-text">
+                    <span class="m-row-title">{String(c.name)}</span>
+                    <span class="m-row-sub">{String(c.phone ?? '') || '—'}</span>
+                  </span>
+                  <Show when={Number(c.debtBalance ?? 0) > 0} fallback={<Icon name="chevronRight" class="m-trail" />}>
+                    <span class="m-row-end"><span class="small">Hutang</span><b class="bad-t m-amt">{rp(Number(c.debtBalance))}</b></span>
+                  </Show>
+                </button>
+              )}
+            </For>
+          </div>
+          <button class="m-fab" onClick={() => nav('/pelanggan/baru')}><Icon name="personAdd" />Pelanggan</button>
+        </section>
+      </Show>
       <Show when={params.id} keyed fallback={<aside class="split-detail mut empty">Pilih pelanggan untuk melihat hutang & riwayat.</aside>}>
         {(id) => <CustomerDetail id={id === 'baru' ? null : id} onDone={(nid, m) => { if (m) say(m); nav(nid ? `/pelanggan/${nid}` : '/pelanggan'); void syncNow(); }} />}
       </Show>
