@@ -176,3 +176,45 @@ Terbit Selasa, Kamis, dan Sabtu pukul 08.00 WIB lewat jadwal terbit CMS. Landing
 3. ⏳ **Kapasitas menulis:** 3 artikel/minggu (rekomendasi) atau versi minimum 2/minggu.
 4. ⏳ **Siapa yang membuat video pendek** (§6.1).
 5. ✅ **Klaim Katalog Umum di web** diterbitkan bersama rilis katalog web (commit `12d1ebf`).
+
+## 10. Status eksekusi (24 Nov 2026)
+
+Semua konten bulan ini **sudah ditulis & dijadwalkan**. Konten CMS memakai `published_at` (terbit otomatis jam
+08.00 WIB pada tanggalnya + IndexNow). Alat `/alat/*` memakai `releaseAt` di `src/site/tools.ts` (404 & di luar
+sitemap sampai tanggalnya). Riset ATM per konten: `pendukung/seo/konten/<slug>.atm.md`. Brief bersama:
+`pendukung/seo/konten/BRIEF.md`. Data SERP: `pendukung/seo/konten/serp-google-2026-11-23.json`.
+
+| Tgl | Konten | Status |
+|---|---|---|
+| 24 Nov | /aplikasi-kasir-online | ✅ terjadwal |
+| 24 Nov | /aplikasi-kasir-gratis: tabel batasan versi gratis (+ FAQ watermark & biaya bulanan) | ✅ diperbarui via `seed:site -- --update` |
+| 25 Nov | /pengganti-mitra-tokopedia | ✅ terjadwal |
+| 26 Nov | /blog/cara-pasang-sirko-tanpa-play-store | ✅ terjadwal + sampul |
+| 27 Nov | /aplikasi-kasir-laptop | ✅ terjadwal |
+| 28 Nov | /blog/pembukuan-warung-sembako | ✅ terjadwal + sampul |
+| 1 Des | /aplikasi-kasir-iphone | ✅ terjadwal |
+| 2 Des | /blog/contoh-buku-hutang-warung + /alat/template-buku-hutang | ✅ terjadwal + sampul |
+| 4 Des | /blog/cara-jualan-pulsa-di-warung | ✅ terjadwal + sampul |
+| 6 Des | /blog/qasir-vs-kasir-pintar | ✅ terjadwal + sampul |
+| 8 Des | /alat/kalkulator-laba-warung | ✅ terjadwal (releaseAt) |
+| 9 Des | /blog/pengganti-bukukas-dan-alternatif-bukuwarung | ✅ terjadwal + sampul |
+| 11 Des | /blog/cara-stok-opname-toko-kelontong | ✅ terjadwal + sampul |
+| 13 Des | /blog/apa-itu-ppob | ✅ terjadwal + sampul |
+| 15 Des | /aplikasi-kasir-grosir | ✅ terjadwal |
+| 16 Des | /blog/aplikasi-kasir-toko-sembako | ✅ terjadwal + sampul |
+| 18 Des | /blog/cara-menghitung-hpp-toko-kelontong | ✅ terjadwal + sampul |
+| 20 Des | /blog/barang-terlaris-warung-sembako | ✅ terjadwal + sampul |
+| 22 Des | /blog/cara-menagih-hutang-pelanggan | ✅ terjadwal + sampul |
+
+**Mesin konversi:**
+- Semua ajakan `/app/daftar?dari=<asal>`: `beranda-hero/mulai/harga-*/akhir`, `header`, `artikel-<slug>`,
+  `halaman-<slug>`, `alat-*`.
+- Web app menyimpan asal itu di `accounts.signup_source` (migrasi 0018).
+- Dashboard → Ringkasan menampilkan "Pendaftaran 30 hari terakhir per asal".
+
+**PWA:** ikon PNG 192/512/maskable ditambahkan, agar Chrome Android menawarkan "Instal aplikasi".
+
+**Tugas manual pemilik setiap Senin:**
+- Cek GSC: indeks & kueri baru.
+- Cek dashboard: pendaftaran per asal.
+- Uji pasang PWA di HP Android nyata.
