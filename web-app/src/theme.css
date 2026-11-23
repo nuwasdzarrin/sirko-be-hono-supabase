@@ -560,8 +560,8 @@
 .produk-ppob { padding-top: 4px; }
 
 /* ── Shift / Bill ──────────────────────────────────────────────────────── */
-.shift-page { display: grid; gap: 4px; }
-.shift-card { padding: 16px; display: grid; gap: 10px; justify-items: start; }
+.shift-page { display: grid; gap: 4px; align-content: start; }
+.shift-card { padding: 16px; display: grid; gap: 10px; justify-items: start; align-content: start; }
 .shift-card p { margin: 0; }
 .shift-card .paysum { width: 100%; }
 .shift-card.open .m-card-head { color: var(--m-green); }
@@ -572,8 +572,7 @@
   .ppob-panel { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 @media (min-width: 861px) {
-  .shift-page { max-width: 720px; }
-  .ppob-panel { padding: 12px 0; max-width: 720px; }
+  .ppob-panel { padding: 12px 0; }
   .content:has(> .split) > .seg.ptabs { max-width: 440px; }
 }
 
@@ -642,10 +641,28 @@
   .cat-fab { position: fixed; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 @media (min-width: 861px) {
-  .katalog { max-width: 820px; }
-  .cat-fab { position: sticky; bottom: 16px; float: right; margin: 16px; }
+  .cat-fab { position: fixed; right: 32px; bottom: 32px; }
   .page-actions { margin-top: -8px; }
 }
 
 /* Tab: tanpa bingkai fokus saat diklik; tetap terlihat untuk navigasi keyboard. */
 .m-tabs button:focus:not(:focus-visible), .seg button:focus:not(:focus-visible) { outline: none; }
+
+/* Desktop: halaman tunggal (Katalog Umum, Usulan Saya, Shift / Bill, Produk → PPOB) = satu panel
+   putih selebar area konten — tidak lagi dibatasi lebar sehingga separuh layar kosong. */
+@media (min-width: 861px) {
+  .katalog, .shift-page, .produk-ppob {
+    max-width: none; background: #fff; border-radius: 16px; box-shadow: var(--m-elev1);
+    min-height: calc(100vh - 112px); padding: 8px 0 24px;
+  }
+  .katalog .m-tabs, .katalog .seg.tabs { background: transparent; }
+  .katalog .m-toolbar { padding-left: 16px; padding-right: 16px; }
+  .katalog .page-actions { margin-top: 0; padding: 0 12px; }
+  .katalog .m-list .m-row, .shift-page .m-list .m-row { padding-left: 24px; padding-right: 24px; }
+  .katalog .info-strip { padding-left: 24px; padding-right: 24px; }
+  .shift-page { padding: 16px 0 24px; }
+  .shift-page > .m-card, .shift-page > .m-section { margin-left: 24px; margin-right: 24px; }
+  .shift-page > .m-section { padding-left: 0; }
+  .shift-page .m-caption { padding-left: 24px; }
+  .produk-ppob { padding: 8px 24px 24px; }
+}
