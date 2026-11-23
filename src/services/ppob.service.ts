@@ -401,8 +401,13 @@ export async function createOrder(
     // Token listrik: dibeli MANUAL oleh admin → tak memanggil Digiflazz untuk pembelian.
     const meter = normalizeMeter(input.customerNo);
     if (!meter) throw validation('Nomor meter / ID pelanggan PLN harus 11–12 digit.');
+    // Nomor HP (08…) yang kebetulan 11–12 digit bukan nomor meter → tolak sebelum Poin terpotong.
+    if (/^08/.test(meter)) throw validation('Itu nomor HP, bukan nomor meter PLN. Isi nomor meter / ID pelanggan yang tertera di meteran.');
     target = meter;
     const cached = await sql<{ ok: boolean; name: string | null }[]>`SELECT ok, name FROM ppob_pln_cache WHERE meter_no = ${meter}`;
+    // Cache hanya berisi hasil definitif → nomor yang PLN nyatakan tak dikenal tak boleh dibelikan
+    // (token dibeli manual oleh admin; nomor salah = token tak bisa dikirim & harus refund).
+    if (cached[0] && !cached[0].ok) throw validation(PLN_NOT_FOUND_MSG);
     plnName = cached[0]?.ok ? cached[0].name : null;
   } else {
     if (p.provider !== 'digiflazz' || !['pulsa', 'data'].includes(p.category as string)) {

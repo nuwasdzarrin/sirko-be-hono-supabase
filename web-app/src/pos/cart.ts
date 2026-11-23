@@ -76,8 +76,8 @@ export function addProduct(p: Row, tiers: WholesaleTier[], variant?: Row): AddRe
 }
 
 /** Tambah item PPOB: `clientRef` dibuat sekali & dipakai ulang sampai order final. Harga = sellPrice server. */
-export function addPpob(product: PpobProduct, customerNo: string) {
-  const ppob: PpobLine = { clientRef: crypto.randomUUID(), productId: product.id, category: product.category, productName: product.name, customerNo, cost: product.price };
+export function addPpob(product: PpobProduct, customerNo: string, plnName?: string | null) {
+  const ppob: PpobLine = { clientRef: crypto.randomUUID(), productId: product.id, category: product.category, productName: product.name, customerNo, cost: product.price, ...(plnName ? { plnName } : {}) };
   update((c) => {
     c.lines.push({ productId: '', variantId: null, nameSnapshot: receiptName(ppob), unitPrice: product.sellPrice, wholesaleTiers: [], costPriceSnapshot: product.price, qty: 1, discountType: 'nominal', discountValue: 0, availableStock: 0, unitName: null, ppob });
   });

@@ -129,6 +129,24 @@ suite('PPOB tahap 3 — token listrik manual', () => {
     await sql`DELETE FROM ppob_pln_cache WHERE meter_no = '99999999999'`;
   });
 
+  it('order token ke nomor meter yang PLN nyatakan tak dikenal → ditolak (Poin tidak terpotong)', async () => {
+    const wrong = '98765432109';
+    await sql`INSERT INTO ppob_pln_cache (meter_no, ok, name, segment_power, message, checked_at)
+              VALUES (${wrong}, false, null, null, 'Nomor meter tidak dikenali PLN — periksa lagi nomornya.', ${Date.now()})
+              ON CONFLICT (meter_no) DO UPDATE SET ok = false, checked_at = EXCLUDED.checked_at`;
+    const before = await balance();
+    const r = await buy(wrong, 'pembeli@contoh.id');
+    expect(r.status).toBe(422);
+    expect(r.json.error.message).toMatch(/tidak dikenali PLN/);
+    expect(await balance()).toBe(before);
+    await sql`DELETE FROM ppob_pln_cache WHERE meter_no = ${wrong}`;
+    // Nomor HP 12 digit (lolos panjang 11–12) tetap ditolak sebagai nomor meter.
+    const phone = await buy('081234567890', 'pembeli@contoh.id');
+    expect(phone.status).toBe(422);
+    expect(phone.json.error.message).toMatch(/nomor HP, bukan nomor meter/);
+    expect(await balance()).toBe(before);
+  });
+
   it('cek meter: salah konfigurasi (RC 41) → pesan ramah, tak di-cache, admin diberi tahu; gangguan sementara tak di-cache', async () => {
     const before = dfCalls.length;
     const n0 = notices.length;

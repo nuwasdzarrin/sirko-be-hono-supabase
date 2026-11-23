@@ -18,7 +18,44 @@ export interface PpobStatus {
   points: { available: boolean; balance: number; reason: string | null; canTopup: boolean; minTopup: number; maxTopup: number };
 }
 
-export async function ppobStatus(): Promise<PpobStatus> {
+// Status dipakai bersama (chip Poin di app bar + panel PPOB Kasir): satu permintaan berjalan
+// dipakai bersama & hasil disimpan 15 dtk → tak lagi berkali-kali memanggil server tiap sinkron.
+let statusCache: { at: number; v: PpobStatus } | null = null;
+let statusInflight: Promise<PpobStatus> | null = null;
+const STATUS_TTL_MS = 15_000;
+
+export function ppobStatus(opts: { fresh?: boolean } = {}): Promise<PpobStatus> {
+  if (!opts.fresh && statusCache && Date.now() - statusCache.at < STATUS_TTL_MS) return Promise.resolve(statusCache.v);
+  if (statusInflight) return statusInflight;
+  statusInflight = fetchPpobStatus()
+    .then((v) => {
+      statusCache = { at: Date.now(), v };
+      return v;
+    })
+    .finally(() => {
+      statusInflight = null;
+    });
+  return statusInflight;
+}
+
+/** Saldo Poin berubah (beli/top-up) → status berikutnya diambil ulang dari server. */
+export const invalidatePpobStatus = () => void (statusCache = null);
+
+/** Nomor HP Indonesia → 08xxxxxxxxxx (sama dengan normalizePhone backend), atau null. */
+export function normalizePhone(raw: string): string | null {
+  let s = raw.replace(/[\s\-().]/g, '');
+  if (s.startsWith('+62')) s = '0' + s.slice(3);
+  else if (s.startsWith('62')) s = '0' + s.slice(2);
+  return /^08\d{8,11}$/.test(s) ? s : null;
+}
+
+/** Nomor meter / ID pelanggan PLN: 11–12 digit (sama dengan normalizeMeter backend), atau null. */
+export function normalizeMeter(raw: string): string | null {
+  const d = raw.replace(/[\s\-.]/g, '');
+  return /^\d{11,12}$/.test(d) ? d : null;
+}
+
+async function fetchPpobStatus(): Promise<PpobStatus> {
   const d = (await authed<Record<string, unknown>>('GET', '/v1/ppob/status', undefined, { timeoutMs: READ_MS })).data;
   const p = (d.points ?? {}) as Record<string, unknown>;
   return {
@@ -101,7 +138,11 @@ export const orderFromJson = (j: Record<string, unknown>): PpobOrder => ({
 });
 
 export async function createOrder(clientRef: string, productId: string, customerNo: string): Promise<PpobOrder> {
-  return orderFromJson((await authed<Record<string, unknown>>('POST', '/v1/ppob/orders', { clientRef, productId, customerNo }, { timeoutMs: ORDER_TIMEOUT_MS })).data);
+  try {
+    return orderFromJson((await authed<Record<string, unknown>>('POST', '/v1/ppob/orders', { clientRef, productId, customerNo }, { timeoutMs: ORDER_TIMEOUT_MS })).data);
+  } finally {
+    invalidatePpobStatus(); // saldo Poin bisa berubah
+  }
 }
 
 export async function getOrder(id: string): Promise<PpobOrder> {

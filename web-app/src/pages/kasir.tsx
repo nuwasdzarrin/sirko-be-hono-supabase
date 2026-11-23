@@ -4,7 +4,7 @@ import { createLive } from '../lib/live';
 import { uuid } from '../lib/crypto';
 import { activeStore, can, db, online, syncNow, user } from '../state';
 import { ApiError } from '../lib/api';
-import { CATEGORY_LABEL, plnInquiry, ppobNoteTag, ppobProducts, ppobStatus, processLine, receiptName, type PpobCategory, type PpobOutcome, type PpobProduct } from '../cloud/ppob';
+import { CATEGORY_LABEL, listOrders, normalizeMeter, normalizePhone, plnInquiry, ppobNoteTag, ppobProducts, ppobStatus, processLine, receiptName, type PpobCategory, type PpobOutcome, type PpobProduct } from '../cloud/ppob';
 import type { CartLine } from '../pos/calc';
 import {
   addPpob, addProduct, bindCart, cart, clearCart, lineKey, removeLine, replaceLines, restoreCart, setCustomer, setLineDiscount, setNote,
@@ -233,7 +233,7 @@ export function KasirPage() {
             <button class={tab() === 'ppob' ? 'on' : ''} onClick={() => setTab('ppob')}>PPOB</button>
           </div>
         </Show>
-        <Show when={tab() === 'fisik'} fallback={<PpobPanel onAdded={() => say('Item PPOB ditambahkan ke keranjang.')} />}>
+        <Show when={tab() === 'fisik'} fallback={<PpobPanel onAdded={(m) => say(m)} />}>
         <div class="pos-bar">
           <input
             ref={searchEl}
@@ -686,46 +686,129 @@ function DoneDialog(props: { result: CommitResult | null; receipt: ReceiptData |
   );
 }
 
-const digits = (s: string) => s.replace(/[^0-9]/g, '');
 
 /** Panel jual PPOB (PpobSellPanel): kategori → nomor (PLN: cek nama) → pilih produk → masuk keranjang. */
-function PpobPanel(props: { onAdded: () => void }) {
+/**
+ * Tab PPOB di Kasir (PpobSellPanel aplikasi): pilih kategori → isi nomor → ketuk nominal → masuk
+ * keranjang (dibeli saat Bayar). Nomor HP (pulsa/data) & nomor meter (token) disimpan terpisah agar
+ * pindah kategori tak membawa nomor yang salah jenis. Nominal hanya bisa ditambahkan bila nomor
+ * tujuan valid; token listrik dicek dulu ke PLN.
+ */
+function PpobPanel(props: { onAdded: (msg: string) => void }) {
   const [cat, setCat] = createSignal<PpobCategory>('pulsa');
-  const [no, setNo] = createSignal('');
-  const [error, setError] = createSignal('');
-  const [pln, setPln] = createSignal<{ name: string | null; segmentPower: string | null } | null>(null);
+  const [phone, setPhone] = createSignal('');
+  const [meter, setMeter] = createSignal('');
+  const isPln = () => cat() === 'pln';
+  const no = () => (isPln() ? meter() : phone());
+  const setNo = (v: string) => (isPln() ? setMeter(v) : setPhone(v));
+  const [hint, setHint] = createSignal<{ text: string; kind: 'err' | 'warn' } | null>(null);
+  const [pln, setPln] = createSignal<{ meter: string; name: string | null; segmentPower: string | null } | null>(null);
+  const [checking, setChecking] = createSignal(false);
+  let inputEl: HTMLInputElement | undefined;
+
   const [status, { refetch: retry }] = createResource(
     () => online(),
-    () =>
-      ppobStatus().catch((e) => {
-        setError(e instanceof ApiError ? e.message : 'PPOB butuh internet.');
-        return null;
-      }),
+    () => ppobStatus().catch((e) => {
+      setHint({ text: e instanceof ApiError ? e.message : 'PPOB butuh internet.', kind: 'err' });
+      return null;
+    }),
   );
-  const [products, { refetch }] = createResource(
-    () => (status()?.enabled && digits(no()).length >= (cat() === 'pln' ? 6 : 8) ? { c: cat(), n: digits(no()) } : null),
-    ({ c, n }) =>
-      ppobProducts(c, c === 'pln' ? undefined : n).catch((e) => {
-        setError(e instanceof ApiError ? e.message : 'Gagal memuat produk.');
-        return [] as PpobProduct[];
-      }),
-  );
+  // Saring sesuai operator hanya bila nomor HP sudah valid (jeda 500 ms agar tak memanggil server
+  // tiap ketikan); selain itu tampilkan semua nominal, seperti aplikasi.
+  const [filterNo, setFilterNo] = createSignal<string | null>(null);
+  let debounce: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const v = isPln() ? null : normalizePhone(phone());
+    clearTimeout(debounce);
+    debounce = setTimeout(() => setFilterNo(v), 500);
+  });
+  onCleanup(() => clearTimeout(debounce));
   const catStatus = () => status()?.categories.find((c) => c.key === cat());
-  const checkPln = async () => {
-    setError('');
+  const [products, { refetch }] = createResource(
+    () => (status()?.enabled && catStatus()?.available !== false ? { c: cat(), n: isPln() ? null : filterNo() } : null),
+    async ({ c, n }) => ({ list: await ppobProducts(c, n ?? undefined), error: '' }),
+  );
+  const list = () => (products.error ? [] : products()?.list ?? []);
+  const loadError = () => (products.error ? (products.error instanceof ApiError ? products.error.message : 'Gagal memuat produk.') : '');
+  const balance = () => status()?.points.balance ?? 0;
+
+  const pickCat = (c: PpobCategory) => {
+    setCat(c);
+    setHint(null);
+  };
+  const validNo = () => (isPln() ? normalizeMeter(meter()) : normalizePhone(phone()));
+
+  const checkPln = async (m: string) => {
+    setChecking(true);
     try {
-      const r = await plnInquiry(digits(no()));
-      if (!r.ok) setError(r.message ?? 'Nomor meter tidak ditemukan.');
-      setPln(r.ok ? { name: r.name, segmentPower: r.segmentPower } : null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Gagal cek nomor meter.');
+      const r = await plnInquiry(m);
+      setPln({ meter: m, name: r.ok ? r.name : null, segmentPower: r.ok ? r.segmentPower : null });
+      return r;
+    } finally {
+      setChecking(false);
     }
   };
-  const pick = (p: PpobProduct) => {
-    if (!p.available) return;
-    addPpob(p, digits(no()));
-    props.onAdded();
+  const onCheck = async () => {
+    const m = normalizeMeter(meter());
+    if (!m) return setHint({ text: 'Nomor meter / ID pelanggan PLN harus 11–12 digit.', kind: 'err' });
+    setHint(null);
+    try {
+      const r = await checkPln(m);
+      if (!r.ok) setHint({ text: r.message ?? 'Nomor meter tidak ditemukan.', kind: 'err' });
+    } catch (e) {
+      setHint({ text: e instanceof ApiError ? e.message : 'Gagal cek nomor meter.', kind: 'err' });
+    }
   };
+
+  const pick = async (p: PpobProduct) => {
+    if (!p.available) return;
+    setHint(null);
+    const target = validNo();
+    if (!target) {
+      setHint({ text: isPln() ? 'Isi nomor meter / ID pelanggan PLN (11–12 digit) dulu.' : 'Isi nomor HP tujuan dulu (contoh 0812…).', kind: 'err' });
+      inputEl?.focus();
+      return;
+    }
+    if (isPln() && /^08/.test(target)) {
+      setHint({ text: 'Itu nomor HP, bukan nomor meter PLN. Isi nomor meter / ID pelanggan yang tertera di meteran.', kind: 'err' });
+      inputEl?.focus();
+      return;
+    }
+    if (p.price > balance()) {
+      setHint({ text: `Poin kurang (modal ${rp(p.price)}). Top-up Poin dulu.`, kind: 'err' });
+      return;
+    }
+    if (cart.lines.some((l) => l.ppob && l.ppob.customerNo === target && l.ppob.category === p.category)) {
+      setHint({ text: `Nomor ${target} sudah ada di keranjang.`, kind: 'warn' });
+      return;
+    }
+    try {
+      const pending = (await listOrders()).items.find((o) => o.customerNo === target && ['pending', 'processing', 'waiting_admin'].includes(o.status));
+      if (pending) {
+        setHint({ text: 'Nomor ini masih diproses, cek Riwayat PPOB.', kind: 'warn' });
+        return;
+      }
+    } catch {
+      /* riwayat tak terbaca → lanjut; server tetap menjaga duplikasi */
+    }
+    let plnName: string | null = null;
+    if (isPln()) {
+      try {
+        const known = pln()?.meter === target ? pln() : null;
+        const r = known ? { ok: !!known.name, name: known.name, message: null as string | null } : await checkPln(target);
+        if (r.ok) plnName = r.name;
+        else if (/tidak dikenali|tidak ditemukan/i.test(r.message ?? '')) {
+          setHint({ text: r.message ?? 'Nomor meter tidak dikenali PLN.', kind: 'err' });
+          return;
+        } else if (!confirm(`${r.message ?? 'Nomor meter belum bisa dicek.'}\n\nPastikan nomor ${target} benar. Tetap tambahkan ke keranjang?`)) return;
+      } catch {
+        if (!confirm(`Nomor meter belum bisa dicek. Pastikan nomor ${target} benar. Tetap tambahkan ke keranjang?`)) return;
+      }
+    }
+    addPpob(p, target, plnName);
+    props.onAdded(`Masuk keranjang: ${p.name} → ${target}${plnName ? ` (${plnName})` : ''} (dibeli saat Bayar)`);
+  };
+
   const pnav = useNavigate();
   return (
     <div class="ppob-panel">
@@ -741,45 +824,64 @@ function PpobPanel(props: { onAdded: () => void }) {
       >
         <div class="ppob-head">
           <Icon name="bolt" size={18} />
-          <b>Saldo Poin {status()?.points ? rp(status()!.points.balance) : '…'}</b>
+          <b>Saldo Poin {status() ? rp(balance()) : '…'}</b>
           <span class="spacer" />
           <button type="button" class="btn text sm" onClick={() => pnav('/ppob/riwayat')}><Icon name="history" size={18} />Riwayat PPOB</button>
         </div>
-        <Show when={status() && !status()!.enabled}><div class="alert warn">PPOB belum aktif untuk toko ini.</div></Show>
+        <Show when={status() && !status()!.enabled}><div class="alert warn">PPOB belum aktif. Nanti pulsa, paket data & token listrik bisa dijual dari sini.</div></Show>
         <Show when={status()?.points.reason}><p class="small mut">{status()!.points.reason}</p></Show>
-        <div class="m-chiprow flush">
+        <div class="m-chiprow flush" role="tablist">
           <For each={['pulsa', 'data', 'pln'] as PpobCategory[]}>
-            {(c) => <button type="button" class={`chip ${cat() === c ? 'on' : ''}`} onClick={() => { setCat(c); setPln(null); setError(''); }}>{CATEGORY_LABEL[c]}</button>}
+            {(c) => <button type="button" role="tab" aria-selected={cat() === c} class={`chip ${cat() === c ? 'on' : ''}`} onClick={() => pickCat(c)}>{CATEGORY_LABEL[c]}</button>}
           </For>
         </div>
-        <Show when={catStatus() && !catStatus()!.available}><div class="alert warn small">{catStatus()!.reason ?? 'Kategori ini sedang tidak tersedia.'}</div></Show>
         <div class="field ppob-no">
-          <label for="ppob-no">{cat() === 'pln' ? 'Nomor meter / ID pelanggan' : 'Nomor HP'}</label>
+          <label for="ppob-no">{isPln() ? 'Nomor meter / ID pelanggan' : 'Nomor HP'}</label>
           <div class="with-action">
-            <input id="ppob-no" inputmode="numeric" autocomplete="off" value={no()} onInput={(e) => { setNo(e.currentTarget.value); setPln(null); }} />
-            <Show when={cat() === 'pln'}><button type="button" class="btn text" disabled={digits(no()).length < 6} onClick={() => void checkPln()}>Cek</button></Show>
+            <input
+              id="ppob-no"
+              ref={inputEl}
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder={isPln() ? '11–12 digit, tertera di meteran' : 'contoh 081234567890'}
+              value={no()}
+              onInput={(e) => { setNo(e.currentTarget.value.replace(/[^0-9+]/g, '')); setHint(null); if (isPln()) setPln(null); }}
+            />
+            <Show when={isPln()}><button type="button" class="btn text" disabled={checking() || !normalizeMeter(meter())} onClick={() => void onCheck()}>{checking() ? 'Mengecek…' : 'Cek'}</button></Show>
           </div>
         </div>
-        <Show when={pln()}><p class="ppob-name">Atas nama: <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p></Show>
-        <Show when={error()}><div class="alert err small">{error()}</div></Show>
-        <Show when={products.loading}><p class="mut small">Memuat produk…</p></Show>
-        <div class="ppob-list">
-          <For each={products() ?? []}>
-            {(p) => (
-              <button type="button" class={`m-card ppob-item ${p.available ? '' : 'off'}`} disabled={!p.available} onClick={() => pick(p)} title={p.description ?? ''}>
-                <span class="m-row-text">
-                  <span class="m-row-title">{p.name}</span>
-                  <span class="m-row-sub">{p.available ? `${p.brand}${can('viewCostProfit') ? ` · untung ${rp(p.margin)}` : ''}` : p.unavailableReason ?? 'Sedang tidak tersedia'}</span>
-                </span>
-                <b>{rp(p.sellPrice)}</b>
-              </button>
-            )}
-          </For>
-        </div>
-        <Show when={!products() && !products.loading}>
-          <p class="small mut">Masukkan nomor tujuan untuk melihat produk.</p>
+        <Show when={isPln() && pln()?.name && pln()!.meter === normalizeMeter(meter())}>
+          <p class="ppob-name">Atas nama: <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p>
         </Show>
-        <div class="ppob-refresh"><button type="button" class="btn text sm" onClick={() => void refetch()}>Muat ulang daftar</button></div>
+        <Show when={hint()}><div class={`alert ${hint()!.kind} small`} role="alert">{hint()!.text}</div></Show>
+        <Show
+          when={catStatus()?.available !== false}
+          fallback={<p class="small mut">{catStatus()?.reason ?? 'Belum tersedia.'}</p>}
+        >
+          <Show when={products.loading}><p class="mut small">Memuat produk…</p></Show>
+          <Show when={loadError()}>
+            <div class="alert err small">{loadError()} <button type="button" class="btn text sm" onClick={() => void refetch()}>Coba lagi</button></div>
+          </Show>
+          <Show when={!products.loading && !loadError() && products() && !list().length}><p class="small mut">Belum ada produk.</p></Show>
+          <div class="ppob-list">
+            <For each={list()}>
+              {(p) => {
+                const short = () => p.available && p.price > balance();
+                return (
+                  <button type="button" class={`m-card ppob-item ${p.available && !short() ? '' : 'off'}`} disabled={!p.available} onClick={() => void pick(p)} title={p.description ?? ''}>
+                    <span class="m-row-text">
+                      <span class="m-row-title">{p.name}</span>
+                      <span class="m-row-sub">
+                        {!p.available ? p.unavailableReason ?? 'Sedang tidak tersedia' : short() ? `Poin kurang (modal ${rp(p.price)})` : `${p.brand}${can('viewCostProfit') ? ` · untung ${rp(p.margin)}` : ''}`}
+                      </span>
+                    </span>
+                    <b>{rp(p.sellPrice)}</b>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
+        </Show>
       </Show>
     </div>
   );
