@@ -182,6 +182,61 @@ export async function stockIn(db: StoreDb, lines: Array<{ productId: string; qty
   });
 }
 
+/**
+ * Sesi Stok Masuk (StockInRepository aplikasi): barang lama → stok bertambah; barang baru (dari
+ * Katalog Umum atau diisi manual) → produk dibuat dengan stok = qty. Kategori & satuan dicocokkan
+ * by nama persis, dibuat bila belum ada. Harga jual 0 → "perlu harga".
+ */
+export type StockInLine =
+  | { kind: 'existing'; productId: string; qty: number }
+  | { kind: 'new'; name: string; barcode: string | null; categoryName: string | null; unitName: string | null; costPrice: number; sellingPrice: number; qty: number };
+
+export async function stockInSession(db: StoreDb, lines: StockInLine[]): Promise<{ created: number; updated: number; totalQty: number }> {
+  return txn(db, ['products', 'stock_logs', 'categories', 'units'], async () => {
+    const now = Date.now();
+    let created = 0;
+    let updated = 0;
+    let totalQty = 0;
+    const cats = new Map<string, string>();
+    const units = new Map<string, string>();
+    const findOrCreate = async (table: 'categories' | 'units', name: string | null, cache: Map<string, string>) => {
+      const n = name?.trim();
+      if (!n) return null;
+      if (cache.has(n)) return cache.get(n)!;
+      const hit = (await db.t(table).toArray()).find((r) => live(r) && String(r.name) === n);
+      const id = hit ? hit.id : await (async () => {
+        const r = fresh(now, table === 'categories' ? { name: n, color: null, sortOrder: 0 } : { name: n, isBaseUnit: false });
+        await db.t(table).put(r);
+        return r.id;
+      })();
+      cache.set(n, id);
+      return id;
+    };
+    for (const l of lines) {
+      if (l.qty <= 0) continue;
+      totalQty += l.qty;
+      if (l.kind === 'existing') {
+        const p = await db.t('products').get(l.productId);
+        if (!p) continue;
+        const after = Number(p.stock ?? 0) + l.qty;
+        await db.t('products').update(p.id, touch(now, { stock: after }));
+        await db.t('stock_logs').put(logRow(now, { productId: p.id, type: 'in', qtyChange: l.qty, stockAfter: after, refType: 'stock_in' }));
+        updated++;
+      } else {
+        const p = fresh(now, {
+          name: l.name.trim(), barcode: blank(l.barcode), categoryId: await findOrCreate('categories', l.categoryName, cats), unitId: await findOrCreate('units', l.unitName, units),
+          costPrice: l.costPrice, sellingPrice: l.sellingPrice, stock: l.qty, minStock: null, expiryDate: null,
+          imagePath: null, hasVariants: false, isActive: true, needsPrice: l.sellingPrice <= 0,
+        });
+        await db.t('products').put(p);
+        await db.t('stock_logs').put(logRow(now, { productId: p.id, type: 'in', qtyChange: l.qty, stockAfter: l.qty, refType: 'stock_in' }));
+        created++;
+      }
+    }
+    return { created, updated, totalQty };
+  });
+}
+
 // ── Kategori & satuan ────────────────────────────────────────────────────────
 
 export async function saveCategory(db: StoreDb, c: { id?: string; name: string; sortOrder?: number }): Promise<string> {
