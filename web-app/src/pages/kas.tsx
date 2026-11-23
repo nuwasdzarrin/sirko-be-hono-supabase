@@ -9,7 +9,6 @@ import { makeRange, walletCashFlow, type DateRange } from '../finance/report';
 import { createWallet, deleteWallet, deposit, renameWallet, transfer, WALLET_TYPE_LABEL, withdraw, type WalletType } from '../finance/wallets';
 import { fmtDateTime } from '../pos/receipt';
 import { RangeBar } from './laporan';
-import { isMobile } from '../lib/media';
 import { Icon } from '../ui/icon';
 import { Modal, MoneyInput, Toast } from './ui';
 
@@ -44,11 +43,10 @@ export function KasPage() {
         </div>
         <p class="mut small">Total saldo semua dompet: <b>{rp(total())}</b>. Penjualan tunai otomatis masuk ke dompet kas utama.</p>
         <RangeBar range={range()} onChange={setRange} />
-        <Show when={isMobile()}>
-          <div class="m-list">
+        <div class="m-list">
             <For each={flows() ?? []} fallback={<div class="m-empty"><Icon name="wallet" size={48} /><b>Belum ada dompet</b></div>}>
               {(f) => (
-                <button class="m-row" onClick={() => nav(`/kas/${f.walletId}`)}>
+                <button class="m-row" classList={{ sel: params.id === f.walletId }} onClick={() => nav(`/kas/${f.walletId}`)}>
                   <span class="m-avatar"><Icon name="wallet" /></span>
                   <span class="m-row-text">
                     <span class="m-row-title">{f.name}</span>
@@ -60,26 +58,6 @@ export function KasPage() {
             </For>
           </div>
           <Show when={manage()}><button class="m-fab" onClick={() => setDlg({ kind: 'new' })}><Icon name="add" />Dompet</button></Show>
-        </Show>
-        <div class="card flush d-only">
-          <table class="list hover">
-            <thead><tr><th>Dompet</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Transfer ±</th><th class="num">Bersih</th><th class="num">Saldo</th></tr></thead>
-            <tbody>
-              <For each={flows() ?? []} fallback={<tr><td colspan="6" class="mut">Belum ada dompet.</td></tr>}>
-                {(f) => (
-                  <tr class={params.id === f.walletId ? 'sel' : ''} onClick={() => nav(`/kas/${f.walletId}`)}>
-                    <td>{f.name}<div class="small mut">{WALLET_TYPE_LABEL[f.type as WalletType] ?? f.type}</div></td>
-                    <td class="num">{rp(f.totalIn)}</td>
-                    <td class="num">{rp(f.totalOut)}</td>
-                    <td class="num">{f.transferIn - f.transferOut ? `${f.transferIn - f.transferOut > 0 ? '+' : ''}${rp(f.transferIn - f.transferOut)}` : '—'}</td>
-                    <td class={`num ${f.net < 0 ? 'bad-t' : ''}`}>{rp(f.net)}</td>
-                    <td class="num"><b>{rp(f.balance)}</b></td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
       </section>
       <Show when={sel()} keyed fallback={<aside class="split-detail mut empty">Pilih dompet untuk melihat mutasi.</aside>}>
         {(w) => <WalletDetail w={w} manage={manage()} onAct={(mode) => setDlg({ kind: 'move', w, mode })} onEdit={() => setDlg({ kind: 'edit', w })} onClose={() => nav('/kas')} />}

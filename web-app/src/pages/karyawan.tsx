@@ -6,7 +6,6 @@ import { decodePermissions, PERMISSION_LABEL, PERMISSIONS, ROLE_DEFAULTS, type P
 import { PosError } from '../pos/repo';
 import { deleteUser, MIN_PIN, saveUser, type UserInput } from '../manage/repo';
 import { Modal, Toast } from './ui';
-import { isMobile } from '../lib/media';
 
 /** Karyawan & PIN (sama dengan Users page HP): tambah butuh Paket Juragan + izin addUser. */
 
@@ -36,8 +35,7 @@ export function KaryawanPage() {
         <div class="alert warn" style={{ 'margin-top': '12px' }}>Akun karyawan (masuk dengan PIN) adalah fitur <b>Paket Juragan</b>. Langganan lewat aplikasi Sirko di HP (menu Langganan).</div>
       </Show>
       <p class="mut small">Karyawan masuk di komputer ini lewat tombol "Ganti pengguna" lalu memilih nama & mengetik PIN.</p>
-      <Show when={isMobile()}>
-        <div class="m-list">
+      <div class="m-list">
           <For each={users()}>
             {(u) => (
               <button class="m-row" onClick={() => can('userService') && setEdit(u)}>
@@ -51,24 +49,6 @@ export function KaryawanPage() {
             )}
           </For>
         </div>
-      </Show>
-      <div class="card flush d-only">
-        <table class="list hover">
-          <thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Status</th></tr></thead>
-          <tbody>
-            <For each={users()} fallback={<tr><td colspan="4" class="mut">Belum ada karyawan.</td></tr>}>
-              {(u) => (
-                <tr onClick={() => can('userService') && setEdit(u)}>
-                  <td>{String(u.name)}{u.id === user()?.id ? <span class="mut small"> (Anda)</span> : ''}</td>
-                  <td>{String(u.username ?? '')}</td>
-                  <td>{ROLE_LABEL[String(u.role)] ?? String(u.role)}</td>
-                  <td><span class={`badge ${u.isActive === false ? 'off' : ''}`}>{u.isActive === false ? 'Nonaktif' : 'Aktif'}</span></td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
-      </div>
       <Show when={edit()} keyed>
         {(u) => <UserForm user={u === 'new' ? null : u} onClose={() => setEdit(null)} onSaved={(m) => { setEdit(null); say(m); void syncNow(); }} />}
       </Show>

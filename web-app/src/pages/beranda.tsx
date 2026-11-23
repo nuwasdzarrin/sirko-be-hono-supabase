@@ -3,14 +3,14 @@ import { useNavigate } from '@solidjs/router';
 import { Icon, type IconName } from '../ui/icon';
 import { buildReport, makeRange, type Preset, type ReportBundle } from '../finance/report';
 import { createLive } from '../lib/live';
-import type { Permission } from '../lib/permissions';
 import type { Row } from '../db/db';
 import { num, rp } from '../pos/calc';
 import { can, db, sync, user } from '../state';
 
 /**
- * Beranda tampilan HP — sama dengan DashboardPage aplikasi: Pintasan, Stok menipis,
- * DateRangeBar, kartu metrik 2 kolom, grafik Omzet Harian & Produk Terlaris, Ringkasan Transaksi.
+ * Beranda (HP & desktop) — sama dengan DashboardPage aplikasi: Pintasan (HP saja; di desktop
+ * menunya sudah ada di sidebar), Stok menipis, rentang tanggal, kartu metrik (+ Saldo Kas), grafik
+ * Omzet Harian & Produk Terlaris, Ringkasan Transaksi.
  */
 
 interface Shortcut {
@@ -196,7 +196,7 @@ function TopProducts(props: { items: ReportBundle['productsSold'] }) {
   );
 }
 
-export function MobileHome() {
+export function Beranda() {
   const [preset, setPreset] = createSignal<Preset>('today');
   const [custom, setCustom] = createSignal({ start: new Date(), end: new Date() });
   const range = () => (preset() === 'custom' ? makeRange('custom', new Date(), custom()) : makeRange(preset()));
@@ -209,6 +209,9 @@ export function MobileHome() {
     return r.days <= 1 ? dmy(r.from) : `${dmy(r.from)} – ${dmy(r.to - 86_400_000)}`;
   };
   const seeProfit = () => can('viewCostProfit');
+  // Saldo Kas = total saldo semua dompet (dihitung dari ledger, sama dengan halaman Kas).
+  const wallets = createLive(db, async (d) => (await d.t('wallets').toArray()).filter((w) => w.deletedAt == null), [] as Row[]);
+  const cash = () => wallets().reduce((s, w) => s + Number(w.balance ?? 0), 0);
   return (
     <div class="m-home">
       <Pintasan />
@@ -239,11 +242,20 @@ export function MobileHome() {
                 </Show>
                 <Metric icon="inventory2" label="Item terjual" value={num(r().sales.itemCount)} sub={`Rata-rata ${rp(r().sales.averageTicket)}/nota`} color="var(--m-primary)" />
                 <Metric icon="schedule" label="Piutang (kredit)" value={rp(r().status.outstanding)} sub={`${r().status.creditCount + r().status.partialCount} nota`} color="var(--m-error)" />
+                <Show when={can('walletView')}>
+                  <Metric icon="wallet" label="Saldo Kas" value={rp(cash())} sub={`${wallets().length} dompet · saat ini`} color="var(--m-primary)" />
+                </Show>
               </div>
-              <h2 class="m-section">Omzet Harian</h2>
-              <div class="m-chart-wrap"><RevenueChart daily={r().daily} /></div>
-              <h2 class="m-section">Produk Terlaris</h2>
-              <div class="m-chart-wrap"><TopProducts items={r().productsSold} /></div>
+              <div class="m-charts">
+                <section class="m-panel">
+                  <h2 class="m-section">Omzet Harian</h2>
+                  <div class="m-chart-wrap"><RevenueChart daily={r().daily} /></div>
+                </section>
+                <section class="m-panel">
+                  <h2 class="m-section">Produk Terlaris</h2>
+                  <div class="m-chart-wrap m-bars"><TopProducts items={r().productsSold} /></div>
+                </section>
+              </div>
               <h2 class="m-section">Ringkasan Transaksi</h2>
               <div class="m-card m-summary">
                 <div class="m-kv"><span class="m-dot" style={{ background: '#43a047' }} />Lunas ({r().status.paidCount})<b>{rp(r().status.paidTotal)}</b></div>

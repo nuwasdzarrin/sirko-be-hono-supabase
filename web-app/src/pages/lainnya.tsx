@@ -1,34 +1,14 @@
 import { For, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { Icon, type IconName } from '../ui/icon';
-import type { Permission } from '../lib/permissions';
+import { allowed, MORE, OWNER } from '../ui/nav';
 import { can, hasFeature, lockToUserPicker, session, user } from '../state';
 import { confirmLogout } from './shell';
 
 /**
- * Halaman "Lainnya" — sama dengan MorePage aplikasi HP: kartu pengguna, kartu pemilik (Paket
- * Juragan, Poin Sirko, Toko Saya), grid menu 3 kolom, bantuan, tombol Keluar, logo.
- * Item yang belum ada di web (Katalog Umum, Shift/Bill terpisah) tidak ditampilkan.
+ * Halaman "Lainnya" (HP) — sama dengan MorePage aplikasi: kartu pengguna, kartu pemilik, grid menu
+ * 3 kolom, bantuan, Keluar, logo. Menu dari ui/nav.ts (sumber yang sama dengan sidebar desktop).
  */
-interface Item {
-  path: string;
-  label: string;
-  icon: IconName;
-  perm?: Permission;
-}
-
-const GRID: Item[] = [
-  { path: '/transaksi', label: 'Riwayat Transaksi', icon: 'receiptLong', perm: 'transactionList' },
-  { path: '/pelanggan', label: 'Pelanggan', icon: 'peopleAlt', perm: 'customerManagement' },
-  { path: '/kas', label: 'Kas / Wallet', icon: 'wallet', perm: 'walletView' },
-  { path: '/pembelian/supplier', label: 'Supplier', icon: 'storefront', perm: 'productManagement' },
-  { path: '/pembelian', label: 'Pembelian', icon: 'localShipping', perm: 'productManagement' },
-  { path: '/pembelian/opname', label: 'Stok Opname', icon: 'factCheck', perm: 'productManagement' },
-  { path: '/karyawan', label: 'Karyawan', icon: 'manageAccounts', perm: 'userService' },
-  { path: '/data', label: 'Sinkronisasi', icon: 'cloudSync', perm: 'settingCompany' },
-  { path: '/pengaturan', label: 'Pengaturan', icon: 'settings', perm: 'settingCompany' },
-];
-
 function CardTile(props: { href: string; icon: IconName; title: string; sub: string; external?: boolean }) {
   return (
     <Show
@@ -61,19 +41,19 @@ export function LainnyaPage() {
         <span class="m-avatar">{(u()?.name ?? '?').trim().charAt(0).toUpperCase()}</span>
         <span class="m-tile-text"><b>{u()?.name}</b><span>Masuk sebagai {owner() ? 'owner' : u()?.role}</span></span>
       </div>
-      <Show when={owner()}>
-        <CardTile
-          href="/langganan"
-          icon="workspacePremium"
-          title="Paket Juragan"
-          sub={juraganActive() ? 'Aktif — lihat atau perpanjang' : 'Multi-cabang, karyawan, laporan Excel/PDF, logo struk'}
-        />
-        <CardTile href="/ppob/poin" icon="bolt" title="Poin Sirko" sub="Saldo, top-up & mutasi Poin untuk PPOB" />
-        <CardTile href="/toko" icon="storefront" title="Toko Saya" sub="Pindah toko, tambah cabang, laporan gabungan" />
-      </Show>
+      <For each={OWNER.filter((i) => allowed(i, can, owner()))}>
+        {(i) => (
+          <CardTile
+            href={i.path}
+            icon={i.icon}
+            title={i.label}
+            sub={i.path === '/langganan' && juraganActive() ? 'Aktif — lihat atau perpanjang' : i.sub ?? ''}
+          />
+        )}
+      </For>
 
       <div class="m-grid">
-        <For each={GRID.filter((i) => !i.perm || can(i.perm))}>
+        <For each={MORE.filter((i) => allowed(i, can, owner()))}>
           {(i) => (
             <A class="m-grid-tile" href={i.path} end>
               <Icon name={i.icon} size={30} />

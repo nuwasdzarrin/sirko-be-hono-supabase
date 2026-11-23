@@ -2,6 +2,7 @@ import { render } from 'solid-js/web';
 import { Router, Route, Navigate } from '@solidjs/router';
 import { Show, type ParentProps } from 'solid-js';
 import './styles.css';
+import './theme.css';
 import './mobile.css';
 import { boot, ready, session, user } from './state';
 import { CreateStorePage, LoginPage, UserPickerPage } from './pages/auth';

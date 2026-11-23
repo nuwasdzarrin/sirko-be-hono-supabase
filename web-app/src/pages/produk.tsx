@@ -11,7 +11,6 @@ import {
 } from '../manage/repo';
 import { fmtDateTime } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
-import { isMobile } from '../lib/media';
 import { Icon } from '../ui/icon';
 
 const live = (r: Row) => r.deletedAt == null;
@@ -84,64 +83,7 @@ export function ProdukPage() {
   const FILTER_LABEL: Record<Filter, string> = { all: 'Semua', low: 'Stok menipis', expiry: 'Kedaluwarsa', price: 'Perlu harga', deleted: 'Recycle Bin' };
   return (
     <div class="split">
-      <Show when={isMobile()} fallback={
-      <section class="split-list">
-        <div class="row-btns">
-          <h1 style={{ margin: 0 }}>Produk & stok</h1>
-          <span class="spacer" />
-          <button class="btn sm" onClick={() => setDlg({ kind: 'cats' })}>Kategori</button>
-          <button class="btn sm" onClick={() => setDlg({ kind: 'units' })}>Satuan</button>
-          <button class="btn sm" onClick={() => setDlg({ kind: 'stockin' })}>Stok masuk</button>
-          <Show when={can('addProduct')}><button class="btn sm primary" onClick={() => nav('/produk/baru')}>+ Produk</button></Show>
-        </div>
-        <div class="filters">
-          <input class="pos-search" placeholder="Cari nama / barcode" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
-          <select class="sel" value={cat()} onChange={(e) => setCat(e.currentTarget.value)}>
-            <option value="">Semua kategori</option>
-            <For each={categories()}>{(c) => <option value={c.id}>{String(c.name)}</option>}</For>
-          </select>
-        </div>
-        <div class="chips" style={{ 'margin-bottom': '10px' }}>
-          <button class={`chip ${filter() === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>Semua</button>
-          <button class={`chip ${filter() === 'low' ? 'on' : ''}`} onClick={() => setFilter('low')}>Stok menipis ({counts().low})</button>
-          <button class={`chip ${filter() === 'expiry' ? 'on' : ''}`} onClick={() => setFilter('expiry')}>Kedaluwarsa ({counts().expiry})</button>
-          <button class={`chip ${filter() === 'price' ? 'on' : ''}`} onClick={() => setFilter('price')}>Perlu harga ({counts().price})</button>
-          <Show when={can('recycleBin')}><button class={`chip ${filter() === 'deleted' ? 'on' : ''}`} onClick={() => setFilter('deleted')}>Terhapus</button></Show>
-        </div>
-        <div class="card flush">
-          <table class="list hover">
-            <thead><tr><th>Produk</th><th>Kategori</th><th class="num">Harga jual</th><Show when={can('viewCostProfit')}><th class="num">Modal</th></Show><th class="num">Stok</th></tr></thead>
-            <tbody>
-              <For each={list().slice(0, 500)} fallback={<tr><td colspan="5" class="mut">Tidak ada produk.</td></tr>}>
-                {(p) => {
-                  const vs = () => varOf().get(p.id) ?? [];
-                  const ex = () => expiryStatus(p.expiryDate as number | null, Date.now());
-                  return (
-                    <tr class={params.id === p.id ? 'sel' : ''} onClick={() => nav(`/produk/${p.id}`)}>
-                      <td>
-                        {String(p.name)}
-                        <div class="small mut">
-                          {String(p.barcode ?? '')}{p.hasVariants === true ? ` · ${vs().length} varian` : ''}
-                          <Show when={p.needsPrice === true}> · <span class="badge warn">perlu harga</span></Show>
-                          <Show when={ex() === 'expired'}> · <span class="bad-t">kedaluwarsa</span></Show>
-                          <Show when={ex() === 'nearExpiry'}> · <span class="badge warn">hampir kedaluwarsa</span></Show>
-                        </div>
-                      </td>
-                      <td>{catName().get(String(p.categoryId)) ?? '—'}</td>
-                      <td class="num">{p.hasVariants === true && vs().length ? `mulai ${rp(Math.min(...vs().map((v) => Number(v.sellingPrice ?? 0))))}` : rp(Number(p.sellingPrice ?? 0))}</td>
-                      <Show when={can('viewCostProfit')}><td class="num">{p.hasVariants === true ? '—' : rp(Number(p.costPrice ?? 0))}</td></Show>
-                      <td class={`num ${isLow(p) ? 'bad-t' : ''}`}>{num(stockOf(p))}</td>
-                    </tr>
-                  );
-                }}
-              </For>
-            </tbody>
-          </table>
-        </div>
-        <Show when={list().length > 500}><p class="small mut">Menampilkan 500 dari {list().length}. Perjelas pencarian.</p></Show>
-      </section>
-      }>
-        {/* HP: ProductListScreen aplikasi (cari + Stok Masuk + Peringatan stok + ⋮, chip kategori, ProductTile, FAB) */}
+      {/* HP: ProductListScreen aplikasi (cari + Stok Masuk + Peringatan stok + ⋮, chip kategori, ProductTile, FAB) */}
         <section class="split-list">
           <div class="m-toolbar">
             <input class="pos-search" placeholder="Cari nama atau barcode…" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
@@ -190,7 +132,7 @@ export function ProdukPage() {
                 const ex = () => expiryStatus(p.expiryDate as number | null, Date.now());
                 const price = () => (p.hasVariants === true && vs().length ? `mulai ${rp(Math.min(...vs().map((v) => Number(v.sellingPrice ?? 0))))}` : rp(Number(p.sellingPrice ?? 0)));
                 return (
-                  <button class="m-row m-row3" onClick={() => nav(`/produk/${p.id}`)}>
+                  <button class="m-row m-row3" classList={{ sel: params.id === p.id }} onClick={() => nav(`/produk/${p.id}`)}>
                     <span class="m-avatar lg"><Icon name="inventory2" /></span>
                     <span class="m-row-text">
                       <span class="m-row-title">{String(p.name)}</span>
@@ -215,7 +157,6 @@ export function ProdukPage() {
             <button class="m-fab" onClick={() => nav('/produk/baru')}><Icon name="add" />Produk</button>
           </Show>
         </section>
-      </Show>
 
       <Show when={params.id} keyed fallback={<aside class="split-detail mut empty">Pilih produk untuk mengubah, atau tambah produk baru.</aside>}>
         {(pid) => (
