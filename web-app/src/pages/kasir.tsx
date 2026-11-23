@@ -732,7 +732,13 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
   const loadError = () => (products.error ? (products.error instanceof ApiError ? products.error.message : 'Gagal memuat produk.') : '');
   const balance = () => status()?.points.balance ?? 0;
 
+  // Ketukan nominal yang masih menunggu (cek meter / riwayat) dibatalkan bila kategori atau nomor
+  // berubah — hasil basi tak boleh muncul di tab lain atau menambah item ke keranjang.
+  let pickSeq = 0;
+  const [busyPick, setBusyPick] = createSignal(false);
   const pickCat = (c: PpobCategory) => {
+    pickSeq++;
+    setBusyPick(false);
     setCat(c);
     setHint(null);
   };
@@ -761,7 +767,7 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
   };
 
   const pick = async (p: PpobProduct) => {
-    if (!p.available) return;
+    if (!p.available || busyPick()) return;
     setHint(null);
     const target = validNo();
     if (!target) {
@@ -782,8 +788,21 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
       setHint({ text: `Nomor ${target} sudah ada di keranjang.`, kind: 'warn' });
       return;
     }
+    const seq = ++pickSeq;
+    const catAt = cat();
+    const stale = () => seq !== pickSeq || cat() !== catAt || validNo() !== target;
+    setBusyPick(true);
+    try {
+      await addChecked(p, target, stale);
+    } finally {
+      if (seq === pickSeq) setBusyPick(false);
+    }
+  };
+
+  const addChecked = async (p: PpobProduct, target: string, stale: () => boolean) => {
     try {
       const pending = (await listOrders()).items.find((o) => o.customerNo === target && ['pending', 'processing', 'waiting_admin'].includes(o.status));
+      if (stale()) return;
       if (pending) {
         setHint({ text: 'Nomor ini masih diproses, cek Riwayat PPOB.', kind: 'warn' });
         return;
@@ -796,15 +815,18 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
       try {
         const known = pln()?.meter === target ? pln() : null;
         const r = known ? { ok: !!known.name, name: known.name, message: null as string | null } : await checkPln(target);
+        if (stale()) return;
         if (r.ok) plnName = r.name;
         else if (/tidak dikenali|tidak ditemukan/i.test(r.message ?? '')) {
           setHint({ text: r.message ?? 'Nomor meter tidak dikenali PLN.', kind: 'err' });
           return;
         } else if (!confirm(`${r.message ?? 'Nomor meter belum bisa dicek.'}\n\nPastikan nomor ${target} benar. Tetap tambahkan ke keranjang?`)) return;
       } catch {
+        if (stale()) return;
         if (!confirm(`Nomor meter belum bisa dicek. Pastikan nomor ${target} benar. Tetap tambahkan ke keranjang?`)) return;
       }
     }
+    if (stale()) return;
     addPpob(p, target, plnName);
     props.onAdded(`Masuk keranjang: ${p.name} → ${target}${plnName ? ` (${plnName})` : ''} (dibeli saat Bayar)`);
   };
@@ -853,6 +875,7 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
         <Show when={isPln() && pln()?.name && pln()!.meter === normalizeMeter(meter())}>
           <p class="ppob-name">Atas nama: <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p>
         </Show>
+        <Show when={busyPick()}><p class="small mut">{isPln() ? 'Mengecek nomor meter ke PLN…' : 'Memeriksa…'}</p></Show>
         <Show when={hint()}><div class={`alert ${hint()!.kind} small`} role="alert">{hint()!.text}</div></Show>
         <Show
           when={catStatus()?.available !== false}
