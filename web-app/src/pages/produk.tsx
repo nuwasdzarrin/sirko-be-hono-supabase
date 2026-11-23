@@ -7,14 +7,17 @@ import { num, rp } from '../pos/calc';
 import { PosError } from '../pos/repo';
 import {
   adjustStock, barcodeOwner, createProduct, createVariant, deleteCategory, deleteProduct, deleteUnit, deleteVariant, deleteWholesale,
-  expiryStatus, restoreProduct, saveCategory, saveUnit, saveWholesale, stockIn, updateProduct, updateVariant,
+  expiryStatus, restoreProduct, saveCategory, saveUnit, saveWholesale, stockInSession, updateProduct, updateVariant, type StockInLine,
 } from '../manage/repo';
 import { fmtDateTime } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
 import { Icon } from '../ui/icon';
 import { ScanButton } from '../ui/scanner';
 import { PpobPricingPanel } from './ppob';
-import { user } from '../state';
+import { CatalogThumb } from './katalog';
+import { lookupBarcode, type CatalogItem } from '../cloud/catalog';
+import { findCachedByBarcode, upsertCatalog } from '../db/catalog';
+import { online, user } from '../state';
 
 const live = (r: Row) => r.deletedAt == null;
 const byName = (a: Row, b: Row) => String(a.name).localeCompare(String(b.name));
@@ -481,23 +484,82 @@ function AdjustDialog(props: { product: Row; variant?: Row; onClose: () => void;
   );
 }
 
+type InLine =
+  | { kind: 'existing'; key: string; p: Row; qty: number }
+  | { kind: 'new'; key: string; name: string; barcode: string | null; categoryName: string | null; unitName: string | null; costPrice: number; sellingPrice: number; qty: number; photoUrl: string | null };
+
+/**
+ * Stok Masuk (StockInScreen aplikasi): scan/ketik barcode → barang lama stok +1; barang baru dicari di
+ * Katalog Umum (online 3 dtk → cache) lalu dibuat otomatis (nama, kategori, satuan dari katalog);
+ * tak ada di katalog → isi nama & harga. Harga boleh dikosongkan & diisi nanti.
+ */
 function StockInDialog(props: { products: Row[]; onClose: () => void; say: (m: string) => void }) {
-  const [lines, setLines] = createSignal<Array<{ p: Row; qty: number }>>([]);
+  const [lines, setLines] = createSignal<InLine[]>([]);
   const [q, setQ] = createSignal('');
   const [error, setError] = createSignal('');
+  const [feedback, setFeedback] = createSignal('');
+  const [busy, setBusy] = createSignal(false);
+  const [prompt, setPrompt] = createSignal<{ code: string; name: string; cost: number; sell: number } | null>(null);
   const found = createMemo(() => {
     const s = q().trim().toLowerCase();
-    return s ? props.products.filter((p) => String(p.name).toLowerCase().includes(s) || String(p.barcode ?? '') === s).slice(0, 8) : [];
+    return s && !/^\d{6,}$/.test(s) ? props.products.filter((p) => String(p.name).toLowerCase().includes(s) || String(p.barcode ?? '') === s).slice(0, 8) : [];
   });
-  const add = (p: Row) => {
-    const ex = lines().find((l) => l.p.id === p.id);
-    setLines(ex ? lines().map((l) => (l.p.id === p.id ? { ...l, qty: l.qty + 1 } : l)) : [...lines(), { p, qty: 1 }]);
+  const bump = (match: (l: InLine) => boolean): boolean => {
+    const ex = lines().find(match);
+    if (!ex) return false;
+    setLines(lines().map((l) => (l === ex ? { ...l, qty: l.qty + 1 } : l)));
+    return true;
+  };
+  const addExisting = (p: Row) => {
+    const prev = lines().find((l) => l.kind === 'existing' && l.p.id === p.id);
+    const qty = (prev?.qty ?? 0) + 1;
+    if (!bump((l) => l.kind === 'existing' && l.p.id === p.id)) setLines([...lines(), { kind: 'existing', key: p.id, p, qty: 1 }]);
+    setFeedback(`${String(p.name)}: stok ${num(Number(p.stock ?? 0))} → ${num(Number(p.stock ?? 0) + qty)}`);
     setQ('');
   };
+  const addNew = (l: Omit<Extract<InLine, { kind: 'new' }>, 'kind' | 'key' | 'qty'>, msg: string) => {
+    setLines([...lines(), { kind: 'new', key: crypto.randomUUID(), qty: 1, ...l }]);
+    setFeedback(msg);
+    setQ('');
+  };
+  /** Urutan sama dengan aplikasi: produk toko → katalog online (3 dtk) → cache → isi manual. */
+  const resolve = async (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+    setError('');
+    const own = props.products.find((p) => String(p.barcode ?? '') === code);
+    if (own) return addExisting(own);
+    if (bump((l) => l.kind === 'new' && l.barcode === code)) {
+      setFeedback(`Barcode ${code}: jumlah ditambah`);
+      return setQ('');
+    }
+    setBusy(true);
+    let hit: CatalogItem | null = null;
+    if (online()) {
+      try {
+        hit = await lookupBarcode(code, 3_000);
+        if (hit) await upsertCatalog([hit]);
+      } catch {
+        hit = null; // gagal / lewat 3 dtk → coba cache
+      }
+    }
+    if (!hit) hit = await findCachedByBarcode(code);
+    setBusy(false);
+    if (hit) {
+      return addNew(
+        { name: hit.name, barcode: code, categoryName: hit.category, unitName: hit.netUnit ?? hit.defaultUnit, costPrice: 0, sellingPrice: 0, photoUrl: hit.photoUrl },
+        `Baru dari katalog: ${hit.name} ×1 — isi harga`,
+      );
+    }
+    setPrompt({ code, name: '', cost: 0, sell: 0 });
+  };
+  const setLine = (key: string, patch: Record<string, unknown>) => setLines(lines().map((l) => (l.key === key ? ({ ...l, ...patch } as InLine) : l)));
   const save = async () => {
     try {
-      const r = await stockIn(db()!, lines().map((l) => ({ productId: l.p.id, qty: l.qty })));
-      props.say(`Stok masuk tersimpan: ${r.updated} produk, ${num(r.totalQty)} item.`);
+      const r = await stockInSession(db()!, lines().map((l): StockInLine => (l.kind === 'existing'
+        ? { kind: 'existing', productId: l.p.id, qty: l.qty }
+        : { kind: 'new', name: l.name, barcode: l.barcode, categoryName: l.categoryName, unitName: l.unitName, costPrice: l.costPrice, sellingPrice: l.sellingPrice, qty: l.qty })));
+      props.say(`Stok masuk tersimpan: ${r.created} produk baru, ${r.updated} diperbarui, total ${num(r.totalQty)} qty`);
       void syncNow();
       props.onClose();
     } catch (err) {
@@ -505,50 +567,83 @@ function StockInDialog(props: { products: Row[]; onClose: () => void; say: (m: s
     }
   };
   return (
-    <Modal title="Stok masuk" onClose={props.onClose} wide>
-      <p class="small mut">Scan barcode atau cari produk, isi jumlah yang datang, lalu Simpan. (Produk bervarian: pakai "Stok" di variannya.)</p>
+    <Modal title="Stok Masuk" onClose={props.onClose} wide>
       <div class="with-action">
-      <input
-        class="pos-search"
-        placeholder="Scan barcode / cari produk lalu Enter"
-        autofocus
-        value={q()}
-        onInput={(e) => setQ(e.currentTarget.value)}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-          const exact = props.products.find((p) => String(p.barcode ?? '') === q().trim());
-          const pick = exact ?? (found().length === 1 ? found()[0] : undefined);
-          if (pick) add(pick);
-          else setError(found().length ? 'Pilih produk dari daftar.' : 'Produk tidak ditemukan. Tambahkan dulu lewat "+ Produk".');
-        }}
-      />
-      <ScanButton
-        title="Scan barcode stok masuk"
-        onCode={(c) => {
-          const p = props.products.find((x) => String(x.barcode ?? '') === c);
-          if (p) { setError(''); add(p); } else setError(`Barcode ${c} belum terdaftar. Tambahkan produknya dulu.`);
-        }}
-      />
+        <input
+          class="pos-search"
+          placeholder="Scan / ketik barcode, atau cari produk lalu Enter"
+          autofocus
+          value={q()}
+          onInput={(e) => setQ(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const s = q().trim();
+            const pick = found().length === 1 ? found()[0] : undefined;
+            if (pick && !/^\d{6,}$/.test(s)) addExisting(pick);
+            else if (/^[0-9A-Za-z-]{4,}$/.test(s)) void resolve(s);
+            else setError(found().length ? 'Pilih produk dari daftar.' : 'Produk tidak ditemukan.');
+          }}
+        />
+        <ScanButton title="Scan barcode stok masuk" onCode={(c) => void resolve(c)} />
       </div>
       <div class="clist" style={{ 'max-height': '160px' }}>
-        <For each={found()}>{(p) => <button class="crow" onClick={() => add(p)}><b>{String(p.name)}</b><span class="mut small">Stok {num(Number(p.stock ?? 0))}</span></button>}</For>
+        <For each={found()}>{(p) => <button class="crow" onClick={() => addExisting(p)}><b>{String(p.name)}</b><span class="mut small">Stok {num(Number(p.stock ?? 0))}</span></button>}</For>
       </div>
+      <Show when={busy()}><p class="small mut">Mencari di Katalog Umum…</p></Show>
+      <Show when={feedback() && !busy()}><p class="small scan-feedback">{feedback()}</p></Show>
       <Show when={error()}><p class="small bad-t">{error()}</p></Show>
-      <table class="list" style={{ 'margin-top': '10px' }}>
-        <tbody>
-          <For each={lines()} fallback={<tr><td class="mut">Belum ada barang.</td></tr>}>
-            {(l, i) => (
-              <tr>
-                <td>{String(l.p.name)}<div class="small mut">{num(Number(l.p.stock ?? 0))} → {num(Number(l.p.stock ?? 0) + l.qty)}</div></td>
-                <td class="num"><input class="mini" inputmode="numeric" value={l.qty} onInput={(e) => setLines(lines().map((x, j) => (j === i() ? { ...x, qty: parseInt(e.currentTarget.value, 10) || 0 } : x)))} aria-label="Jumlah masuk" /></td>
-                <td class="num"><button class="btn sm" onClick={() => setLines(lines().filter((_, j) => j !== i()))}>Hapus</button></td>
-              </tr>
-            )}
-          </For>
-        </tbody>
-      </table>
-      <button class="btn primary block" style={{ 'margin-top': '12px' }} disabled={!lines().some((l) => l.qty > 0)} onClick={save}>Simpan stok masuk</button>
+
+      <Show when={prompt()}>
+        {(pr) => (
+          <div class="m-card new-prompt">
+            <b>Produk baru</b>
+            <span class="small mut">Barcode: {pr().code} · tak ada di katalog</span>
+            <div class="field"><label for="np-n">Nama produk</label><input id="np-n" placeholder="mis. Kopi Sachet" value={pr().name} onInput={(e) => setPrompt({ ...pr(), name: e.currentTarget.value })} autofocus /></div>
+            <div class="form-grid">
+              <div class="field"><label>Harga modal</label><MoneyInput value={pr().cost} onInput={(n) => setPrompt({ ...pr(), cost: n })} /></div>
+              <div class="field"><label>Harga jual</label><MoneyInput value={pr().sell} onInput={(n) => setPrompt({ ...pr(), sell: n })} /></div>
+            </div>
+            <span class="small mut">Harga boleh dikosongkan & diisi nanti.</span>
+            <div class="row-btns">
+              <span class="spacer" />
+              <button type="button" class="btn text" onClick={() => { setFeedback(`Barcode "${pr().code}" dilewati`); setPrompt(null); setQ(''); }}>Lewati</button>
+              <button type="button" class="btn primary" disabled={!pr().name.trim()} onClick={() => { const v = pr(); setPrompt(null); addNew({ name: v.name.trim(), barcode: v.code, categoryName: null, unitName: null, costPrice: v.cost, sellingPrice: v.sell, photoUrl: null }, `Baru: ${v.name.trim()} ×1`); }}>Tambah</button>
+            </div>
+          </div>
+        )}
+      </Show>
+
+      <div class="m-list stockin-lines">
+        <For each={lines()} fallback={<div class="m-empty"><b>Belum ada barang di sesi ini</b><span class="small">Tekan “Scan” lalu arahkan ke barcode. Barang lama → stok +1; barang baru → dicari di katalog, harga bisa langsung diisi.</span></div>}>
+          {(l) => (
+            <div class="m-row stockin-row">
+              <Show when={l.kind === 'new'} fallback={<span class="cat-thumb ph" style={{ width: '44px', height: '44px' }}><Icon name="inventory2" size={22} /></span>}>
+                <CatalogThumb url={l.kind === 'new' ? l.photoUrl : null} />
+              </Show>
+              <span class="m-row-text">
+                <span class="m-row-title">{l.kind === 'existing' ? String(l.p.name) : l.name}</span>
+                <Show when={l.kind === 'existing'} fallback={
+                  <Show when={l.kind === 'new' && l.sellingPrice > 0} fallback={<span class="small bad-t">Perlu harga · Isi harga</span>}>
+                    <span class="m-row-sub">Modal {rp(l.kind === 'new' ? l.costPrice : 0)} · Jual {rp(l.kind === 'new' ? l.sellingPrice : 0)}</span>
+                  </Show>
+                }>
+                  <span class="m-row-sub">Stok {num(Number(l.kind === 'existing' ? l.p.stock ?? 0 : 0))} → {num(Number(l.kind === 'existing' ? l.p.stock ?? 0 : 0) + l.qty)}</span>
+                </Show>
+                <Show when={l.kind === 'new'}>
+                  <span class="price-edit">
+                    <MoneyInput class="mini" value={l.kind === 'new' ? l.costPrice : 0} placeholder="Modal" onInput={(n) => setLine(l.key, { costPrice: n })} />
+                    <MoneyInput class="mini" value={l.kind === 'new' ? l.sellingPrice : 0} placeholder="Jual" onInput={(n) => setLine(l.key, { sellingPrice: n })} />
+                  </span>
+                </Show>
+              </span>
+              <input class="mini qty-in" inputmode="numeric" value={l.qty} onInput={(e) => setLine(l.key, { qty: parseInt(e.currentTarget.value, 10) || 0 })} aria-label="Jumlah masuk" />
+              <button class="m-icon-btn sm" title="Hapus" onClick={() => setLines(lines().filter((x) => x.key !== l.key))}><Icon name="close" size={18} /></button>
+            </div>
+          )}
+        </For>
+      </div>
+      <button class="btn primary block big" style={{ 'margin-top': '12px' }} disabled={!lines().some((l) => l.qty > 0)} onClick={() => void save()}>Simpan stok masuk</button>
     </Modal>
   );
 }

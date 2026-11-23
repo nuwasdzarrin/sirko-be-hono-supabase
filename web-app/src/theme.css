@@ -560,8 +560,8 @@
 .produk-ppob { padding-top: 4px; }
 
 /* ── Shift / Bill ──────────────────────────────────────────────────────── */
-.shift-page { display: grid; gap: 4px; }
-.shift-card { padding: 16px; display: grid; gap: 10px; justify-items: start; }
+.shift-page { display: grid; gap: 4px; align-content: start; }
+.shift-card { padding: 16px; display: grid; gap: 10px; justify-items: start; align-content: start; }
 .shift-card p { margin: 0; }
 .shift-card .paysum { width: 100%; }
 .shift-card.open .m-card-head { color: var(--m-green); }
@@ -572,11 +572,97 @@
   .ppob-panel { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 @media (min-width: 861px) {
-  .shift-page { max-width: 720px; }
-  .ppob-panel { padding: 12px 0; max-width: 720px; }
+  .ppob-panel { padding: 12px 0; }
   .content:has(> .split) > .seg.ptabs { max-width: 440px; }
 }
 
 @media (max-width: 860px) {
   .cards.points-cards { grid-template-columns: minmax(0, 1fr); padding: 0; }
+}
+
+/* ── Kasir desktop: keranjang bisa diminimalkan jadi FAB ikon (seperti aplikasi HP) ── */
+.d-cart-fab { display: none; }
+@media (max-width: 860px) {
+  .d-cart-min { display: none; }
+}
+@media (min-width: 861px) {
+  .pos.cart-min { grid-template-columns: minmax(0, 1fr); }
+  .pos.cart-min .pos-cart { display: none; }
+  .pos.cart-min .pos-left { padding-right: 16px; }
+  .d-cart-fab {
+    display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 25;
+    animation: m-sheet-in 0.18s ease-out;
+  }
+  .d-cart-fab .m-badge { top: 6px; right: 6px; }
+  .d-cart-min { margin-left: 2px; }
+}
+/* ── Katalog Umum (KatalogUmumScreen) ─────────────────────────────────── */
+.katalog { position: relative; padding-bottom: 88px; }
+.page-actions { display: flex; justify-content: flex-end; gap: 4px; padding: 0 4px; }
+.info-strip { margin: 0; padding: 10px 16px; background: var(--m-container-highest); color: var(--m-on-surface-variant); font: 400 12px/16px Roboto, sans-serif; letter-spacing: 0.4px; }
+.sync-banner { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--m-secondary-container); color: var(--m-on-secondary-container); font-size: 14px; }
+.search-wrap { position: relative; flex: 1; min-width: 0; }
+.search-wrap .pos-search { width: 100%; padding-right: 44px; }
+.search-wrap .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
+.m-icon-btn.tonal { background: var(--m-secondary-container); color: var(--m-on-secondary-container); margin-left: 4px; }
+.cat-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; background: var(--m-container-highest); }
+.cat-thumb.ph { display: grid; place-items: center; color: var(--m-outline); }
+.cat-verified { color: var(--m-primary); }
+.load-more { display: flex; justify-content: center; padding: 12px; }
+.cat-fab { display: inline-flex; }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Usulkan produk (ContributionFormScreen) */
+.contrib { display: grid; gap: 4px; }
+.photo-pick { width: 120px; height: 120px; margin: 0 auto 8px; border: 0; border-radius: 12px; background: var(--m-container-highest); color: var(--m-on-surface-variant); display: grid; place-items: center; align-content: center; gap: 4px; overflow: hidden; padding: 0; cursor: pointer; font-size: 11px; }
+.photo-pick img { width: 100%; height: 100%; object-fit: cover; }
+.photo-src { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.contrib textarea { width: 100%; }
+.contrib-note { text-align: center; margin: 8px 0 0; color: var(--m-outline); }
+
+/* Usulan Saya */
+.contrib-ic { display: grid; place-items: center; width: 40px; flex: none; }
+.contrib-ic.ok, .contrib-chip.ok { color: #388e3c; }
+.contrib-ic.bad, .contrib-chip.bad { color: var(--m-error); }
+.contrib-ic.wait, .contrib-chip.wait { color: #ef6c00; }
+.contrib-chip { font: 600 11px/16px Roboto, sans-serif; padding: 2px 8px; border-radius: 8px; background: color-mix(in srgb, currentColor 12%, transparent); flex: none; }
+
+/* Stok Masuk */
+.scan-feedback { color: var(--m-primary); font-weight: 500; margin: 4px 0; }
+.new-prompt { padding: 16px; display: grid; gap: 6px; margin: 8px 0; }
+.stockin-lines .m-row { min-height: 64px; padding: 8px 4px; gap: 12px; }
+.price-edit { display: flex; gap: 6px; margin-top: 4px; }
+.price-edit .mini { width: 100px; }
+.qty-in { width: 56px !important; text-align: center !important; }
+
+@media (max-width: 860px) {
+  .katalog .m-tabs { margin: 0; }
+  .cat-fab { position: fixed; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 861px) {
+  .cat-fab { position: fixed; right: 32px; bottom: 32px; }
+  .page-actions { margin-top: -8px; }
+}
+
+/* Tab: tanpa bingkai fokus saat diklik; tetap terlihat untuk navigasi keyboard. */
+.m-tabs button:focus:not(:focus-visible), .seg button:focus:not(:focus-visible) { outline: none; }
+
+/* Desktop: halaman tunggal (Katalog Umum, Usulan Saya, Shift / Bill, Produk → PPOB) = satu panel
+   putih selebar area konten — tidak lagi dibatasi lebar sehingga separuh layar kosong. */
+@media (min-width: 861px) {
+  .katalog, .shift-page, .produk-ppob {
+    max-width: none; background: #fff; border-radius: 16px; box-shadow: var(--m-elev1);
+    min-height: calc(100vh - 112px); padding: 8px 0 24px;
+  }
+  .katalog .m-tabs, .katalog .seg.tabs { background: transparent; }
+  .katalog .m-toolbar { padding-left: 16px; padding-right: 16px; }
+  .katalog .page-actions { margin-top: 0; padding: 0 12px; }
+  .katalog .m-list .m-row, .shift-page .m-list .m-row { padding-left: 24px; padding-right: 24px; }
+  .katalog .info-strip { padding-left: 24px; padding-right: 24px; }
+  .shift-page { padding: 16px 0 24px; }
+  .shift-page > .m-card, .shift-page > .m-section { margin-left: 24px; margin-right: 24px; }
+  .shift-page > .m-section { padding-left: 0; }
+  .shift-page .m-caption { padding-left: 24px; }
+  .produk-ppob { padding: 8px 24px 24px; }
 }

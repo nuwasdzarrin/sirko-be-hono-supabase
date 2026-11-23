@@ -96,6 +96,13 @@ export function KasirPage() {
   const nav = useNavigate();
   // HP: keranjang = bottom sheet (CartPanel di showModalBottomSheet), dibuka lewat FAB keranjang.
   const [cartOpen, setCartOpen] = createSignal(false);
+  // Desktop: keranjang bisa diminimalkan jadi ikon (seperti FAB keranjang aplikasi HP) agar daftar
+  // produk lega di layar kecil. Pilihan diingat di browser ini.
+  const [cartMin, setCartMinRaw] = createSignal(localStorage.getItem('sirko.cartMin') === '1');
+  const setCartMin = (v: boolean) => {
+    setCartMinRaw(v);
+    try { localStorage.setItem('sirko.cartMin', v ? '1' : '0'); } catch { /* mode privat */ }
+  };
   // Tab Fisik | PPOB (PosScreen aplikasi): PPOB = panel jual langsung di halaman, bukan dialog.
   const [tab, setTab] = createSignal<'fisik' | 'ppob'>('fisik');
   createEffect(() => {
@@ -218,7 +225,7 @@ export function KasirPage() {
   };
 
   return (
-    <div class="pos">
+    <div class={`pos ${cartMin() && !isMobile() ? 'cart-min' : ''}`}>
       <section class="pos-left">
         <Show when={can('ppobSell')}>
           <div class="m-tabs">
@@ -291,6 +298,18 @@ export function KasirPage() {
         </Show>
       </Show>
 
+      <Show when={!isMobile() && cartMin()}>
+        <button
+          class="m-fab round d-cart-fab"
+          title={cart.lines.length ? `Buka keranjang · ${num(totals().itemCount)} item · ${rp(totals().grandTotal)}` : 'Buka keranjang'}
+          aria-label="Buka keranjang"
+          onClick={() => setCartMin(false)}
+        >
+          <Icon name="shoppingCart" />
+          <Show when={totals().itemCount}><span class="m-badge">{num(totals().itemCount)}</span></Show>
+        </button>
+      </Show>
+
       <aside class={`pos-cart ${cartOpen() ? 'open' : ''}`}>
         <div class="m-cart-head">
             <div class="m-cart-title">
@@ -300,6 +319,9 @@ export function KasirPage() {
               <span class="spacer" />
               <button class="btn text sm" disabled={!cart.lines.length} onClick={() => confirm('Kosongkan keranjang?') && clearCart()}>
                 <Icon name="deleteSweep" size={18} />Kosongkan
+              </button>
+              <button class="m-icon-btn sm d-cart-min" title="Minimalkan keranjang" aria-label="Minimalkan keranjang" onClick={() => setCartMin(true)}>
+                <Icon name="collapseRight" size={20} />
               </button>
             </div>
             <button class="m-cart-cust" title="Pilih pelanggan (F4)" onClick={() => setDialog({ kind: 'customer' })}>

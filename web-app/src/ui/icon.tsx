@@ -63,6 +63,19 @@ import menuOpen from '@material-design-icons/svg/outlined/menu_open.svg?raw';
 import qrCodeScanner from '@material-design-icons/svg/outlined/qr_code_scanner.svg?raw';
 import cameraSwitch from '@material-design-icons/svg/outlined/cameraswitch.svg?raw';
 import history from '@material-design-icons/svg/outlined/history.svg?raw';
+import collapseRight from '@material-design-icons/svg/outlined/keyboard_double_arrow_right.svg?raw';
+import menuBook from '@material-design-icons/svg/outlined/menu_book.svg?raw';
+import addAPhoto from '@material-design-icons/svg/outlined/add_a_photo.svg?raw';
+import editNote from '@material-design-icons/svg/outlined/edit_note.svg?raw';
+import verified from '@material-design-icons/svg/outlined/verified.svg?raw';
+import inbox from '@material-design-icons/svg/outlined/inbox.svg?raw';
+import checkCircle from '@material-design-icons/svg/outlined/check_circle.svg?raw';
+import cancel from '@material-design-icons/svg/outlined/cancel.svg?raw';
+import hourglassTop from '@material-design-icons/svg/outlined/hourglass_top.svg?raw';
+import send from '@material-design-icons/svg/outlined/send.svg?raw';
+import photoCamera from '@material-design-icons/svg/outlined/photo_camera.svg?raw';
+import photoLibrary from '@material-design-icons/svg/outlined/photo_library.svg?raw';
+import cloud from '@material-design-icons/svg/outlined/cloud.svg?raw';
 
 const ICONS = {
   home, homeFilled, pointOfSale, pointOfSaleFilled, inventory2, inventory2Filled, barChart, barChartFilled,
@@ -71,7 +84,8 @@ const ICONS = {
   playCircle, stopCircle, moveToInbox, addBox, requestQuote, payments, trendingUp, schedule, warningAmber,
   dateRange, search, close, pauseCircle, shoppingCart, removeShoppingCart, deleteSweep, personOutline,
   personAdd, remove, add, localOffer, discount, arrowBack, tableView, pictureAsPdf, check, sync, category,
-  straighten, supportAgent, menu, menuOpen, qrCodeScanner, cameraSwitch, history,
+  straighten, supportAgent, menu, menuOpen, qrCodeScanner, cameraSwitch, history, collapseRight,
+  menuBook, addAPhoto, editNote, verified, inbox, checkCircle, cancel, hourglassTop, send, photoCamera, photoLibrary, cloud,
 } as const;
 
 export type IconName = keyof typeof ICONS;

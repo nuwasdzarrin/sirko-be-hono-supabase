@@ -37,6 +37,7 @@ export const OWNER: NavItem[] = [
 /** Grid menu Lainnya (urutan aplikasi HP; item yang belum ada di web dilewati). */
 export const MORE: NavItem[] = [
   { path: '/transaksi', label: 'Riwayat Transaksi', icon: 'receiptLong', perm: 'transactionList' },
+  { path: '/katalog', label: 'Katalog Umum', icon: 'menuBook', perm: 'productManagement' },
   { path: '/pelanggan', label: 'Pelanggan', icon: 'peopleAlt', perm: 'customerManagement' },
   { path: '/shift', label: 'Shift / Bill', icon: 'pointOfSale', perm: 'transactionList' },
   { path: '/kas', label: 'Kas / Wallet', icon: 'wallet', perm: 'walletView' },
@@ -73,6 +74,8 @@ const TITLES: Array<[RegExp, string, string]> = [
   [/^\/kas$/, 'Kas / Wallet', ''],
   [/^\/karyawan$/, 'Karyawan', ''],
   [/^\/shift$/, 'Shift / Bill', ''],
+  [/^\/katalog\/usulan$/, 'Usulan Saya', '/katalog'],
+  [/^\/katalog$/, 'Katalog Umum', ''],
   [/^\/ringkasan-karyawan$/, 'Ringkasan Karyawan', ''],
   [/^\/pembelian\/supplier$/, 'Supplier', ''],
   [/^\/pembelian\/opname$/, 'Stok Opname', ''],

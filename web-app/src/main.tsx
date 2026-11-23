@@ -31,6 +31,7 @@ const pages = {
   toko: () => import('./pages/toko'),
   shift: () => import('./pages/shift'),
   ringkasan: () => import('./pages/ringkasan-karyawan'),
+  katalog: () => import('./pages/katalog'),
 };
 const KasirPage = lazy(() => pages.kasir().then((m) => ({ default: m.KasirPage })));
 const TransaksiPage = lazy(() => pages.transaksi().then((m) => ({ default: m.TransaksiPage })));
@@ -45,6 +46,8 @@ const TokoPage = lazy(() => pages.toko().then((m) => ({ default: m.TokoPage })))
 const LanggananPage = lazy(() => pages.toko().then((m) => ({ default: m.LanggananPage })));
 const ShiftPage = lazy(() => pages.shift().then((m) => ({ default: m.ShiftPage })));
 const RingkasanKaryawanPage = lazy(() => pages.ringkasan().then((m) => ({ default: m.RingkasanKaryawanPage })));
+const KatalogPage = lazy(() => pages.katalog().then((m) => ({ default: m.KatalogPage })));
+const UsulanSayaPage = lazy(() => pages.katalog().then((m) => ({ default: m.UsulanSayaPage })));
 const KasPage = lazy(() => pages.kas().then((m) => ({ default: m.KasPage })));
 const RegisterPage = lazy(() => pages.account().then((m) => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => pages.account().then((m) => ({ default: m.ForgotPasswordPage })));
@@ -98,6 +101,8 @@ function App() {
         <Route path="/data" component={DataPage} />
         <Route path="/lainnya" component={LainnyaPage} />
         <Route path="/shift" component={guard('transactionList', ShiftPage)} />
+        <Route path="/katalog" component={guard('productManagement', KatalogPage)} />
+        <Route path="/katalog/usulan" component={guard('productManagement', UsulanSayaPage)} />
         <Route path="/ringkasan-karyawan" component={guard('employeeSummary', RingkasanKaryawanPage)} />
         <Route path="/kasir" component={guard('transactionList', KasirPage)} />
         <Route path="/transaksi/:id?" component={guard('transactionList', TransaksiPage)} />
