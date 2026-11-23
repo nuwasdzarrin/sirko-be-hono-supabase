@@ -8,7 +8,7 @@ focus_keyword: cara jualan pulsa di warung
 excerpt: Panduan langkah demi langkah jualan pulsa di warung, mulai dari modal saldo, memilih cara jualan, menentukan harga jual, menghindari risiko salah nomor, sampai mencatat untungnya.
 category: Pulsa & PPOB
 tags: [pulsa, ppob, usaha sampingan, warung]
-cover: /img/blog/cara-jualan-pulsa-di-warung.jpg
+cover: /img/blog/cara-jualan-pulsa-di-warung.webp
 cover_alt: Pemilik warung memegang HP untuk mengisi pulsa pembeli di depan etalase
 published_at: 2026-12-04T08:00:00+07:00
 ---

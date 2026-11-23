@@ -8,7 +8,7 @@ focus_keyword: cara menentukan harga jual barang
 excerpt: Rumus sederhana menentukan harga jual barang warung, beda markup dan margin, contoh hitungan, pembulatan harga, dan cara tetap bersaing dengan toko lain.
 category: Keuangan Toko
 tags: [harga jual, keuangan, warung]
-cover: /img/blog/cara-menentukan-harga-jual-barang-warung.jpg
+cover: /img/blog/cara-menentukan-harga-jual-barang-warung.webp
 cover_alt: Pemilik warung memasang label harga pada minyak goreng dan sachet kopi di rak, dengan kalkulator dan HP di meja
 published_at: 2026-11-17T08:00:00+07:00
 ---

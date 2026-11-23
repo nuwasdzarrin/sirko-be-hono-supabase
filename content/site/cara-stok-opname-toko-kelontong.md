@@ -8,7 +8,7 @@ focus_keyword: cara stok opname toko kelontong
 excerpt: Panduan praktis stok opname untuk toko kelontong dan warung, lengkap dengan jadwal, langkah bernomor, contoh tabel selisih, dan cara menangani barang yang kurang atau lebih.
 category: Panduan Warung
 tags: [stok opname, stok barang, toko kelontong, warung]
-cover: /img/blog/cara-stok-opname-toko-kelontong.jpg
+cover: /img/blog/cara-stok-opname-toko-kelontong.webp
 cover_alt: Pemilik toko kelontong menghitung barang di rak sambil memegang HP
 published_at: 2026-12-11T08:00:00+07:00
 ---

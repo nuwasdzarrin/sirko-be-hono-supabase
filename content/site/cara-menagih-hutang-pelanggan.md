@@ -8,7 +8,7 @@ focus_keyword: cara menagih hutang pelanggan
 excerpt: Panduan menagih kasbon pelanggan warung secara sopan dan bertahap, lengkap dengan contoh kalimat lisan, template pesan WhatsApp, jadwal cicilan, dan cara mencegah hutang macet.
 category: Panduan Warung
 tags: [menagih hutang, kasbon, whatsapp, warung]
-cover: /img/blog/cara-menagih-hutang-pelanggan.jpg
+cover: /img/blog/cara-menagih-hutang-pelanggan.webp
 cover_alt: Pemilik warung tersenyum menunjukkan layar HP kepada pelanggan tetangga yang mengangguk ramah di depan meja toko
 published_at: 2026-12-22T08:00:00+07:00
 ---

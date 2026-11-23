@@ -8,7 +8,7 @@ focus_keyword: apa itu ppob
 excerpt: Penjelasan sederhana tentang PPOB untuk pemilik warung: arti, cara kerja, jenis produk, dari mana untungnya, risiko yang perlu diwaspadai, dan cara memulai.
 category: Pulsa & PPOB
 tags: [ppob, pulsa, token listrik, usaha sampingan]
-cover: /img/blog/apa-itu-ppob.jpg
+cover: /img/blog/apa-itu-ppob.webp
 cover_alt: Penjaga warung melayani pembelian pulsa dan token listrik lewat HP
 published_at: 2026-12-13T08:00:00+07:00
 ---

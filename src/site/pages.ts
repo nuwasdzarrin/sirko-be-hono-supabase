@@ -9,11 +9,16 @@ const fmtDate = (ms: number) =>
 const isoDate = (ms: number) => new Date(ms).toISOString();
 
 /**
- * Sampul buatan Sirko (seed /img/blog/*.jpg atau unggahan editor .../site/...jpg) selalu punya
- * kembaran lebar 600 (`-600.jpg`) → srcset agar HP murah tak mengunduh 1200px.
+ * Sampul buatan Sirko (seed /img/blog/* atau unggahan editor .../site/...) selalu punya kembaran
+ * lebar 600 (`-600.webp`, sampul lama `-600.jpg`) → srcset agar HP murah tak mengunduh 1200px.
  */
+const ownCover = (url: string) => url.startsWith('/img/blog/') || url.includes('/site/');
 export function coverSrcset(url: string): string | null {
-  return /\.jpg$/.test(url) && (url.startsWith('/img/blog/') || url.includes('/site/')) ? `${url.replace(/\.jpg$/, '-600.jpg')} 600w, ${url} 1200w` : null;
+  return /\.(jpg|webp)$/.test(url) && ownCover(url) ? `${url.replace(/\.(jpg|webp)$/, '-600.$1')} 600w, ${url} 1200w` : null;
+}
+/** Gambar share (og:image, schema): sampul WebP milik Sirko punya kembaran `.jpg` — paling andal di WhatsApp. */
+export function shareImage(url: string): string {
+  return ownCover(url) && /\.webp$/.test(url) ? url.replace(/\.webp$/, '.jpg') : url;
 }
 function coverImg(url: string, alt: string, opts: { lcp?: boolean; sizes: string }): string {
   const set = coverSrcset(url);
@@ -93,7 +98,8 @@ export function renderPost(p: SitePost, related: SitePost[], opts: { preview?: b
 </article>
 ${related.length ? `<section class="related" aria-labelledby="terkait" style="padding:0 0 40px"><h2 id="terkait">Artikel terkait</h2>${postCards(related, 'h3')}</section>` : ''}
 </div></main>`;
-  const image = p.coverUrl ? (p.coverUrl.startsWith('http') ? p.coverUrl : siteUrl(p.coverUrl)) : siteUrl('/img/og-image.png');
+  const share = p.coverUrl ? shareImage(p.coverUrl) : null;
+  const image = share ? (share.startsWith('http') ? share : siteUrl(share)) : siteUrl('/img/og-image.png');
   return renderPage({
     title: titleOf(p),
     description: descOf(p, r),
@@ -101,7 +107,7 @@ ${related.length ? `<section class="related" aria-labelledby="terkait" style="pa
     body,
     ogType: 'article',
     waAsk: `artikel "${p.title}"`,
-    ogImage: p.coverUrl,
+    ogImage: p.coverUrl ? shareImage(p.coverUrl) : null,
     ogImageAlt: p.coverAlt || p.title,
     noindex: p.noindex || opts.preview,
     crumbs,
@@ -152,11 +158,12 @@ export function renderStaticPage(p: SitePost, opts: { preview?: boolean } = {}):
     path,
     body,
     waAsk: legal ? `${p.title.toLowerCase()}` : `${p.title}`,
-    ogImage: p.coverUrl,
+    ogImage: p.coverUrl ? shareImage(p.coverUrl) : null,
     ogImageAlt: p.coverAlt || p.title,
     noindex: p.noindex || opts.preview,
     crumbs,
     preload: p.coverUrl ?? undefined,
+    preloadSrcset: p.coverUrl ? (coverSrcset(p.coverUrl) ?? undefined) : undefined,
     jsonLd: [
       {
         '@type': 'WebPage',

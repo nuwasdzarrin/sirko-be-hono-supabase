@@ -419,26 +419,62 @@ export async function updateFromSeed(d: SeedDoc): Promise<'updated' | 'unchanged
 
 // ── Gambar (sampul & isi artikel) ────────────────────────────────────────────
 
-export const MAX_SITE_IMAGE_BYTES = 400 * 1024;
+/**
+ * Gambar marketing (isi artikel) → dikonversi di server ke WebP ≤ 100 KB (maks 200 KB), lebar ≤ 1600.
+ * Sumber boleh JPG/PNG/WebP sampai 12 MB. Foto katalog produk memakai jalur lain (tetap format asli).
+ */
+export async function uploadImage(file: File): Promise<{ url: string; width: number; height: number }> {
+  const { makeBodyImage } = await import('../lib/site-image.js');
+  const bytes = await readSiteSource(file);
+  const img = await makeBodyImage(bytes).catch(imgErr);
+  const url = await putSiteObject(`${await siteKeyBase(file.name, 'gambar')}.webp`, 'image/webp', img.webp);
+  return { url, width: img.width, height: img.height };
+}
 
-/** Unggah gambar situs (sudah dikompres di browser) → URL publik. Isi file diperiksa ulang. */
-export async function uploadImage(file: File, keyOverride?: string): Promise<string> {
-  const { sniffImageType, photoFileName } = await import('./catalog-admin.service.js');
-  const { getStorage } = await import('../lib/storage.js');
-  if (file.size > MAX_SITE_IMAGE_BYTES) {
-    throw validation(`Gambar ${Math.ceil(file.size / 1024)} KB — maksimal 400 KB. Pilih ulang agar dikompres otomatis.`);
-  }
+/**
+ * Sampul: satu file sumber → `<nama>.webp` 1200×630 (dipakai halaman), `<nama>-600.webp` (srcset HP),
+ * dan `<nama>.jpg` 1200×630 (khusus og:image — pratinjau WhatsApp/Facebook). URL yang disimpan = .webp.
+ */
+export async function uploadCover(file: File): Promise<{ url: string; width: number; height: number }> {
+  const { makeCover } = await import('../lib/site-image.js');
+  const bytes = await readSiteSource(file);
+  const set = await makeCover(bytes).catch(imgErr);
+  const key = await siteKeyBase(file.name, 'sampul');
+  await putSiteObject(`${key}.jpg`, 'image/jpeg', set.jpg);
+  await putSiteObject(`${key}-600.webp`, 'image/webp', set.webp600);
+  const url = await putSiteObject(`${key}.webp`, 'image/webp', set.webp);
+  return { url, width: 1200, height: 630 };
+}
+
+async function readSiteSource(file: File): Promise<Buffer> {
+  const { sniffImageType } = await import('./catalog-admin.service.js');
+  const { MAX_SOURCE_BYTES } = await import('../lib/site-image.js');
+  if (file.size > MAX_SOURCE_BYTES) throw validation(`Gambar ${Math.ceil(file.size / 1048576)} MB — maksimal 12 MB.`);
   const bytes = Buffer.from(await file.arrayBuffer());
-  const type = sniffImageType(bytes);
-  if (!type) throw validation('Gambar harus JPG, PNG, atau WebP.');
-  const ext = type === 'image/jpeg' ? 'jpg' : type === 'image/png' ? 'png' : 'webp';
+  if (!sniffImageType(bytes)) throw validation('Gambar harus JPG, PNG, atau WebP.');
+  return bytes;
+}
+
+function imgErr(e: unknown): never {
+  if (e instanceof Error && /too large|ImageTooLarge|di atas|terlalu rumit/i.test(`${e.name} ${e.message}`)) throw validation(e.message);
+  if (e instanceof Error && /unsupported image|corrupt|Input buffer|premature/i.test(e.message)) throw validation('Gambar rusak atau formatnya tidak didukung.');
+  throw e;
+}
+
+async function siteKeyBase(original: string, fallback: string): Promise<string> {
+  const { photoFileName } = await import('./catalog-admin.service.js');
   const d = new Date();
-  const key = keyOverride ?? `site/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${photoFileName(file.name || 'gambar', ext)}`;
+  const name = (original || fallback).replace(/\.[^.]*$/, '') || fallback;
+  return `site/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${photoFileName(name, 'x').replace(/\.x$/, '')}`;
+}
+
+async function putSiteObject(key: string, type: string, body: Buffer): Promise<string> {
+  const { getStorage } = await import('../lib/storage.js');
   const storage = getStorage();
   const res = await fetch(storage.signPut(key, type), {
     method: 'PUT',
-    headers: { 'Content-Type': type },
-    body: bytes,
+    headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=31536000, immutable' },
+    body,
     signal: AbortSignal.timeout(30000),
   });
   if (!res.ok) throw validation(`Unggah gambar gagal (HTTP ${res.status}).`);
@@ -543,19 +579,6 @@ export async function markLeadSpam(id: string, spam: boolean, admin: string): Pr
 
 export async function countSpamLeads(): Promise<number> {
   return (await sql<{ c: number }[]>`SELECT count(*)::int c FROM site_leads WHERE status = 'spam'`)[0]?.c ?? 0;
-}
-
-/** Sampul: JPG 1200×630 + kembaran 600×315 (`-600.jpg`) untuk srcset. JPG agar pratinjau WhatsApp andal. */
-export async function uploadCover(big: File, small: File): Promise<string> {
-  const { sniffImageType } = await import('./catalog-admin.service.js');
-  for (const f of [big, small]) {
-    if (sniffImageType(Buffer.from(await f.slice(0, 16).arrayBuffer())) !== 'image/jpeg') throw validation('Sampul harus JPG (dibuat otomatis oleh editor).');
-  }
-  const url = await uploadImage(big);
-  const key = new URL(url, 'https://x').pathname.split('/site/')[1];
-  if (!key) return url;
-  await uploadImage(small, `site/${key.replace(/\.jpg$/, '-600.jpg')}`);
-  return url;
 }
 
 // ── Riwayat revisi ───────────────────────────────────────────────────────────

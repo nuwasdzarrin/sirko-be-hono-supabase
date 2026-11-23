@@ -370,7 +370,7 @@ ${o.noindex ? '' : `<link rel="canonical" href="${escAttr(canonical)}">
 <meta property="og:image:alt" content="${escAttr(o.ogImageAlt ?? `${SITE_NAME} — ${TAGLINE}`)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:type" content="${/\.png($|\?)/i.test(og) ? 'image/png' : 'image/jpeg'}">
+<meta property="og:image:type" content="${/\.png($|\?)/i.test(og) ? 'image/png' : /\.webp($|\?)/i.test(og) ? 'image/webp' : 'image/jpeg'}">
 ${art}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escAttr(o.title)}">

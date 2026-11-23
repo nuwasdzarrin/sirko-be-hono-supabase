@@ -8,7 +8,7 @@ focus_keyword: modal buka warung sembako
 excerpt: Rincian modal buka warung sembako, dari tempat, rak, stok pertama, sampai modal kerja, lengkap dengan contoh hitungan dan kesalahan yang sering terjadi.
 category: Panduan Warung
 tags: [modal usaha, warung, sembako]
-cover: /img/blog/modal-buka-warung-sembako.jpg
+cover: /img/blog/modal-buka-warung-sembako.webp
 cover_alt: Calon pemilik warung menata beras, minyak goreng, dan telur di rak warung baru sambil menghitung anggaran
 published_at: 2026-11-13T08:00:00+07:00
 ---

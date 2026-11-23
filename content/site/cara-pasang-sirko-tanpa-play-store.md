@@ -8,7 +8,7 @@ focus_keyword: cara menambahkan web ke layar utama android
 excerpt: Panduan langkah demi langkah memasang Sirko di layar utama HP Android, iPhone, dan laptop tanpa Play Store, plus cara pakai tanpa internet dan solusi masalah yang sering muncul.
 category: Tips Sirko
 tags: [layar utama, android, iphone, panduan sirko]
-cover: /img/blog/cara-pasang-sirko-tanpa-play-store.jpg
+cover: /img/blog/cara-pasang-sirko-tanpa-play-store.webp
 cover_alt: Pemilik warung menyentuh ikon aplikasi baru di layar utama HP Android, dengan laptop kasir di meja
 published_at: 2026-11-26T08:00:00+07:00
 ---

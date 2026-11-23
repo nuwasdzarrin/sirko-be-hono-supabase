@@ -56,7 +56,7 @@ focus_keyword: <kata kunci fokus>
 excerpt: <1–2 kalimat, ≤ 300 kar.>
 category: <Keuangan Toko | Panduan Warung | Pulsa & PPOB | Tips Sirko>   # khusus post
 tags: [a, b, c]                                                         # khusus post, 3–5, huruf kecil
-cover: /img/blog/<slug>.jpg                                             # khusus post
+cover: /img/blog/<slug>.webp                                            # khusus post (.webp ≤100 KB; .jpg kembaran = og:image)
 cover_alt: <deskripsi gambar sampul, bahasa Indonesia>
 published_at: <YYYY-MM-DD>T08:00:00+07:00                               # dari jadwal di bawah
 ---
