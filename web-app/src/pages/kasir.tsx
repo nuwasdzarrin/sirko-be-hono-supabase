@@ -726,9 +726,15 @@ function PpobPanel(props: { onAdded: (msg: string) => void }) {
   const catStatus = () => status()?.categories.find((c) => c.key === cat());
   const [products, { refetch }] = createResource(
     () => (status()?.enabled && catStatus()?.available !== false ? { c: cat(), n: isPln() ? null : filterNo() } : null),
-    async ({ c, n }) => ({ list: await ppobProducts(c, n ?? undefined), error: '' }),
+    async ({ c, n }) => ({ c, n, list: await ppobProducts(c, n ?? undefined) }),
   );
-  const list = () => (products.error ? [] : products()?.list ?? []);
+  // Hanya daftar milik kategori & nomor yang sedang aktif — saat berpindah kategori, daftar lama
+  // tidak boleh tampil (dan diketuk) selama daftar baru dimuat.
+  const list = () => {
+    if (products.error || products.loading) return [];
+    const r = products();
+    return r && r.c === cat() && r.n === (isPln() ? null : filterNo()) ? r.list : [];
+  };
   const loadError = () => (products.error ? (products.error instanceof ApiError ? products.error.message : 'Gagal memuat produk.') : '');
   const balance = () => status()?.points.balance ?? 0;
 
