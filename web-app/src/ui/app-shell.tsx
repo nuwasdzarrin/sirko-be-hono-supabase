@@ -1,4 +1,4 @@
-import { createMemo, createResource, For, Show } from 'solid-js';
+import { createMemo, createResource, createSignal, For, Show } from 'solid-js';
 import { A, useLocation, useNavigate } from '@solidjs/router';
 import { Icon } from './icon';
 import { allowed, isActive, MORE, OWNER, pageTitle, TABS, type NavItem } from './nav';
@@ -133,6 +133,20 @@ export function useFocusClass() {
 
 // ── Desktop ────────────────────────────────────────────────────────────────
 
+/** Sidebar desktop bisa dibuka/tutup (hamburger) — pilihan diingat di browser ini. */
+const SIDEBAR_KEY = 'sirko.sidebar';
+const [sidebarOpen, setSidebarOpen] = createSignal(typeof localStorage === 'undefined' || localStorage.getItem(SIDEBAR_KEY) !== 'closed');
+export { sidebarOpen };
+export function toggleSidebar() {
+  const next = !sidebarOpen();
+  setSidebarOpen(next);
+  try {
+    localStorage.setItem(SIDEBAR_KEY, next ? 'open' : 'closed');
+  } catch {
+    /* mode privat: cukup di memori */
+  }
+}
+
 function DrawerLink(props: { item: NavItem; path: string }) {
   const on = () => isActive(props.item, props.path);
   return (
@@ -148,7 +162,7 @@ export function DesktopSidebar(props: { onLogout: () => void }) {
   const nav = useNavigate();
   const path = usePath();
   return (
-    <aside class="side">
+    <aside class="side" id="sidebar">
       <div class="d-brand">
         <img src="/app/lockup.png" alt="Sirko" />
         <span>{activeStore()?.name}</span>
@@ -209,6 +223,16 @@ export function DesktopTopBar() {
   const path = usePath();
   return (
     <header class="top">
+      <button
+        class="m-icon-btn d-menu"
+        title={sidebarOpen() ? 'Tutup menu' : 'Buka menu'}
+        aria-label={sidebarOpen() ? 'Tutup menu' : 'Buka menu'}
+        aria-expanded={sidebarOpen()}
+        aria-controls="sidebar"
+        onClick={toggleSidebar}
+      >
+        <Icon name={sidebarOpen() ? 'menuOpen' : 'menu'} />
+      </button>
       <span class="m-title">{pageTitle(path())?.title ?? 'Sirko'}</span>
       <span class="spacer" />
       <SyncChip />

@@ -508,3 +508,22 @@
 
 /* Tabel lebar di dalam kartu: geser di dalam kartu, bukan seluruh halaman. */
 .card:has(> table.list) { overflow-x: auto; }
+
+/* Hamburger sidebar desktop (buka/tutup) */
+@media (min-width: 861px) {
+  .shell { transition: grid-template-columns 0.2s ease; }
+  .top { padding-left: 12px; }
+  .d-menu { margin-right: 4px; }
+  .shell.d-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
+  .shell.d-collapsed .side { visibility: hidden; padding: 0; overflow: hidden; }
+}
+@media (max-width: 860px) {
+  .d-menu { display: none; }
+}
+
+@media (min-width: 861px) {
+  /* Kasir mengisi sisa tinggi layar (di bawah app bar & banner apa pun) → tombol Bayar selalu terlihat. */
+  .main:has(.pos) { height: 100vh; display: flex; flex-direction: column; }
+  .main:has(.pos) > .content { flex: 1; min-height: 0; display: flex; padding: 0; }
+  .main:has(.pos) .pos { height: auto; flex: 1; min-height: 0; }
+}

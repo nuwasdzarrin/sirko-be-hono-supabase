@@ -1,7 +1,7 @@
 import { createResource, For, Show, type ParentProps } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { SYNC_TABLES } from '../db/db';
-import { DesktopSidebar, DesktopTopBar, MobileAppBar, MobileNav, MobileSubBar, useFocusClass } from '../ui/app-shell';
+import { DesktopSidebar, DesktopTopBar, MobileAppBar, MobileNav, MobileSubBar, sidebarOpen, useFocusClass } from '../ui/app-shell';
 import { Beranda } from './beranda';
 import { db, online, signOut, sync, syncNow, unsyncedEverywhere, user } from '../state';
 
@@ -22,7 +22,7 @@ export function Shell(props: ParentProps) {
   const nav = useNavigate();
   const focus = useFocusClass();
   return (
-    <div class="shell" classList={{ 'm-focus': focus() }}>
+    <div class="shell" classList={{ 'm-focus': focus(), 'd-collapsed': !sidebarOpen() }}>
       <DesktopSidebar onLogout={() => void confirmLogout(nav)} />
       <div class="main">
         <DesktopTopBar />

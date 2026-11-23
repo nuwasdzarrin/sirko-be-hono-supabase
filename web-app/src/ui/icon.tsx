@@ -58,6 +58,8 @@ import sync from '@material-design-icons/svg/outlined/sync.svg?raw';
 import category from '@material-design-icons/svg/outlined/category.svg?raw';
 import straighten from '@material-design-icons/svg/outlined/straighten.svg?raw';
 import supportAgent from '@material-design-icons/svg/outlined/support_agent.svg?raw';
+import menu from '@material-design-icons/svg/outlined/menu.svg?raw';
+import menuOpen from '@material-design-icons/svg/outlined/menu_open.svg?raw';
 
 const ICONS = {
   home, homeFilled, pointOfSale, pointOfSaleFilled, inventory2, inventory2Filled, barChart, barChartFilled,
@@ -66,7 +68,7 @@ const ICONS = {
   playCircle, stopCircle, moveToInbox, addBox, requestQuote, payments, trendingUp, schedule, warningAmber,
   dateRange, search, close, pauseCircle, shoppingCart, removeShoppingCart, deleteSweep, personOutline,
   personAdd, remove, add, localOffer, discount, arrowBack, tableView, pictureAsPdf, check, sync, category,
-  straighten, supportAgent,
+  straighten, supportAgent, menu, menuOpen,
 } as const;
 
 export type IconName = keyof typeof ICONS;
