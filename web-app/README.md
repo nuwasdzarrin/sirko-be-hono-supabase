@@ -88,6 +88,12 @@ berubah. `public/app/` tidak di-commit.
     Bayar), dialog = bottom sheet, daftar ↔ detail dua layar — `src/mobile.css`.
   - Desktop: navigation drawer (menu sama dengan tab + Lainnya), daftar & detail berdampingan,
     keranjang di panel kanan, dialog di tengah. Beranda tanpa Pintasan (menu sudah di sidebar).
+  - Penempatan menu = aplikasi HP: Produk & Kasir bertab **Fisik | PPOB** (harga jual PPOB di
+    Produk, jual PPOB langsung di tab Kasir), Riwayat PPOB dari tab PPOB Kasir/Poin/Pintasan,
+    **Shift / Bill** & **Ringkasan Karyawan** di Lainnya, tab Laporan Penjualan · Laba · Arus Kas ·
+    Arus Stok · Produk, ⋮ Produk = Arus stok & Recycle Bin, ⚙ Kategori/Satuan di form produk.
+  - **Scan barcode/QR pakai kamera HP atau webcam** (`ui/scanner.tsx`) di Kasir, form Produk & Stok
+    Masuk: BarcodeDetector bawaan (Chrome Android/macOS) atau ZXing (dimuat saat dipakai).
   - Tema & komponen: `src/theme.css` · menu (satu sumber): `ui/nav.ts` · kerangka: `ui/app-shell.tsx`
     · Beranda (+ Saldo Kas): `pages/beranda.tsx` · Lainnya: `pages/lainnya.tsx`.
 - Item stok opname disimpan lokal (`_dirty = 3`) selama draft dan dikirim saat final, karena tabel

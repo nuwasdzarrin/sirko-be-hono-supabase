@@ -1,5 +1,5 @@
 import { createMemo, createResource, createSignal, For, Show } from 'solid-js';
-import { useNavigate, useParams } from '@solidjs/router';
+import { useParams } from '@solidjs/router';
 import type { Row } from '../db/db';
 import { createLive } from '../lib/live';
 import { can, db, syncNow, user } from '../state';
@@ -21,7 +21,6 @@ type Tab = 'beli' | 'supplier' | 'opname';
 
 export function PembelianPage() {
   const params = useParams();
-  const nav = useNavigate();
   const tab = () => (params.tab as Tab) || 'beli';
   const [toast, setToast] = createSignal('');
   const say = (m: string) => {
@@ -30,16 +29,8 @@ export function PembelianPage() {
   };
   return (
     <>
-      <div class="row-btns">
-        <h1 style={{ margin: 0 }}>Pembelian & stok</h1>
-        <span class="spacer" />
-        <div class="seg ptabs">
-          <button class={tab() === 'beli' ? 'on' : ''} onClick={() => nav('/pembelian')}>Pembelian</button>
-          <button class={tab() === 'supplier' ? 'on' : ''} onClick={() => nav('/pembelian/supplier')}>Supplier</button>
-          <button class={tab() === 'opname' ? 'on' : ''} onClick={() => nav('/pembelian/opname')}>Stok opname</button>
-        </div>
-      </div>
-      <div style={{ 'margin-top': '14px' }}>
+      {/* Pembelian, Supplier & Stok Opname = tiga layar terpisah (menu Lainnya), seperti aplikasi HP. */}
+      <div>
         <Show when={tab() === 'beli'}><PurchasesTab say={say} /></Show>
         <Show when={tab() === 'supplier'}><SuppliersTab say={say} /></Show>
         <Show when={tab() === 'opname'}><OpnameTab say={say} /></Show>

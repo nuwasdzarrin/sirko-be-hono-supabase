@@ -29,6 +29,8 @@ const pages = {
   pembelian: () => import('./pages/pembelian'),
   ppob: () => import('./pages/ppob'),
   toko: () => import('./pages/toko'),
+  shift: () => import('./pages/shift'),
+  ringkasan: () => import('./pages/ringkasan-karyawan'),
 };
 const KasirPage = lazy(() => pages.kasir().then((m) => ({ default: m.KasirPage })));
 const TransaksiPage = lazy(() => pages.transaksi().then((m) => ({ default: m.TransaksiPage })));
@@ -41,6 +43,8 @@ const PembelianPage = lazy(() => pages.pembelian().then((m) => ({ default: m.Pem
 const PpobPage = lazy(() => pages.ppob().then((m) => ({ default: m.PpobPage })));
 const TokoPage = lazy(() => pages.toko().then((m) => ({ default: m.TokoPage })));
 const LanggananPage = lazy(() => pages.toko().then((m) => ({ default: m.LanggananPage })));
+const ShiftPage = lazy(() => pages.shift().then((m) => ({ default: m.ShiftPage })));
+const RingkasanKaryawanPage = lazy(() => pages.ringkasan().then((m) => ({ default: m.RingkasanKaryawanPage })));
 const KasPage = lazy(() => pages.kas().then((m) => ({ default: m.KasPage })));
 const RegisterPage = lazy(() => pages.account().then((m) => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => pages.account().then((m) => ({ default: m.ForgotPasswordPage })));
@@ -93,6 +97,8 @@ function App() {
         <Route path="/" component={HomePage} />
         <Route path="/data" component={DataPage} />
         <Route path="/lainnya" component={LainnyaPage} />
+        <Route path="/shift" component={guard('transactionList', ShiftPage)} />
+        <Route path="/ringkasan-karyawan" component={guard('employeeSummary', RingkasanKaryawanPage)} />
         <Route path="/kasir" component={guard('transactionList', KasirPage)} />
         <Route path="/transaksi/:id?" component={guard('transactionList', TransaksiPage)} />
         <Route path="/produk/:id?" component={guard('productManagement', ProdukPage)} />

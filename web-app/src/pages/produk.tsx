@@ -12,6 +12,9 @@ import {
 import { fmtDateTime } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
 import { Icon } from '../ui/icon';
+import { ScanButton } from '../ui/scanner';
+import { PpobPricingPanel } from './ppob';
+import { user } from '../state';
 
 const live = (r: Row) => r.deletedAt == null;
 const byName = (a: Row, b: Row) => String(a.name).localeCompare(String(b.name));
@@ -25,8 +28,8 @@ const toDateInput = (ms: unknown) => {
 };
 const fromDateInput = (s: string) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
 
-type Filter = 'all' | 'low' | 'expiry' | 'price' | 'deleted';
-type Dlg = { kind: 'adjust'; product: Row; variant?: Row } | { kind: 'stockin' } | { kind: 'cats' } | { kind: 'units' } | null;
+type Filter = 'all' | 'alert' | 'low' | 'expiry' | 'price' | 'deleted';
+type Dlg = { kind: 'adjust'; product: Row; variant?: Row } | { kind: 'stockin' } | { kind: 'cats' } | { kind: 'units' } | { kind: 'flow' } | null;
 
 export function ProdukPage() {
   const params = useParams();
@@ -39,6 +42,9 @@ export function ProdukPage() {
   const [search] = useSearchParams();
   if (search.aksi === 'stok-masuk') setDlg({ kind: 'stockin' });
   if (search.f === 'menipis') setFilter('low');
+  // Tab Fisik | PPOB (ProductsPage aplikasi). Harga jual PPOB hanya bisa diatur pemilik & admin.
+  const canPricing = () => !!user()?.isOwner || user()?.role === 'admin';
+  const tab = () => (search.tab === 'ppob' && canPricing() ? 'ppob' : 'fisik');
   const [toast, setToast] = createSignal('');
   const say = (m: string) => {
     setToast(m);
@@ -67,6 +73,7 @@ export function ProdukPage() {
       if (cat() && p.categoryId !== cat()) return false;
       if (s && !String(p.name).toLowerCase().includes(s) && !String(p.barcode ?? '').includes(s) && !(varOf().get(p.id) ?? []).some((v) => String(v.barcode ?? '') === s)) return false;
       if (filter() === 'low') return isLow(p);
+      if (filter() === 'alert') return isLow(p) || ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now));
       if (filter() === 'expiry') return ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now));
       if (filter() === 'price') return p.needsPrice === true;
       return true;
@@ -75,32 +82,37 @@ export function ProdukPage() {
   const counts = createMemo(() => {
     const now = Date.now();
     const a = products().filter(live);
-    return { low: a.filter(isLow).length, expiry: a.filter((p) => ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now))).length, price: a.filter((p) => p.needsPrice === true).length };
+    return { alert: a.filter((p) => isLow(p) || ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now))).length, low: a.filter(isLow).length, expiry: a.filter((p) => ['expired', 'nearExpiry'].includes(expiryStatus(p.expiryDate as number | null, now))).length, price: a.filter((p) => p.needsPrice === true).length };
   });
 
   const unitName = createMemo(() => new Map(units().map((u) => [u.id, String(u.name)])));
   const [menu, setMenu] = createSignal(false);
-  const FILTER_LABEL: Record<Filter, string> = { all: 'Semua', low: 'Stok menipis', expiry: 'Kedaluwarsa', price: 'Perlu harga', deleted: 'Recycle Bin' };
+  const FILTER_LABEL: Record<Filter, string> = { all: 'Semua', alert: 'Peringatan stok', low: 'Stok menipis', expiry: 'Kedaluwarsa', price: 'Perlu harga', deleted: 'Recycle Bin' };
   return (
+    <>
+    <Show when={canPricing()}>
+      <div class="seg ptabs" role="tablist">
+        <button class={tab() === 'fisik' ? 'on' : ''} role="tab" aria-selected={tab() === 'fisik'} onClick={() => nav('/produk')}>Fisik</button>
+        <button class={tab() === 'ppob' ? 'on' : ''} role="tab" aria-selected={tab() === 'ppob'} onClick={() => nav('/produk?tab=ppob')}>PPOB</button>
+      </div>
+    </Show>
+    <Show when={tab() === 'fisik'} fallback={<div class="produk-ppob"><PpobPricingPanel /></div>}>
     <div class="split">
       {/* HP: ProductListScreen aplikasi (cari + Stok Masuk + Peringatan stok + ⋮, chip kategori, ProductTile, FAB) */}
         <section class="split-list">
           <div class="m-toolbar">
             <input class="pos-search" placeholder="Cari nama atau barcode…" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
             <button class="m-icon-btn" title="Stok Masuk" onClick={() => setDlg({ kind: 'stockin' })}><Icon name="moveToInbox" /></button>
-            <button class={`m-icon-btn ${filter() === 'low' ? 'm-on' : ''}`} title="Peringatan stok" onClick={() => setFilter(filter() === 'low' ? 'all' : 'low')}>
+            <button class={`m-icon-btn ${filter() === 'alert' ? 'm-on' : ''}`} title="Peringatan stok (menipis & kedaluwarsa)" onClick={() => setFilter(filter() === 'alert' ? 'all' : 'alert')}>
               <Icon name="warningAmber" />
-              <Show when={counts().low}><span class="m-badge">{counts().low}</span></Show>
+              <Show when={counts().alert}><span class="m-badge">{counts().alert}</span></Show>
             </button>
             <div class="m-menu-wrap">
               <button class="m-icon-btn" title="Lainnya" onClick={() => setMenu(!menu())}><Icon name="moreVert" /></button>
               <Show when={menu()}>
                 <div class="m-menu-bg" onClick={() => setMenu(false)} />
                 <div class="m-menu" onClick={() => setMenu(false)}>
-                  <button onClick={() => setDlg({ kind: 'cats' })}>Kategori</button>
-                  <button onClick={() => setDlg({ kind: 'units' })}>Satuan</button>
-                  <button onClick={() => setFilter('expiry')}>Kedaluwarsa ({counts().expiry})</button>
-                  <button onClick={() => setFilter('price')}>Perlu harga ({counts().price})</button>
+                  <button onClick={() => setDlg({ kind: 'flow' })}>Arus stok</button>
                   <Show when={can('recycleBin')}><button onClick={() => setFilter('deleted')}>Recycle Bin</button></Show>
                 </div>
               </Show>
@@ -167,6 +179,8 @@ export function ProdukPage() {
             variants={pid !== 'baru' ? varOf().get(pid) ?? [] : []}
             onDone={(id, m) => { if (m) say(m); nav(id ? `/produk/${id}` : '/produk'); void syncNow(); }}
             onAdjust={(product, variant) => setDlg({ kind: 'adjust', product, variant })}
+            onManageCats={() => setDlg({ kind: 'cats' })}
+            onManageUnits={() => setDlg({ kind: 'units' })}
           />
         )}
       </Show>
@@ -183,15 +197,20 @@ export function ProdukPage() {
               return <NamesDialog title="Kategori" rows={categories()} onSave={(id, name) => saveCategory(db()!, { id, name })} onDelete={(id) => deleteCategory(db()!, id)} onClose={close} />;
             case 'units':
               return <NamesDialog title="Satuan" rows={units()} onSave={(id, name) => saveUnit(db()!, { id, name })} onDelete={(id) => deleteUnit(db()!, id)} onClose={close} />;
+            case 'flow':
+              return <StockFlowDialog products={products()} variants={variants()} onClose={close} />;
           }
         }}
       </Show>
       <Toast msg={toast()} />
     </div>
+    </Show>
+    </>
   );
 }
 
-function ProductEditor(props: { id: string | null; categories: Row[]; units: Row[]; variants: Row[]; onDone: (id: string | null, msg?: string) => void; onAdjust: (p: Row, v?: Row) => void }) {
+function ProductEditor(props: { id: string | null; categories: Row[]; units: Row[]; variants: Row[]; onDone: (id: string | null, msg?: string) => void; onAdjust: (p: Row, v?: Row) => void; onManageCats: () => void; onManageUnits: () => void }) {
+  let barcodeEl: HTMLInputElement | undefined;
   const product = createLive(() => { const d = db(); return d ? { d, id: props.id } : null; }, async ({ d, id }) => (id ? (await d.t('products').get(id)) ?? null : null), null as Row | null);
   const tiers = createLive(() => { const d = db(); return d && props.id ? { d, id: props.id } : null; }, async ({ d, id }) => (await d.t('wholesale_prices').where('productId').equals(id).toArray()).filter(live).sort((a, b) => Number(a.minQty) - Number(b.minQty)), [] as Row[]);
   const logs = createLive(() => { const d = db(); return d && props.id ? { d, id: props.id } : null; }, async ({ d, id }) => (await d.t('stock_logs').where('productId').equals(id).toArray()).filter(live).sort((a, b) => Number(b.createdAt) - Number(a.createdAt)).slice(0, 30), [] as Row[]);
@@ -272,12 +291,12 @@ function ProductEditor(props: { id: string | null; categories: Row[]; units: Row
         <Show when={error()}><div class="alert err" role="alert">{error()}</div></Show>
         <form onSubmit={submit} class="form-grid">
           <div class="field full"><label for="pn">Nama produk</label><input id="pn" name="name" required maxlength="160" value={String(f()?.name ?? '')} autofocus={isNew()} /></div>
-          <div class="field full"><label for="pb">Barcode (opsional)</label><input id="pb" name="barcode" maxlength="64" value={String(f()?.barcode ?? '')} placeholder="Scan atau ketik" /></div>
+          <div class="field full"><label for="pb">Barcode (opsional)</label><div class="with-action"><input id="pb" ref={barcodeEl} name="barcode" maxlength="64" value={String(f()?.barcode ?? '')} placeholder="Scan atau ketik" /><ScanButton title="Scan barcode produk" onCode={(c) => { if (barcodeEl) barcodeEl.value = c; }} /></div></div>
           <div class="field"><label for="pc">Kategori</label>
-            <select id="pc" name="categoryId"><option value="">Tanpa kategori</option><For each={props.categories}>{(c) => <option value={c.id} selected={f()?.categoryId === c.id}>{String(c.name)}</option>}</For></select>
+            <div class="with-action"><select id="pc" name="categoryId"><option value="">Tanpa kategori</option><For each={props.categories}>{(c) => <option value={c.id} selected={f()?.categoryId === c.id}>{String(c.name)}</option>}</For></select><button type="button" class="m-icon-btn" title="Kelola kategori" onClick={() => props.onManageCats()}><Icon name="settings" /></button></div>
           </div>
           <div class="field"><label for="pu">Satuan</label>
-            <select id="pu" name="unitId"><option value="">Tanpa satuan</option><For each={props.units}>{(u) => <option value={u.id} selected={f()?.unitId === u.id}>{String(u.name)}</option>}</For></select>
+            <div class="with-action"><select id="pu" name="unitId"><option value="">Tanpa satuan</option><For each={props.units}>{(u) => <option value={u.id} selected={f()?.unitId === u.id}>{String(u.name)}</option>}</For></select><button type="button" class="m-icon-btn" title="Kelola satuan" onClick={() => props.onManageUnits()}><Icon name="settings" /></button></div>
           </div>
           <label class="full check"><input type="checkbox" checked={hv()} onChange={(e) => setHasVariants(e.currentTarget.checked)} /> Produk bervarian (ukuran/warna — harga & stok per varian)</label>
           <Show when={!hv()}>
@@ -488,6 +507,7 @@ function StockInDialog(props: { products: Row[]; onClose: () => void; say: (m: s
   return (
     <Modal title="Stok masuk" onClose={props.onClose} wide>
       <p class="small mut">Scan barcode atau cari produk, isi jumlah yang datang, lalu Simpan. (Produk bervarian: pakai "Stok" di variannya.)</p>
+      <div class="with-action">
       <input
         class="pos-search"
         placeholder="Scan barcode / cari produk lalu Enter"
@@ -503,6 +523,14 @@ function StockInDialog(props: { products: Row[]; onClose: () => void; say: (m: s
           else setError(found().length ? 'Pilih produk dari daftar.' : 'Produk tidak ditemukan. Tambahkan dulu lewat "+ Produk".');
         }}
       />
+      <ScanButton
+        title="Scan barcode stok masuk"
+        onCode={(c) => {
+          const p = props.products.find((x) => String(x.barcode ?? '') === c);
+          if (p) { setError(''); add(p); } else setError(`Barcode ${c} belum terdaftar. Tambahkan produknya dulu.`);
+        }}
+      />
+      </div>
       <div class="clist" style={{ 'max-height': '160px' }}>
         <For each={found()}>{(p) => <button class="crow" onClick={() => add(p)}><b>{String(p.name)}</b><span class="mut small">Stok {num(Number(p.stock ?? 0))}</span></button>}</For>
       </div>
@@ -546,6 +574,33 @@ function NamesDialog(props: { title: string; rows: Row[]; onSave: (id: string | 
             <div class="crow">
               <input class="plain" value={String(r.name)} onChange={(e) => e.currentTarget.value.trim() && void props.onSave(r.id, e.currentTarget.value)} aria-label="Ubah nama" />
               <button class="btn sm bad" onClick={() => confirm(`Hapus "${r.name}"? Produk yang memakainya tidak ikut terhapus.`) && void props.onDelete(r.id)}>Hapus</button>
+            </div>
+          )}
+        </For>
+      </div>
+    </Modal>
+  );
+}
+
+/** Arus stok semua produk (StockFlowScreen aplikasi): 200 catatan terakhir. */
+function StockFlowDialog(props: { products: Row[]; variants: Row[]; onClose: () => void }) {
+  const names = createMemo(() => new Map(props.products.map((p) => [p.id, String(p.name)])));
+  const vnames = createMemo(() => new Map(props.variants.map((v) => [v.id, String(v.name)])));
+  const logs = createLive(db, async (d) => (await d.t('stock_logs').toArray()).filter(live).sort((a, b) => Number(b.createdAt) - Number(a.createdAt)).slice(0, 200), [] as Row[]);
+  return (
+    <Modal title="Arus stok" onClose={props.onClose} wide>
+      <div class="m-list">
+        <For each={logs()} fallback={<div class="m-empty"><Icon name="inventory2" size={48} /><b>Belum ada catatan stok</b></div>}>
+          {(l) => (
+            <div class="m-row">
+              <span class="m-row-text">
+                <span class="m-row-title">{names().get(String(l.productId)) ?? 'Produk'}{l.variantId ? ` · ${vnames().get(String(l.variantId)) ?? 'varian'}` : ''}</span>
+                <span class="m-row-sub">{fmtDateTime(Number(l.createdAt))} • {LOG_LABEL[String(l.type)] ?? String(l.type)}{l.note ? ` • ${l.note}` : ''}</span>
+              </span>
+              <span class="m-row-end">
+                <b class={Number(l.qtyChange) < 0 ? 'bad-t' : ''}>{Number(l.qtyChange) > 0 ? '+' : ''}{num(Number(l.qtyChange))}</b>
+                <span class="small mut">sisa {num(Number(l.stockAfter ?? 0))}</span>
+              </span>
             </div>
           )}
         </For>

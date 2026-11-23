@@ -1,12 +1,19 @@
 {
   "name": "Sirko — Kasir Toko",
   "short_name": "Sirko",
-  "description": "Kasir toko Sirko di komputer. Tetap jalan tanpa internet.",
+  "description": "Kasir toko Sirko di HP & komputer. Gratis untuk satu toko, tetap jalan tanpa internet.",
   "start_url": "/app",
   "scope": "/app",
   "display": "standalone",
-  "background_color": "#FFFBF2",
-  "theme_color": "#13753F",
+  "background_color": "#F9F9FF",
+  "theme_color": "#415F91",
   "lang": "id",
-  "icons": [{ "src": "/app/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [
+    {
+      "src": "/app/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }
