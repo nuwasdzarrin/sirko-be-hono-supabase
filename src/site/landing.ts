@@ -1,7 +1,7 @@
 import { env } from '../config/env.js';
 import { escAttr, escHtml } from './markdown.js';
 import { FORM_CSS, waitlistForm, type FormState } from './forms.js';
-import { APP_LOGIN, APP_SIGNUP, renderPage, siteUrl, ORG_ID } from './layout.js';
+import { APP_LOGIN, APP_SIGNUP, renderPage, signupUrl, siteUrl, ORG_ID } from './layout.js';
 import { postCards } from './pages.js';
 import type { SitePost } from '../services/site.service.js';
 
@@ -178,7 +178,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
     ? `<p style="margin:20px auto 0;font-size:16px">Lebih suka aplikasi Android? <a href="${escAttr(env.PLAY_STORE_URL)}" rel="noopener" style="color:#14213D;font-weight:700">Unduh di Google Play</a></p>`
     : `<details${waitlistOpen ? ' open' : ''}><summary>Menunggu aplikasi Android di Google Play? Kami kabari</summary>${waitlistForm(waitlist)}</details>`;
   const download = `<p>Gratis untuk satu toko, tanpa kartu kredit. Langsung pakai di browser HP atau laptop — tanpa download.</p>
-      <div class="cta"><a class="btn btn-primary" href="${APP_SIGNUP}">Mulai Gratis Sekarang</a><a class="btn btn-ghost" href="${APP_LOGIN}">Sudah punya akun? Masuk</a></div>
+      <div class="cta"><a class="btn btn-primary" href="${signupUrl('beranda-akhir')}">Mulai Gratis Sekarang</a><a class="btn btn-ghost" href="${APP_LOGIN}">Sudah punya akun? Masuk</a></div>
       ${android}`;
   const faq = LANDING_FAQ.map(([q, a], i) => `<details${i === 0 ? ' open' : ''}><summary>${escHtml(q)}</summary><p>${escHtml(a)}</p></details>`).join('\n      ');
   const body = `<main>
@@ -189,7 +189,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <h1><span class="eyebrow h1-kicker">Aplikasi kasir gratis untuk warung &amp; toko kelontong</span> Kasir toko, <span class="hl">untung kelihatan.</span></h1>
       <p class="lead">Langsung pakai di browser HP atau laptop, tanpa download. Sirko mencatat setiap penjualan, stok, dan kasbon, tetap jalan walau sinyal hilang. Ditambah jualan pulsa &amp; token listrik di nota yang sama.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="${APP_SIGNUP}">Coba Gratis di Browser</a>
+        <a class="btn btn-primary" href="${signupUrl('beranda-hero')}">Coba Gratis di Browser</a>
         <a class="btn btn-ghost" href="#fitur">Lihat Fitur</a>
       </div>
       <p class="sub-cta">Sudah punya akun? <a href="${APP_LOGIN}">Masuk ke Sirko</a></p>
@@ -228,7 +228,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
       <div><b>3. Masukkan barang &amp; jualan</b><p>Scan barcode pakai kamera HP atau webcam: 2.000+ produk umum langsung terisi dari Katalog Umum, tinggal isi harga. Simpan Sirko ke layar utama agar terbuka seperti aplikasi.</p></div>
     </div>
     <ul class="where"><li>HP Android</li><li>iPhone</li><li>Laptop &amp; komputer</li><li>Tablet</li></ul>
-    <div class="cta"><a class="btn btn-primary" href="${APP_SIGNUP}">Mulai Gratis Sekarang</a></div>
+    <div class="cta"><a class="btn btn-primary" href="${signupUrl('beranda-mulai')}">Mulai Gratis Sekarang</a></div>
   </div>
 </section>
 
@@ -319,7 +319,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
           <li>Jual pulsa, data &amp; token listrik</li>
           <li>Cadangan data otomatis</li>
         </ul>
-        <a class="btn btn-primary" href="${APP_SIGNUP}">Coba Gratis</a>
+        <a class="btn btn-primary" href="${signupUrl('beranda-harga-warung')}">Coba Gratis</a>
       </div>
       <div class="plan">
         <h3>Juragan</h3>
@@ -334,7 +334,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
           <li>Ekspor laporan ke Excel &amp; PDF</li>
           <li>Logo toko di struk</li>
         </ul>
-        <a class="btn btn-ghost" href="${APP_SIGNUP}">Mulai dari Gratis</a>
+        <a class="btn btn-ghost" href="${signupUrl('beranda-harga-juragan')}">Mulai dari Gratis</a>
       </div>
     </div>
   </div>

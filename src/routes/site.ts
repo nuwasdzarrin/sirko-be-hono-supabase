@@ -10,6 +10,7 @@ import { render404, renderBlogIndex, renderPost, renderStaticPage } from '../sit
 import { siteHost, siteUrl, SITE_NAME, SITE_SCRIPT_SRC, TAGLINE } from '../site/layout.js';
 import { contentSpamReason, formTokenProblem, turnstileEnabled, turnstileProblem, TURNSTILE_ORIGIN } from '../site/antispam.js';
 import { escHtml } from '../site/markdown.js';
+import { liveTools, TOOLS, toolByPath } from '../site/tools.js';
 import { renderContact, renderDeleteAccount, type FormState } from '../site/forms.js';
 import { clientIp, hitRateLimit } from '../services/account.service.js';
 import { ZodError } from 'zod';
@@ -72,6 +73,8 @@ const longCache = async (c: Context, next: () => Promise<void>) => {
 };
 siteRoutes.use('/img/*', longCache, serveStatic({ root: ROOT }));
 siteRoutes.get('/favicon.ico', longCache, serveStatic({ path: `${ROOT}/favicon.ico` }));
+// Skrip alat gratis (/alat/*) — same-origin, lolos CSP script-src 'self'.
+siteRoutes.use('/js/*', longCache, serveStatic({ root: ROOT }));
 siteRoutes.use(
   '/fonts/*',
   async (c, next) => {
@@ -113,6 +116,7 @@ siteRoutes.get('/sitemap.xml', async (c) => {
     ...cats.map((k) => ({ loc: siteUrl(`/blog/kategori/${k.slug}`) })),
     { loc: siteUrl('/kontak') },
     { loc: siteUrl('/hapus-akun') },
+    ...liveTools().map((t) => ({ loc: siteUrl(t.path), lastmod: t.releaseAt })),
     ...all.map((p) => ({ loc: siteUrl(site.pathOf(p)), lastmod: p.updatedAt, img: p.coverUrl ?? undefined })),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -282,6 +286,15 @@ siteRoutes.get('/blog/kategori/:cat', async (c) => {
   const d = await site.listLivePosts({ page: pageNum(c), limit: 12, category: cat.name });
   if (pageNum(c) > d.pages) return html(c, render404(), 404);
   return html(c, renderBlogIndex({ ...d, categories: cats, category: cat }));
+});
+
+// Alat gratis terjadwal: sebelum tanggal tayang → 404 (admin yang login bisa pratinjau dengan ?preview).
+siteRoutes.get('/alat/:slug{[a-z0-9-]+}', async (c) => {
+  const path = `/alat/${c.req.param('slug')}`;
+  const preview = c.req.query('preview') !== undefined && (await isAdmin(c));
+  const t = toolByPath(path) ?? (preview ? TOOLS.find((x) => x.path === path) ?? null : null);
+  if (!t) return notFound(c);
+  return preview ? html(c, t.render(), 200, 'no-store') : html(c, t.render());
 });
 
 siteRoutes.get('/blog/:slug', async (c) => {

@@ -45,6 +45,12 @@ describe('Web app /app', () => {
     const logo = await app.request('/app/lockup.png');
     expect(logo.status).toBe(200);
     expect(logo.headers.get('content-type')).toContain('image/png');
+    // Ikon PNG untuk pemasangan PWA (Chrome Android "Instal aplikasi").
+    for (const f of ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png']) {
+      const r = await app.request(`/app/${f}`);
+      expect(r.status, f).toBe(200);
+      expect(r.headers.get('content-type'), f).toContain('image/png');
+    }
   });
 
   it('API & situs tidak terganggu', async () => {

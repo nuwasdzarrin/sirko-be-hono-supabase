@@ -237,6 +237,16 @@ footer.site .legal{margin-top:32px;padding-top:20px;border-top:1px solid var(--l
 export const APP_SIGNUP = '/app/daftar';
 export const APP_LOGIN = '/app/masuk';
 
+/**
+ * Tautan daftar dengan penanda asal halaman (first-party, tanpa pelacak pihak ketiga):
+ * `/app/daftar?dari=<asal>` → web app menyimpannya saat akun dibuat (accounts.signup_source).
+ */
+export const signupUrl = (dari: string) => `${APP_SIGNUP}?dari=${encodeURIComponent(dari)}`;
+
+/** Beri penanda asal pada tautan `/app/daftar` di HTML isi artikel/halaman yang belum punya `?dari=`. */
+export const tagSignupLinks = (html: string, dari: string) =>
+  html.replace(/href="\/app\/daftar"/g, `href="${signupUrl(dari)}"`);
+
 const NAV = [
   { href: '/#fitur', label: 'Fitur' },
   { href: '/jualan-pulsa-token-listrik', label: 'Pulsa & Token' },
@@ -258,7 +268,7 @@ export function header(currentPath: string): string {
   <button type="button" class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Buka menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <a class="btn btn-primary cta-top" href="${APP_SIGNUP}">Coba Gratis</a>
+  <a class="btn btn-primary cta-top" href="${signupUrl('header')}">Coba Gratis</a>
 </div></header>`;
 }
 

@@ -5,6 +5,7 @@ import './styles.css';
 import './theme.css';
 import './mobile.css';
 import { boot, ready, session, user } from './state';
+import { captureSignupSource } from './session/auth';
 import { CreateStorePage, LoginPage, UserPickerPage } from './pages/auth';
 import { DataPage, HomePage, Shell } from './pages/shell';
 import { LainnyaPage } from './pages/lainnya';
@@ -122,6 +123,7 @@ function App() {
   );
 }
 
+captureSignupSource();
 void boot();
 render(() => <App />, document.getElementById('root')!);
 

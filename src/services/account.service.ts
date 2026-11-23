@@ -41,6 +41,14 @@ export const registerSchema = z.object({
   email: emailSchema,
   phone: phoneInput,
   password: passwordSchema,
+  // Asal pendaftaran dari penanda `?dari=` situs (huruf kecil, angka, '-', maks 80). Tak valid → diabaikan.
+  source: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(80)
+    .optional()
+    .transform((v) => (v && /^[a-z0-9][a-z0-9-]*$/.test(v) ? v : undefined)),
 });
 export const verifyEmailSchema = z.object({ email: emailSchema, code: z.string().trim().regex(/^\d{6}$/, 'Kode harus 6 angka') });
 export const resendSchema = z.object({ email: emailSchema });
@@ -436,6 +444,7 @@ export async function register(input: z.infer<typeof registerSchema>): Promise<R
       await tx`INSERT INTO accounts ${tx({
         id, name: input.name, email: input.email, phone, password_hash: passwordHash,
         created_at: ts, updated_at: ts, password_changed_at: ts, pending_verification: true,
+        signup_source: input.source ?? null,
       })}`;
       await storeOffline(id, input.password, tx);
     });

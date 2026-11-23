@@ -594,6 +594,21 @@ const OVERVIEW_TPL = `
 </div>
 <% } %>
 
+<div class="h2row"><h2>Pendaftaran 30 hari terakhir per asal</h2></div>
+<% if (d.signupSources.length) { %>
+<div class="cats">
+  <% const smax = d.signupSources[0].accounts || 1; d.signupSources.forEach(function(r){ %>
+    <div class="cat" title="Akun dibuat: <%= r.accounts %> · terverifikasi: <%= r.verified %> · sudah punya toko: <%= r.withStore %>">
+      <span class="nm"><%= r.source %></span>
+      <span class="bar"><i style="width:<%= Math.max(4, Math.round(100*r.accounts/smax)) %>%"></i></span>
+      <span class="ct"><%= fmtNum(r.accounts) %> akun · <%= fmtNum(r.withStore) %> toko</span>
+    </div>
+  <% }) %>
+</div>
+<% } else { %>
+<p class="mut">Belum ada pendaftaran dalam 30 hari terakhir. Asal diambil dari penanda <code>?dari=</code> pada tombol ajakan sirkopos.com.</p>
+<% } %>
+
 <% if (d.recentCatalog.length) { %>
 <div class="h2row"><h2>Katalog terbaru</h2><a class="btn-link primary" href="/dashboard/catalog">Lihat semua produk →</a></div>
 <div class="strip">
