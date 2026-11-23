@@ -1,5 +1,7 @@
 # 02 · Kalender konten (12 minggu pertama)
 
+> **Pembaruan 23 Nov 2026:** untuk 24 Nov – 23 Des 2026 kalender diganti oleh [09-rencana-30-hari-web-app.md](09-rencana-30-hari-web-app.md) (kampanye web app). Artikel #3–6 & #9 dari tabel di bawah sudah masuk ke rencana 30 hari; sisanya dijadwalkan ulang setelahnya. Ajakan di setiap artikel kini **"Coba Sirko di browser" → /app/daftar**, bukan daftar tunggu.
+
 Ritme: **2 artikel/minggu** (Selasa & Jumat, 08.00 WIB, pakai jadwal terbit di CMS) + 1 halaman baru tiap 2 minggu.
 Setiap artikel: 900–1.500 kata, kata kunci fokus di judul/meta/paragraf pertama/satu H2, sampul 1200×630
 (ilustrasi Gemini, gaya sama dengan sampul yang ada), bagian **Tanya jawab** (3–5 pertanyaan → schema FAQ),

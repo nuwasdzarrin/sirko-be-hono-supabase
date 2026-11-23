@@ -46,7 +46,7 @@ Kalau warung Anda dijaga sendiri dan hanya satu toko, Anda tidak perlu membayar 
 Tidak ada biaya langganan tersembunyi. Ada dua hal yang perlu Anda tahu supaya tidak salah paham:
 
 1. **Pulsa, paket data, dan token listrik bukan gratis.** Itu barang dagangan. Modalnya dibayar memakai **Poin Sirko** yang Anda isi lewat transfer atau QRIS, lalu Anda menjualnya ke pembeli dengan untung yang Anda tentukan sendiri. Kalau transaksi gagal, Poin kembali otomatis. Rinciannya ada di halaman [jualan pulsa & token listrik](/jualan-pulsa-token-listrik).
-2. **Perangkat tambahan opsional.** Printer struk bluetooth tidak wajib. Kasir tetap jalan hanya dengan HP Android.
+2. **Perangkat tambahan opsional.** Printer struk bluetooth tidak wajib. Kasir tetap jalan hanya dengan HP atau laptop yang sudah Anda punya.
 
 Poin Sirko hanya untuk membeli produk PPOB dan tidak bisa ditarik tunai. Aturan lengkapnya ada di [syarat & ketentuan](/syarat-ketentuan).
 
@@ -54,11 +54,11 @@ Poin Sirko hanya untuk membeli produk PPOB dan tidak bisa ditarik tunai. Aturan 
 
 Kami percaya warung kecil berhak punya catatan yang rapi tanpa harus membayar setiap bulan. Sirko mendapat pemasukan dari paket Juragan untuk toko yang sudah berkembang, dan dari selisih kecil pada transaksi PPOB. Karena itu fitur dasar untuk satu toko bisa tetap gratis.
 
-Satu hal yang membuat Sirko berbeda dari banyak aplikasi kasir gratis lain: **data toko tersimpan di HP Anda dan tetap jalan tanpa internet**. Anda tidak tergantung sinyal untuk melayani pembeli. Penjelasannya ada di halaman [aplikasi kasir offline](/aplikasi-kasir-offline).
+Satu hal yang membuat Sirko berbeda dari banyak aplikasi kasir gratis lain: **data toko tersimpan di perangkat Anda dan tetap jalan tanpa internet**. Anda tidak tergantung sinyal untuk melayani pembeli. Penjelasannya ada di halaman [aplikasi kasir offline](/aplikasi-kasir-offline).
 
 ## Cara mulai memakai Sirko gratis
 
-1. Pasang aplikasi Sirko di HP Android.
+1. Buka [sirkopos.com/app](/app/daftar) di browser HP atau laptop. Tidak perlu download; aplikasi Android menyusul di Google Play.
 2. Daftar dengan nama, email, dan nomor WhatsApp, lalu masukkan kode yang dikirim ke email.
 3. Beri nama toko Anda, lalu masukkan barang. Scan barcode untuk mengambil data dari katalog, atau ketik sendiri.
 4. Mulai melayani pembeli. Catat [kasbon pelanggan](/aplikasi-kasbon) langsung dari kasir bila ada yang berutang.
@@ -87,4 +87,4 @@ Tidak ada batas jumlah barang atau transaksi di paket Warung.
 
 Bisa. Kasir, stok, dan kasbon jalan tanpa internet. Internet hanya dibutuhkan untuk mencadangkan data dan menjual pulsa atau token listrik.
 
-Siap mencoba? Sirko gratis untuk satu toko. Daftar di bagian bawah [beranda](/#unduh) agar kami kabari saat aplikasi tersedia di Google Play.
+Siap mencoba? Sirko gratis untuk satu toko. [Mulai sekarang di browser](/app/daftar), langsung dari HP atau laptop Anda.

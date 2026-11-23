@@ -15,6 +15,16 @@
 | [05-play-store-aso.md](05-play-store-aso.md) | Optimasi listing Google Play (sumber unduhan terbesar) |
 | [06-pengukuran.md](06-pengukuran.md) | KPI, rutinitas Search Console, format laporan bulanan |
 | [07-rencana-90-hari.md](07-rencana-90-hari.md) | Checklist minggu per minggu: siapa mengerjakan apa |
+| [08-riset-kompetitor-dan-keyword.md](08-riset-kompetitor-dan-keyword.md) | **(23 Nov)** Riset pesaing & peta kata kunci terbaru, 15 quick win, pola SERP |
+| [09-rencana-30-hari-web-app.md](09-rencana-30-hari-web-app.md) | **(23 Nov) Rencana aktif:** kampanye "Coba Sirko di browser" 24 Nov – 23 Des 2026 |
+
+## Perubahan strategi (23 November 2026)
+
+Google Play **tertunda** (administrasi). **Web app sudah tayang** di sirkopos.com/app (HP & laptop, bisa
+offline). Maka konversi utama situs berubah dari *daftar tunggu* menjadi **mendaftar & memakai Sirko di
+browser** (`/app/daftar`). Daftar tunggu Play Store tetap ada sebagai pilihan sekunder. Rencana aktif:
+[09-rencana-30-hari-web-app.md](09-rencana-30-hari-web-app.md); dasar risetnya:
+[08-riset-kompetitor-dan-keyword.md](08-riset-kompetitor-dan-keyword.md).
 
 ## Kondisi awal (12 November 2026)
 
@@ -24,6 +34,7 @@
 - Konten: 1 beranda, 4 halaman fitur, 3 artikel, Tentang, Kontak, Hapus akun, Privasi, Ketentuan.
 - CMS di dashboard siap dipakai menerbitkan artikel rutin (editor + skor SEO + jadwal terbit).
 - Aplikasi belum rilis di Google Play → konversi sementara = **daftar tunggu** & **chat WhatsApp**.
+  *(Diganti 23 Nov: konversi = akun di web app sirkopos.com/app.)*
 
 ## Strategi inti (satu paragraf)
 
@@ -54,6 +65,6 @@ Untuk kueri komersial besar butuh 6–12 bulan konsistensi konten + tautan.
 1. **Konten jujur & praktis.** Contoh angka ditandai ilustrasi, tanpa testimoni atau statistik karangan.
    Google (Helpful Content, E-E-A-T) dan pemilik warung sama-sama menghargai ini.
 2. **Satu kata kunci utama = satu halaman.** Hindari dua artikel berebut kata kunci yang sama (kanibalisasi).
-3. **Setiap artikel menaut ke 1 halaman fitur + 2 artikel lain**, dan diakhiri ajakan (daftar tunggu/WA).
+3. **Setiap artikel menaut ke 1 halaman fitur + 2 artikel lain**, dan diakhiri ajakan ke web app (`/app/daftar`).
 4. **Konsisten > banyak.** 2 artikel berkualitas per minggu lebih baik daripada 10 artikel tipis sekali waktu.
 5. **Ukur, lalu perbarui.** Artikel di posisi 5–20 diperbarui dulu sebelum menulis yang baru (06-pengukuran.md).

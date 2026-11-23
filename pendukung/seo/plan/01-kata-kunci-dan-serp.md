@@ -1,5 +1,7 @@
 # 01 · Kata kunci & peta halaman
 
+> **Pembaruan 23 Nov 2026:** peta kata kunci terbaru + pesaing + 15 quick win ada di [08-riset-kompetitor-dan-keyword.md](08-riset-kompetitor-dan-keyword.md). Tambahan klaster **perangkat & web** (online, laptop, iPhone) dan **migrasi** (pengganti Mitra Tokopedia/BukuKas). Status halaman di bawah tetap berlaku.
+
 ## Temuan pesaing di Google (cek 12 Nov 2026)
 
 | Kueri | Siapa yang menguasai | Peluang Sirko |

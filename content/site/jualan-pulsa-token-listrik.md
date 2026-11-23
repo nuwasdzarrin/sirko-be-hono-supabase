@@ -88,7 +88,7 @@ Pastikan saldo Poin Sirko cukup, terutama menjelang akhir dan awal bulan, saat p
 
 ## Cara mulai jualan pulsa dan token listrik di warung
 
-1. Pasang Sirko dan buat toko. Daftar cukup dengan nama, email, nomor WA, dan password.
+1. Buka [sirkopos.com/app](/app/daftar) dan buat toko. Daftar cukup dengan nama, email, nomor WA, dan password.
 2. Isi Poin Sirko lewat transfer bank atau QRIS, lalu tunggu konfirmasi admin.
 3. Atur untung per kategori, atau pakai bawaan Rp2.000.
 4. Pasang tulisan "Bisa beli pulsa & token listrik di sini" di depan warung.

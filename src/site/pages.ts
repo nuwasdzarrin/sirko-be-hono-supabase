@@ -1,5 +1,5 @@
 import { escAttr, escHtml, renderMarkdown, slugify, type Rendered } from './markdown.js';
-import { breadcrumbsHtml, renderPage, siteHost, siteUrl, ORG_ID, type Crumb } from './layout.js';
+import { APP_SIGNUP, breadcrumbsHtml, renderPage, siteHost, siteUrl, ORG_ID, type Crumb } from './layout.js';
 import { pathOf, type SitePost } from '../services/site.service.js';
 
 /** Halaman publik selain beranda: daftar blog, kategori, artikel, halaman, 404. */
@@ -40,8 +40,8 @@ export function postCards(posts: SitePost[], heading: 'h2' | 'h3' = 'h2'): strin
 }
 
 const ctaBox = () => `<aside class="cta-box" aria-label="Coba Sirko">
-  <div><b>Kasir toko, untung kelihatan.</b><p>Coba Sirko gratis untuk satu toko — jalan tanpa internet.</p></div>
-  <a class="btn" href="/#unduh">Coba Gratis</a>
+  <div><b>Kasir toko, untung kelihatan.</b><p>Coba Sirko gratis untuk satu toko — langsung di browser HP atau laptop, tanpa download, tetap jalan tanpa internet.</p></div>
+  <a class="btn" href="${APP_SIGNUP}">Coba Gratis</a>
 </aside>`;
 
 function toc(r: Rendered): string {

@@ -1,5 +1,7 @@
 # 05 · Google Play (ASO)
 
+> **Status 23 Nov 2026: DITUNDA.** Rilis Google Play tertunda urusan administrasi. Listing di bawah tetap disiapkan. Selama menunggu, konversi utama situs = web app sirkopos.com/app (lihat 09). Saat rilis: isi `PLAY_STORE_URL` di `.env` server; beranda otomatis menampilkan tombol Google Play sebagai pilihan kedua.
+
 Untuk aplikasi, pencarian di dalam Play Store sering jadi sumber unduhan terbesar. Listing yang baik juga
 menjadi tautan dan sinyal merek untuk sirkopos.com.
 
