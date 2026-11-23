@@ -63,6 +63,7 @@ import menuOpen from '@material-design-icons/svg/outlined/menu_open.svg?raw';
 import qrCodeScanner from '@material-design-icons/svg/outlined/qr_code_scanner.svg?raw';
 import cameraSwitch from '@material-design-icons/svg/outlined/cameraswitch.svg?raw';
 import history from '@material-design-icons/svg/outlined/history.svg?raw';
+import collapseRight from '@material-design-icons/svg/outlined/keyboard_double_arrow_right.svg?raw';
 
 const ICONS = {
   home, homeFilled, pointOfSale, pointOfSaleFilled, inventory2, inventory2Filled, barChart, barChartFilled,
@@ -71,7 +72,7 @@ const ICONS = {
   playCircle, stopCircle, moveToInbox, addBox, requestQuote, payments, trendingUp, schedule, warningAmber,
   dateRange, search, close, pauseCircle, shoppingCart, removeShoppingCart, deleteSweep, personOutline,
   personAdd, remove, add, localOffer, discount, arrowBack, tableView, pictureAsPdf, check, sync, category,
-  straighten, supportAgent, menu, menuOpen, qrCodeScanner, cameraSwitch, history,
+  straighten, supportAgent, menu, menuOpen, qrCodeScanner, cameraSwitch, history, collapseRight,
 } as const;
 
 export type IconName = keyof typeof ICONS;

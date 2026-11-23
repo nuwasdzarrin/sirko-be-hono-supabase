@@ -580,3 +580,20 @@
 @media (max-width: 860px) {
   .cards.points-cards { grid-template-columns: minmax(0, 1fr); padding: 0; }
 }
+
+/* ── Kasir desktop: keranjang bisa diminimalkan jadi FAB ikon (seperti aplikasi HP) ── */
+.d-cart-fab { display: none; }
+@media (max-width: 860px) {
+  .d-cart-min { display: none; }
+}
+@media (min-width: 861px) {
+  .pos.cart-min { grid-template-columns: minmax(0, 1fr); }
+  .pos.cart-min .pos-cart { display: none; }
+  .pos.cart-min .pos-left { padding-right: 16px; }
+  .d-cart-fab {
+    display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 25;
+    animation: m-sheet-in 0.18s ease-out;
+  }
+  .d-cart-fab .m-badge { top: 6px; right: 6px; }
+  .d-cart-min { margin-left: 2px; }
+}
