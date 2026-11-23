@@ -49,9 +49,7 @@ export function siteAdminRoutes(send: Send, flash: Flash, adminName: (c: Context
       const body = await c.req.parseBody();
       const file = body.file;
       if (!(file instanceof File) || file.size === 0) return c.json({ error: 'Pilih file gambar.' }, 422);
-      const small = body.small;
-      if (small instanceof File && small.size > 0) return c.json({ url: await site.uploadCover(file, small) });
-      return c.json({ url: await site.uploadImage(file) });
+      return c.json(body.kind === 'cover' ? await site.uploadCover(file) : await site.uploadImage(file));
     } catch (e) {
       const m = errMsg(e);
       if (!m) throw e;

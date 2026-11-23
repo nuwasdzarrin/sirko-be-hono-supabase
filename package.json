@@ -39,6 +39,7 @@
     "marked": "^14.1.4",
     "postgres": "^3.4.5",
     "sanitize-html": "^2.18.1",
+    "sharp": "^0.35.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -47,7 +48,6 @@
     "@types/node": "^22.10.2",
     "@types/sanitize-html": "^2.16.2",
     "better-sqlite3": "^13.0.3",
-    "sharp": "^0.35.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

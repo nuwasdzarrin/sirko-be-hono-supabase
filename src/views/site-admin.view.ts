@@ -188,7 +188,7 @@ ${o.error ? `<div class="flash err" role="alert">${esc(o.error)}</div>` : ''}
       <h3>Ringkasan &amp; gambar</h3>
       <label for="excerpt">Ringkasan (kartu artikel) <span class="cnt" data-count="excerpt" data-min="80" data-max="220"></span></label>
       <textarea id="excerpt" name="excerpt" rows="3" maxlength="320">${v('excerpt')}</textarea>
-      <label>Gambar sampul (1200×630, juga gambar share)</label>
+      <label>Gambar sampul (otomatis dipotong 1200×630 &amp; dikompres ke WebP ≤ 100 KB)</label>
       <div class="cover-box" id="cover-box">${p?.coverUrl ? `<img src="${esc(p.coverUrl)}" alt="">` : 'Belum ada sampul — situs memakai gambar bawaan Sirko'}</div>
       <input type="hidden" id="coverUrl" name="coverUrl" value="${v('coverUrl')}">
       <div class="row2"><button type="button" class="btn ghost" id="cover-btn">Unggah sampul</button><button type="button" class="btn ghost" id="cover-del">Hapus</button></div>
@@ -326,15 +326,17 @@ const EDITOR_JS = `<script src="${IMG_LIB}" integrity="${IMG_SRI}" crossorigin="
   function update(){counters(); seo(); clearTimeout(pvTimer); pvTimer=setTimeout(function(){renderPv()},700)}
   ['input','change'].forEach(function(ev){f.addEventListener(ev,function(e){if(e.target!==title)update()})});
 
-  // ── unggah gambar (kompres di browser ≤ 400 KB, WebP/JPG) ──
-  async function upload(file,maxW){
+  // ── unggah gambar: server mengonversi ke WebP ≤ 100 KB (maks 200 KB); browser hanya mengecilkan
+  //    sumber besar (≤ 2400 px) agar unggahan dari HP cepat. Sampul: + JPG khusus og:image. ──
+  async function upload(file,kind){
     if(!/^image\\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Pakai JPG, PNG, atau WebP.');
-    var type=file.type==='image/jpeg'?'image/jpeg':'image/webp', out=file;
-    if(window.imageCompression) out=await window.imageCompression(file,{maxSizeMB:0.38,maxWidthOrHeight:maxW,useWebWorker:true,fileType:type,initialQuality:0.82,libURL:'${IMG_LIB}'});
-    var name=slugify(file.name.replace(/\\.[^.]*$/,''))||'gambar';
-    var fd=new FormData(); fd.append('file',new File([out],name+(type==='image/jpeg'?'.jpg':'.webp'),{type:type}));
-    var r=await fetch('/dashboard/site/upload',{method:'POST',body:fd}); var j=await r.json();
-    if(!r.ok) throw new Error(j.error||'Unggah gagal'); return j.url;
+    var out=file;
+    if(window.imageCompression && file.size>1.5*1048576) try{out=await window.imageCompression(file,{maxSizeMB:1.5,maxWidthOrHeight:2400,useWebWorker:true,initialQuality:0.9,libURL:'${IMG_LIB}'})}catch(_){out=file}
+    if(out.size>12*1048576) throw new Error('Gambar maksimal 12 MB.');
+    var name=(slugify(file.name.replace(/\\.[^.]*$/,''))||(kind==='cover'?'sampul':'gambar'))+(file.type==='image/png'?'.png':file.type==='image/webp'?'.webp':'.jpg');
+    var fd=new FormData(); fd.append('file',new File([out],name,{type:out.type||file.type})); fd.append('kind',kind);
+    var r=await fetch('/dashboard/site/upload',{method:'POST',body:fd}); var j=await r.json().catch(function(){return {}});
+    if(!r.ok) throw new Error(j.error||'Unggah gagal'); return j;
   }
   $('img-btn').addEventListener('click',function(){$('img-file').click()});
   $('img-file').addEventListener('change',async function(){
@@ -342,27 +344,15 @@ const EDITOR_JS = `<script src="${IMG_LIB}" integrity="${IMG_SRI}" crossorigin="
     var alt=prompt('Teks alt gambar (jelaskan isi gambar, penting untuk SEO):','')||'';
     var b=$('img-btn'), o=b.textContent; b.textContent='Mengunggah…'; b.disabled=true;
     try{
-      var url=await upload(file,1600), dim='';
-      try{var bm=await createImageBitmap(file), sc=Math.min(1,1600/Math.max(bm.width,bm.height)); dim='#w='+Math.round(bm.width*sc)+'&h='+Math.round(bm.height*sc)}catch(_){}
-      block('!['+alt+']('+url+dim+')');
+      var j=await upload(file,'body');
+      block('!['+alt+']('+j.url+(j.width?'#w='+j.width+'&h='+j.height:'')+')');
     }catch(e){alert(e.message)} b.textContent=o; b.disabled=false;
   });
-  /** Potong tengah ke rasio 1200:630 lalu JPEG (pratinjau WhatsApp/Facebook andal). */
-  async function coverJpeg(file,w,h){
-    var bm=await createImageBitmap(file), r=w/h, sw=bm.width, sh=bm.height, sx=0, sy=0;
-    if(sw/sh>r){sw=Math.round(sh*r);sx=Math.round((bm.width-sw)/2)}else{sh=Math.round(sw/r);sy=Math.round((bm.height-sh)/2)}
-    var cv=document.createElement('canvas'); cv.width=w; cv.height=h; var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,w,h); cx.drawImage(bm,sx,sy,sw,sh,0,0,w,h);
-    for(var q=0.85;q>=0.5;q-=0.1){var blob=await new Promise(function(res){cv.toBlob(res,'image/jpeg',q)}); if(blob.size<=380*1024) return blob}
-    throw new Error('Sampul terlalu besar setelah dikompres.');
-  }
   $('cover-btn').addEventListener('click',function(){$('cover-file').click()});
   $('cover-file').addEventListener('change',async function(){
-    var file=this.files[0]; this.value=''; if(!file) return; var box=$('cover-box'); box.textContent='Mengunggah…';
+    var file=this.files[0]; this.value=''; if(!file) return; var box=$('cover-box'); box.textContent='Mengunggah & mengompres ke WebP…';
     try{
-      if(!/^image\\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Pakai JPG, PNG, atau WebP.');
-      var name=(slugify(file.name.replace(/\\.[^.]*$/,''))||'sampul')+'.jpg';
-      var fd=new FormData(); fd.append('file',new File([await coverJpeg(file,1200,630)],name,{type:'image/jpeg'})); fd.append('small',new File([await coverJpeg(file,600,315)],name,{type:'image/jpeg'}));
-      var r=await fetch('/dashboard/site/upload',{method:'POST',body:fd}), j=await r.json(); if(!r.ok) throw new Error(j.error||'Unggah gagal');
+      var j=await upload(file,'cover');
       $('coverUrl').value=j.url; box.innerHTML='<img src="'+j.url+'" alt="">'; if(!$('coverAlt').value) $('coverAlt').value=title.value; update();
     }catch(e){box.textContent=e.message}
   });
