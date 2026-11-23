@@ -33,7 +33,7 @@ export function PembelianPage() {
       <div class="row-btns">
         <h1 style={{ margin: 0 }}>Pembelian & stok</h1>
         <span class="spacer" />
-        <div class="seg">
+        <div class="seg ptabs">
           <button class={tab() === 'beli' ? 'on' : ''} onClick={() => nav('/pembelian')}>Pembelian</button>
           <button class={tab() === 'supplier' ? 'on' : ''} onClick={() => nav('/pembelian/supplier')}>Supplier</button>
           <button class={tab() === 'opname' ? 'on' : ''} onClick={() => nav('/pembelian/opname')}>Stok opname</button>

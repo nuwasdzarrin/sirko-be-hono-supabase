@@ -17,6 +17,9 @@ import {
 } from '../pos/repo';
 import { loadReceipt, printReceipt, Receipt, type ReceiptData } from '../pos/receipt';
 import { Modal, MoneyInput, Toast } from './ui';
+import { useNavigate } from '@solidjs/router';
+import { isMobile } from '../lib/media';
+import { Icon } from '../ui/icon';
 
 const live = (r: Row) => r.deletedAt == null;
 
@@ -88,7 +91,14 @@ export function KasirPage() {
   };
 
   let searchEl: HTMLInputElement | undefined;
-  const focusSearch = () => searchEl?.focus();
+  // HP: jangan fokus otomatis (keyboard layar akan terus muncul). Desktop: siap untuk scanner USB.
+  const focusSearch = () => !isMobile() && searchEl?.focus();
+  const nav = useNavigate();
+  // HP: keranjang = bottom sheet (CartPanel di showModalBottomSheet), dibuka lewat FAB keranjang.
+  const [cartOpen, setCartOpen] = createSignal(false);
+  createEffect(() => {
+    if (!cart.lines.length) setCartOpen(false);
+  });
 
   /** Enter di kotak cari = scan barcode (scanner USB mengetik + Enter) atau satu-satunya hasil. */
   const onSearchEnter = async () => {
@@ -208,11 +218,17 @@ export function KasirPage() {
   return (
     <div class="pos">
       <section class="pos-left">
+        <Show when={can('ppobSell')}>
+          <div class="m-tabs">
+            <button class="on">Fisik</button>
+            <button onClick={() => setDialog({ kind: 'ppob' })}>PPOB</button>
+          </div>
+        </Show>
         <div class="pos-bar">
           <input
             ref={searchEl}
             class="pos-search"
-            placeholder="Cari nama / scan barcode lalu Enter  (F2)"
+            placeholder={isMobile() ? 'Cari nama atau barcode…' : 'Cari nama / scan barcode lalu Enter  (F2)'}
             value={query()}
             onInput={(e) => setQuery(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -221,8 +237,14 @@ export function KasirPage() {
             }}
             aria-label="Cari produk atau scan barcode"
           />
-          <Show when={can('ppobSell')}><button class="btn" onClick={() => setDialog({ kind: 'ppob' })} title="Pulsa, paket data, token listrik">PPOB</button></Show>
-          <ShiftButton bill={bill()}required={settings().requireBill} onClick={() => setDialog({ kind: 'shift' })} />
+          <button class="m-icon-btn" title="Transaksi tertunda" onClick={() => setDialog({ kind: 'held' })}>
+                <Icon name="pauseCircle" />
+                <Show when={heldCount()}><span class="m-badge">{heldCount()}</span></Show>
+              </button>
+              <button class="m-icon-btn" title="Riwayat transaksi" onClick={() => nav('/transaksi')}><Icon name="receiptLong" /></button>
+              <button class={`m-icon-btn ${bill() ? 'm-shift-on' : settings().requireBill ? 'm-shift-req' : ''}`} title={bill() ? 'Shift dibuka — ketuk untuk tutup' : 'Buka shift'} onClick={() => setDialog({ kind: 'shift' })}>
+                <Icon name={bill() ? 'stopCircle' : 'playCircle'} />
+              </button>
         </div>
         <Show when={categories().length}>
           <div class="chips">
@@ -235,10 +257,11 @@ export function KasirPage() {
             {(p) => {
               const s = () => stockOf(p);
               return (
-                <button class={`pcard ${p.needsPrice === true ? 'np' : ''}`} onClick={() => void add(p)}>
+                <button class={`pcard ${p.needsPrice === true ? 'np' : ''} ${s() <= 0 && p.hasVariants !== true && !settings().allowNegative ? 'out' : ''}`} onClick={() => void add(p)}>
+                  <span class="pimg"><Icon name="inventory2" size={36} /></span>
                   <span class="pname">{String(p.name)}</span>
                   <span class="pprice">{p.needsPrice === true ? 'Perlu harga' : p.hasVariants === true ? `${(variantsOf().get(p.id) ?? []).length} varian` : rp(Number(p.sellingPrice ?? 0))}</span>
-                  <span class={`pstock ${s() <= 0 ? 'bad' : s() <= Number(p.minStock ?? 0) ? 'warn' : ''}`}>Stok {num(s())}</span>
+                  <span class={`pstock ${s() <= 0 ? 'bad' : s() <= Number(p.minStock ?? 0) ? 'warn' : ''}`}>{s() <= 0 ? 'Stok habis' : `Stok ${num(s())}`}</span>
                 </button>
               );
             }}
@@ -247,41 +270,79 @@ export function KasirPage() {
         <Show when={filtered().length > 200}><p class="mut small">Menampilkan 200 dari {filtered().length} produk — perjelas pencarian.</p></Show>
       </section>
 
-      <aside class="pos-cart">
-        <div class="cart-head">
-          <b>Keranjang</b>
-          <span class="mut small">{totals().itemCount} item</span>
-          <span class="spacer" />
-          <button class="btn sm" onClick={() => setDialog({ kind: 'held' })}>Tertunda{heldCount() ? ` (${heldCount()})` : ''}</button>
-        </div>
-        <button class="cust" onClick={() => setDialog({ kind: 'customer' })}>
-          <span class="mut small">Pelanggan (F4)</span>
-          <b>{customer() ? String(customer()!.name) : 'Umum'}</b>
-          <Show when={customer() && Number(customer()!.debtBalance ?? 0) > 0}><span class="small bad-t">Hutang {rp(Number(customer()!.debtBalance))}</span></Show>
-        </button>
+      <Show when={isMobile()}>
+        <Show when={cartOpen()}><div class="m-sheet-bg" onClick={() => setCartOpen(false)} /></Show>
+        <Show when={!cartOpen()}>
+          <button class="m-fab round m-cart-fab" title="Keranjang" onClick={() => cart.lines.length ? setCartOpen(true) : say('Keranjang masih kosong.', 'warn')}>
+            <Icon name="shoppingCart" />
+            <Show when={totals().itemCount}><span class="m-badge">{num(totals().itemCount)}</span></Show>
+          </button>
+          <Show when={cart.lines.length}>
+            <div class="m-cartbar">
+              <button class="m-cartbar-sum" onClick={() => setCartOpen(true)}>
+                <span class="small">{num(totals().itemCount)} item</span>
+                <b>{rp(totals().grandTotal)}</b>
+              </button>
+              <button class="btn primary" onClick={startPay}><Icon name="payments" size={18} />Bayar</button>
+            </div>
+          </Show>
+        </Show>
+      </Show>
+
+      <aside class={`pos-cart ${cartOpen() ? 'open' : ''}`}>
+        <div class="m-cart-head">
+            <div class="m-cart-title">
+              <Icon name="shoppingCart" size={20} />
+              <b>Keranjang</b>
+              <span>({num(totals().itemCount)})</span>
+              <span class="spacer" />
+              <button class="btn text sm" disabled={!cart.lines.length} onClick={() => confirm('Kosongkan keranjang?') && clearCart()}>
+                <Icon name="deleteSweep" size={18} />Kosongkan
+              </button>
+            </div>
+            <button class="m-cart-cust" title="Pilih pelanggan (F4)" onClick={() => setDialog({ kind: 'customer' })}>
+              <Icon name="personOutline" size={20} />
+              <Show when={customer()} fallback={<span class="mut">Pilih pelanggan (untuk hutang)</span>}>
+                <b>{String(customer()!.name)}</b>
+                <Show when={Number(customer()!.debtBalance ?? 0) > 0}><span class="small bad-t">Hutang {rp(Number(customer()!.debtBalance))}</span></Show>
+              </Show>
+              <span class="spacer" />
+              <Show when={customer()} fallback={<Icon name="chevronRight" />}>
+                <span class="m-icon-btn sm" role="button" title="Hapus pelanggan" onClick={(e) => { e.stopPropagation(); setCustomer(null); }}><Icon name="close" size={18} /></span>
+              </Show>
+            </button>
+          </div>
         <div class="lines">
-          <For each={totals().lineResults} fallback={<p class="mut empty">Scan barcode atau klik produk untuk menambah.</p>}>
+          <For each={totals().lineResults} fallback={<div class="m-empty"><Icon name="removeShoppingCart" size={48} /><span>Keranjang kosong</span><span class="small">Ketuk produk untuk menambah</span></div>}>
             {(r) => {
               const k = lineKey(r.line);
               const over = () => !r.line.ppob && !settings().allowNegative && r.line.qty > r.line.availableStock;
               return (
-                <div class="line">
-                  <button class="lname" onClick={() => setDialog({ kind: 'line', key: k })} title="Ubah jumlah / diskon">
-                    {r.line.nameSnapshot}
-                    <span class="small mut">
-                      {rp(r.effectiveUnitPrice)}{r.appliedWholesale ? ' · grosir' : ''}{r.discount ? ` · diskon ${rp(r.discount)}` : ''}
-                    </span>
-                    <Show when={over()}><span class="small bad-t">Stok tinggal {r.line.availableStock}</span></Show>
-                  </button>
-                  <Show when={!r.line.ppob} fallback={<button class="btn sm" aria-label="Hapus item PPOB" onClick={() => removeLine(k)}>Hapus</button>}>
-                    <div class="qty">
-                      <button aria-label="Kurangi" onClick={() => setQty(k, r.line.qty - 1)}>−</button>
-                      <input value={r.line.qty} inputmode="numeric" aria-label="Jumlah" onChange={(e) => setQty(k, parseInt(e.currentTarget.value, 10) || 0)} onFocus={(e) => e.currentTarget.select()} />
-                      <button aria-label="Tambah" onClick={() => setQty(k, r.line.qty + 1)}>+</button>
+                <div class="m-line">
+                    <div class="m-line-r1">
+                      <button class="m-line-name" onClick={() => setDialog({ kind: 'line', key: k })}>{r.line.nameSnapshot}</button>
+                      <button class="m-icon-btn sm" aria-label="Hapus item" onClick={() => removeLine(k)}><Icon name="close" size={18} /></button>
                     </div>
-                  </Show>
-                  <span class="ltotal">{rp(r.lineTotal)}</span>
-                </div>
+                    <div class="m-line-r2">
+                      <span class="small">
+                        {rp(r.effectiveUnitPrice)}
+                        <Show when={r.appliedWholesale}> <span class="m-grosir">Grosir</span></Show>
+                      </span>
+                      <Show when={over()}><span class="small bad-t">Stok tinggal {r.line.availableStock}</span></Show>
+                      <span class="spacer" />
+                      <Show when={!r.line.ppob} fallback={<span class="m-ppob-tag"><Icon name="bolt" size={16} />PPOB</span>}>
+                        <button class="m-step" aria-label="Kurangi" onClick={() => setQty(k, r.line.qty - 1)}><Icon name="remove" size={18} /></button>
+                        <b class="m-qty">{num(r.line.qty)}</b>
+                        <button class="m-step" aria-label="Tambah" onClick={() => setQty(k, r.line.qty + 1)}><Icon name="add" size={18} /></button>
+                      </Show>
+                    </div>
+                    <div class="m-line-r3">
+                      <button class="m-disc-btn" onClick={() => setDialog({ kind: 'line', key: k })}>
+                        <Icon name="localOffer" size={16} />{r.discount ? `Diskon -${rp(r.discount)}` : 'Diskon'}
+                      </button>
+                      <b>{rp(r.lineTotal)}</b>
+                    </div>
+                  </div>
               );
             }}
           </For>
@@ -289,17 +350,17 @@ export function KasirPage() {
         <div class="sum">
           <div class="kv"><span>Subtotal</span><span>{rp(totals().subtotal)}</span></div>
           <button class="kv link" onClick={() => setDialog({ kind: 'txDiscount' })}>
-            <span>Diskon transaksi</span><span>{totals().discountTotal ? `-${rp(totals().discountTotal)}` : 'Tambah'}</span>
+            <span><Icon name="discount" size={16} /> Diskon transaksi</span>
+            <span class="m-ink">{totals().discountTotal ? `-${rp(totals().discountTotal)}` : 'Rp0'}</span>
           </button>
           <Show when={totals().taxTotal}><div class="kv"><span>Pajak{totals().grandTotalBeforeRounding === totals().subtotal - totals().discountTotal ? ' (termasuk)' : ''}</span><span>{rp(totals().taxTotal)}</span></div></Show>
           <Show when={totals().roundingAdjustment}><div class="kv"><span>Pembulatan</span><span>{rp(totals().roundingAdjustment)}</span></div></Show>
           <div class="kv total"><span>Total</span><span>{rp(totals().grandTotal)}</span></div>
           <input class="note" placeholder="Catatan (opsional)" value={cart.note} onChange={(e) => setNote(e.currentTarget.value)} maxlength="200" />
-          <div class="actions">
-            <button class="btn" disabled={!cart.lines.length} onClick={() => confirm('Kosongkan keranjang?') && clearCart()}>Kosongkan</button>
-            <button class="btn" disabled={!cart.lines.length} onClick={() => void hold()}>Tunda (F9)</button>
-            <button class="btn primary big" disabled={!cart.lines.length} onClick={startPay}>Bayar {rp(totals().grandTotal)} (F8)</button>
-          </div>
+          <div class="m-cart-actions">
+              <button class="btn big" title="Tunda (F9)" disabled={!cart.lines.length} onClick={() => void hold()}><Icon name="pauseCircle" size={18} />Tunda</button>
+              <button class="btn primary big" title="Bayar (F8)" disabled={!cart.lines.length} onClick={startPay}><Icon name="payments" size={18} />Bayar&nbsp; {rp(totals().grandTotal)}</button>
+            </div>
         </div>
       </aside>
 
@@ -330,16 +391,6 @@ export function KasirPage() {
       </Show>
       <Toast msg={toast().msg} kind={toast().kind} />
     </div>
-  );
-}
-
-function ShiftButton(props: { bill: Row | null; required: boolean; onClick: () => void }) {
-  const t = () => (props.bill ? new Date(Number(props.bill.openedAt)).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '');
-  return (
-    <button class={`btn ${!props.bill && props.required ? 'warn' : ''}`} onClick={props.onClick} title="Buka / tutup shift (rekap kas laci)">
-      <span class={`dot ${props.bill ? '' : 'off'}`} />
-      {props.bill ? `Shift sejak ${t()}` : 'Shift belum dibuka'}
-    </button>
   );
 }
 

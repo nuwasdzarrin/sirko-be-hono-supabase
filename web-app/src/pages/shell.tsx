@@ -1,187 +1,49 @@
-import { createResource, createSignal, For, Show, type ParentProps } from 'solid-js';
+import { createResource, For, Show, type ParentProps } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
-import { Brand } from './auth';
-import { MENU, CURRENT_PHASE, menuVisible } from '../menu';
 import { SYNC_TABLES } from '../db/db';
-import { switchBusiness } from '../session/auth';
-import { ApiError } from '../lib/api';
-import { daysLeft } from '../lib/plan';
-import { buildReport, makeRange } from '../finance/report';
-import { rp } from '../pos/calc';
-import {
-  activeStore, afterSessionChange, can, db, hasFeature, lockToUserPicker, online, session, signOut,
-  sync, syncNow, unsyncedEverywhere, user,
-} from '../state';
+import { DesktopSidebar, DesktopTopBar, MobileAppBar, MobileNav, MobileSubBar, sidebarOpen, useFocusClass } from '../ui/app-shell';
+import { Beranda } from './beranda';
+import { db, online, signOut, sync, syncNow, unsyncedEverywhere, user } from '../state';
 
 const fmtTime = (ms: number) => (ms ? new Date(ms).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'belum pernah');
 
-function SyncChip() {
-  const state = () =>
-    !online() ? { cls: 'off', text: 'Offline' }
-    : sync.needsLogin ? { cls: 'bad', text: 'Perlu masuk lagi' }
-    : sync.running ? { cls: 'warn', text: 'Menyinkron…' }
-    : sync.rejected ? { cls: 'bad', text: `${sync.rejected} ditolak server` }
-    : sync.dirty ? { cls: 'warn', text: `${sync.dirty} belum tersinkron` }
-    : { cls: '', text: 'Tersinkron' };
-  return (
-    <button class="chip" title={`Sinkron terakhir: ${fmtTime(sync.lastAt)}`} onClick={() => void syncNow({ full: true })}>
-      <span class={`dot ${state().cls}`} />
-      {state().text}
-    </button>
-  );
+/** Keluar akun: peringatkan perubahan yang belum tersinkron, lalu hapus data toko dari browser. */
+export async function confirmLogout(nav: (to: string, o?: { replace?: boolean }) => void): Promise<void> {
+  const n = await unsyncedEverywhere();
+  const warn = n
+    ? `Masih ada ${n} perubahan yang BELUM tersinkron${online() ? ' (akan dicoba dikirim dulu)' : ' dan tidak ada internet — perubahan itu akan HILANG'}.\n\n`
+    : '';
+  if (!confirm(`${warn}Keluar akan menghapus semua data toko dari browser ini. Lanjutkan?`)) return;
+  await signOut();
+  nav('/masuk', { replace: true });
 }
 
 export function Shell(props: ParentProps) {
   const nav = useNavigate();
-  const items = () => MENU.filter((m) => menuVisible(m, can, !!user()?.isOwner));
-  const logout = async () => {
-    const n = await unsyncedEverywhere();
-    const warn = n
-      ? `Masih ada ${n} perubahan yang BELUM tersinkron${online() ? ' (akan dicoba dikirim dulu)' : ' dan tidak ada internet — perubahan itu akan HILANG'}.\n\n`
-      : '';
-    if (!confirm(`${warn}Keluar akan menghapus semua data toko dari browser ini. Lanjutkan?`)) return;
-    await signOut();
-    nav('/masuk', { replace: true });
-  };
+  const focus = useFocusClass();
   return (
-    <div class="shell">
-      <aside class="side">
-        <Brand sub={activeStore()?.name} />
-        <nav class="nav">
-          <For each={items()}>
-            {(m) =>
-              m.phase <= CURRENT_PHASE ? (
-                <A href={m.path} end={m.path === '/'} activeClass="active">{m.label}</A>
-              ) : (
-                <a class="soon" title={`${m.desc} — hadir di Fase ${m.phase}`} aria-disabled="true">
-                  {m.label} <span class="tag">Fase {m.phase}</span>
-                </a>
-              )
-            }
-          </For>
-        </nav>
-        <div class="grow" />
-        <Show when={hasFeature('staff')}>
-          <button class="btn" onClick={async () => { await lockToUserPicker(); nav('/pengguna'); }}>Ganti pengguna</button>
-        </Show>
-        <Show when={user()?.isOwner}>
-          <button class="btn bad" onClick={logout}>Keluar</button>
-        </Show>
-      </aside>
+    <div class="shell" classList={{ 'm-focus': focus(), 'd-collapsed': !sidebarOpen() }}>
+      <DesktopSidebar onLogout={() => void confirmLogout(nav)} />
       <div class="main">
-        <header class="top">
-          <span class="store">{activeStore()?.name}</span>
-          <span class="mut small">· {user()?.name} ({user()?.isOwner ? 'pemilik' : user()?.role})</span>
-          <span class="spacer" />
-          <SyncChip />
-        </header>
+        <DesktopTopBar />
+        <MobileAppBar />
+        <MobileSubBar />
         <Show when={sync.needsLogin}>
-          <div class="alert warn" style={{ margin: '16px 24px 0' }}>
+          <div class="alert warn">
             Sesi toko ini di server berakhir. Data tetap aman di browser, tapi belum bisa sinkron.{' '}
             <Show when={user()?.isOwner}><A href="/masuk">Masuk lagi</A></Show>
           </div>
         </Show>
         <div class="content">{props.children}</div>
+        <MobileNav />
       </div>
     </div>
   );
 }
 
+/** Beranda — satu tampilan untuk HP & desktop (sama dengan DashboardPage aplikasi). */
 export function HomePage() {
-  const s = () => session();
-  const [counts] = createResource(
-    () => [db(), sync.lastAt] as const,
-    async ([d]) => {
-      if (!d) return null;
-      const live = async (t: string) => (await d.t(t).toArray()).filter((r) => r.deletedAt == null).length;
-      return { products: await live('products'), customers: await live('customers'), transactions: await live('transactions') };
-    },
-  );
-  // Dashboard hari ini (sama dengan Beranda HP; laba hanya untuk izin viewCostProfit).
-  const [today] = createResource(
-    () => [db(), sync.lastAt, sync.dirty] as const,
-    async ([d]) => (d && can('dashboardAccess') ? buildReport(d, makeRange('today')) : null),
-  );
-  const plan = () => s()?.plan;
-  const left = () => (plan() ? daysLeft(plan()!, Date.now()) : null);
-  return (
-    <>
-      <h1>Halo, {user()?.name}</h1>
-      <p class="mut" style={{ margin: '0 0 20px' }}>
-        Paket {plan()?.name === 'juragan' ? 'Juragan' : 'Warung'}
-        <Show when={left() !== null}> · {left()} hari lagi</Show> · Sinkron terakhir {fmtTime(sync.lastAt)}
-      </p>
-      <Show when={today()}>
-        {(t) => (
-          <>
-            <h2>Hari ini</h2>
-            <div class="cards" style={{ 'margin-bottom': '18px' }}>
-              <div class="card kpi"><div class="n">{rp(t().sales.grossRevenue)}</div><div class="mut">Omzet · {t().sales.transactionCount} transaksi</div></div>
-              <Show when={can('viewCostProfit')}><div class="card kpi"><div class="n">{rp(t().profit.grossProfit)}</div><div class="mut">Laba kotor</div></div></Show>
-              <div class="card kpi"><div class="n">{t().sales.itemCount}</div><div class="mut">Item terjual</div></div>
-              <div class="card kpi"><div class={`n ${t().status.outstanding ? 'bad-t' : ''}`}>{rp(t().status.outstanding)}</div><div class="mut">Kasbon hari ini</div></div>
-            </div>
-          </>
-        )}
-      </Show>
-      <h2>Data toko</h2>
-      <div class="cards" style={{ 'margin-bottom': '24px' }}>
-        <div class="card kpi"><div class="n">{counts()?.products ?? '—'}</div><div class="mut">Produk</div></div>
-        <div class="card kpi"><div class="n">{counts()?.customers ?? '—'}</div><div class="mut">Pelanggan</div></div>
-        <div class="card kpi"><div class="n">{counts()?.transactions ?? '—'}</div><div class="mut">Transaksi</div></div>
-        <div class="card kpi"><div class="n">{sync.dirty}</div><div class="mut">Belum tersinkron</div></div>
-      </div>
-      <h2>Menu</h2>
-      <div class="cards">
-        <For each={MENU.filter((m) => m.path !== '/' && menuVisible(m, can, !!user()?.isOwner))}>
-          {(m) => (
-            <Show
-              when={m.phase <= CURRENT_PHASE}
-              fallback={<div class="card tile soon"><b>{m.label}</b><span class="mut small">{m.desc}</span><div class="small mut">Hadir di Fase {m.phase}</div></div>}
-            >
-              <A class="card tile" href={m.path}><b>{m.label}</b><span class="mut small">{m.desc}</span></A>
-            </Show>
-          )}
-        </For>
-      </div>
-      <Show when={(s()?.businesses.length ?? 0) > 1 && user()?.isOwner}>
-        <StoreSwitcher />
-      </Show>
-    </>
-  );
-}
-
-function StoreSwitcher() {
-  const [error, setError] = createSignal('');
-  const [busy, setBusy] = createSignal(false);
-  const go = async (id: string) => {
-    setBusy(true);
-    setError('');
-    try {
-      await syncNow();
-      await afterSessionChange(await switchBusiness(id));
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Pindah toko butuh internet.');
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div class="card" style={{ 'margin-top': '24px' }}>
-      <h2>Toko Anda</h2>
-      <Show when={error()}><div class="alert err">{error()}</div></Show>
-      <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
-        <For each={session()?.businesses}>
-          {(b) => (
-            <button class={`btn ${b.id === session()?.activeBusinessId ? 'primary' : ''}`} disabled={busy() || b.id === session()?.activeBusinessId || !online()} onClick={() => go(b.id)}>
-              {b.name}
-            </button>
-          )}
-        </For>
-      </div>
-      <p class="mut small">Data tiap toko disimpan terpisah di browser ini. Pindah toko butuh internet.</p>
-    </div>
-  );
+  return <Beranda />;
 }
 
 /** Isi data toko di browser + status sinkron per tabel. */

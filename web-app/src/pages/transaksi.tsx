@@ -6,6 +6,7 @@ import { activeStore, db, syncNow } from '../state';
 import { METHOD_LABEL, rp, type PaymentMethod } from '../pos/calc';
 import { PosError, voidTransaction } from '../pos/repo';
 import { fmtDateTime, loadReceipt, printReceipt, Receipt } from '../pos/receipt';
+import { Icon } from '../ui/icon';
 
 /**
  * Riwayat transaksi (sama dengan HP: terbaru dulu, nota yang dibatalkan tersembunyi kecuali diminta)
@@ -65,35 +66,37 @@ export function TransaksiPage() {
 
   return (
     <div class="split">
-      <section class="split-list">
-        <h1>Riwayat transaksi</h1>
-        <div class="filters">
-          <div class="seg">
-            <For each={RANGES}>{(r) => <button class={range() === r.key ? 'on' : ''} onClick={() => setRange(r.key)}>{r.label}</button>}</For>
+      {/* HP: daftar seperti TransactionHistoryScreen aplikasi */}
+        <section class="split-list">
+          <div class="m-toolbar">
+            <input class="pos-search" placeholder="Cari no. nota / pelanggan" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
           </div>
-          <input class="pos-search" placeholder="Cari no. nota / pelanggan" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
-          <label class="small mut"><input type="checkbox" checked={showVoid()} onChange={(e) => setShowVoid(e.currentTarget.checked)} /> Tampilkan yang dibatalkan</label>
-        </div>
-        <p class="mut small">{summary().count} nota · {rp(summary().total)}</p>
-        <div class="card flush">
-          <table class="list hover">
-            <thead><tr><th>Nota</th><th>Waktu</th><th>Pelanggan</th><th>Status</th><th class="num">Total</th></tr></thead>
-            <tbody>
-              <For each={list().slice(0, 500)} fallback={<tr><td colspan="5" class="mut">Belum ada transaksi pada rentang ini.</td></tr>}>
-                {(t) => (
-                  <tr class={params.id === t.id ? 'sel' : ''} onClick={() => nav(`/transaksi/${t.id}`)}>
-                    <td>{String(t.invoiceNo)}</td>
-                    <td>{fmtDateTime(Number(t.datetime))}</td>
-                    <td>{t.customerId ? people().get(String(t.customerId)) ?? '—' : 'Umum'}</td>
-                    <td><span class={`badge ${STATUS[String(t.status)]?.[1] ?? ''}`}>{STATUS[String(t.status)]?.[0] ?? String(t.status)}</span></td>
-                    <td class="num">{rp(Number(t.grandTotal ?? 0))}</td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <div class="m-chiprow">
+            <For each={RANGES}>{(r) => <button class={`chip ${range() === r.key ? 'on' : ''}`} onClick={() => setRange(r.key)}>{r.label}</button>}</For>
+            <button class={`chip ${showVoid() ? 'on' : ''}`} onClick={() => setShowVoid(!showVoid())}>Dibatalkan</button>
+          </div>
+          <p class="m-caption">{summary().count} nota · {rp(summary().total)}</p>
+          <div class="m-list">
+            <For each={list().slice(0, 500)} fallback={<div class="m-empty"><Icon name="receiptLong" size={64} /><b>Belum ada transaksi</b></div>}>
+              {(t) => {
+                const st = () => String(t.deletedAt != null ? 'void' : t.status);
+                return (
+                  <button class="m-row" classList={{ sel: params.id === t.id }} onClick={() => nav(`/transaksi/${t.id}`)}>
+                    <span class={`m-avatar tx-${st()}`}><Icon name="receiptLong" /></span>
+                    <span class="m-row-text">
+                      <span class="m-row-title b">{String(t.invoiceNo)}</span>
+                      <span class="m-row-sub">
+                        {fmtDateTime(Number(t.datetime))} • {STATUS[st()]?.[0] ?? st()}
+                        {t.customerId ? ` • ${people().get(String(t.customerId)) ?? ''}` : ''}
+                      </span>
+                    </span>
+                    <span class="m-row-end"><b class={st() === 'void' ? 'mut' : ''}>{rp(Number(t.grandTotal ?? 0))}</b></span>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
+        </section>
       <Show when={params.id} fallback={<aside class="split-detail mut empty">Pilih nota untuk melihat rincian.</aside>}>
         <TxDetail id={params.id!} people={people()} onClose={() => nav('/transaksi')} />
       </Show>

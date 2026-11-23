@@ -264,3 +264,6 @@ table.list.small td { padding: 6px 8px; }
   .content { padding: 16px; }
   .top { padding: 10px 16px; flex-wrap: wrap; }
 }
+
+/* Area gambar kartu produk kasir — hanya tampilan HP (mobile.css). */
+.pimg { display: none; }

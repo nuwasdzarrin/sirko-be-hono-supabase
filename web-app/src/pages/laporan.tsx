@@ -7,6 +7,7 @@ import { PosError } from '../pos/repo';
 import { buildReport, download, employeeSummary, makeRange, toCsv, type DateRange, type Preset, type ReportBundle } from '../finance/report';
 import { deleteClosedBill } from '../finance/wallets';
 import { fmtDateTime } from '../pos/receipt';
+import { Icon } from '../ui/icon';
 
 /** Laporan — isi & rumus sama dengan layar Laporan + Dashboard + Shift aplikasi HP. */
 
@@ -26,9 +27,10 @@ export function RangeBar(props: { range: DateRange; onChange: (r: DateRange) => 
   const custom = () => makeRange('custom', new Date(), { start: new Date(`${start()}T00:00:00`), end: new Date(`${end()}T00:00:00`) });
   return (
     <div class="filters no-print">
-      <div class="seg">
-        <For each={PRESETS}>{([p, l]) => <button class={props.range.preset === p ? 'on' : ''} onClick={() => props.onChange(p === 'custom' ? custom() : makeRange(p))}>{l}</button>}</For>
-      </div>
+      {/* HP: DateRangeBar (ChoiceChip berjajar, bisa digeser) */}
+        <div class="m-chiprow m-range">
+          <For each={PRESETS}>{([p, l]) => <button class={`chip ${props.range.preset === p ? 'on' : ''}`} onClick={() => props.onChange(p === 'custom' ? custom() : makeRange(p))}>{l}</button>}</For>
+        </div>
       <Show when={props.range.preset === 'custom'}>
         <input type="date" class="sel" value={start()} onChange={(e) => { setStart(e.currentTarget.value); props.onChange(custom()); }} aria-label="Dari tanggal" />
         <span class="mut">s/d</span>
@@ -84,6 +86,12 @@ export function LaporanPage() {
       </div>
       <p class="mut small print-only">{activeStore()?.name} · Periode {period()} · dicetak {fmtDateTime(Date.now())} oleh {user()?.name}</p>
       <RangeBar range={range()} onChange={setRange} />
+      <p class="m-period no-print">Periode: {period()}</p>
+        <div class="m-export no-print">
+          <button class="btn" onClick={exportCsv} disabled={!report()}><Icon name="tableView" size={18} />Export XLSX</button>
+          <button class="btn" onClick={() => window.print()}><Icon name="pictureAsPdf" size={18} />Export PDF</button>
+        </div>
+        <button class="btn text sm m-export-tx no-print" onClick={() => void exportTx()}>Ekspor daftar transaksi (CSV)</button>
       <div class="seg tabs no-print">
         <For each={tabs()}>{([k, l]) => <button class={tab() === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>}</For>
       </div>

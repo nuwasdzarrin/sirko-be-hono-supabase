@@ -2,9 +2,12 @@ import { render } from 'solid-js/web';
 import { Router, Route, Navigate } from '@solidjs/router';
 import { Show, type ParentProps } from 'solid-js';
 import './styles.css';
+import './theme.css';
+import './mobile.css';
 import { boot, ready, session, user } from './state';
 import { CreateStorePage, LoginPage, UserPickerPage } from './pages/auth';
 import { DataPage, HomePage, Shell } from './pages/shell';
+import { LainnyaPage } from './pages/lainnya';
 import { can } from './state';
 import type { Permission } from './lib/permissions';
 import { lazy, type Component } from 'solid-js';
@@ -89,6 +92,7 @@ function App() {
       <Route path="/" component={Gate}>
         <Route path="/" component={HomePage} />
         <Route path="/data" component={DataPage} />
+        <Route path="/lainnya" component={LainnyaPage} />
         <Route path="/kasir" component={guard('transactionList', KasirPage)} />
         <Route path="/transaksi/:id?" component={guard('transactionList', TransaksiPage)} />
         <Route path="/produk/:id?" component={guard('productManagement', ProdukPage)} />

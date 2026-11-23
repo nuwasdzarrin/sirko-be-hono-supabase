@@ -31,7 +31,7 @@ export function PpobPage() {
       <div class="row-btns">
         <h1 style={{ margin: 0 }}>PPOB & Poin</h1>
         <span class="spacer" />
-        <div class="seg"><For each={tabs()}>{([k, l]) => <button class={tab() === k ? 'on' : ''} onClick={() => nav(`/ppob/${k}`)}>{l}</button>}</For></div>
+        <div class="seg ptabs"><For each={tabs()}>{([k, l]) => <button class={tab() === k ? 'on' : ''} onClick={() => nav(`/ppob/${k}`)}>{l}</button>}</For></div>
       </div>
       <p class="mut small">Jual pulsa, paket data & token listrik lewat tombol <b>PPOB</b> di halaman Kasir. Pembelian memotong Poin Sirko.</p>
       <Show when={!online()}><div class="alert warn">Halaman ini butuh internet.</div></Show>
