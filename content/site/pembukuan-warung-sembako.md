@@ -8,7 +8,7 @@ focus_keyword: pembukuan warung sembako
 excerpt: Panduan pembukuan warung sembako untuk pemula. Lima catatan yang wajib ada, contoh tabel harian, cara mencocokkan uang laci, dan rekap laba bulanan yang benar.
 category: Keuangan Toko
 tags: [pembukuan, warung sembako, keuangan, kas]
-cover: /img/blog/pembukuan-warung-sembako.webp
+cover: https://media.sirkopos.com/prod/site/blog/pembukuan-warung-sembako.webp
 cover_alt: Pemilik toko sembako menulis di buku catatan di samping kalkulator dan HP, dengan karung beras dan minyak goreng di belakangnya
 published_at: 2026-11-28T08:00:00+07:00
 ---

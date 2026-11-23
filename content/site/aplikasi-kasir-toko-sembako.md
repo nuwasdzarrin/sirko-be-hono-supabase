@@ -8,7 +8,7 @@ focus_keyword: aplikasi kasir toko sembako
 excerpt: Enam aplikasi kasir untuk toko sembako kecil dinilai dengan tujuh kriteria yang sama, lengkap dengan harga dari situs resmi (dicek November 2026) dan saran memilih.
 category: Tips Sirko
 tags: [aplikasi kasir, toko sembako, perbandingan, warung]
-cover: /img/blog/aplikasi-kasir-toko-sembako.webp
+cover: https://media.sirkopos.com/prod/site/blog/aplikasi-kasir-toko-sembako.webp
 cover_alt: Penjaga toko sembako memindai barcode barang dengan HP di depan rak beras, minyak goreng, dan telur
 published_at: 2026-12-16T08:00:00+07:00
 ---

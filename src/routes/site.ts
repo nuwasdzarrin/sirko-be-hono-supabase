@@ -72,6 +72,19 @@ const longCache = async (c: Context, next: () => Promise<void>) => {
   if (c.res.status === 200) c.header('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
 };
 siteRoutes.use('/img/*', longCache, serveStatic({ root: ROOT }));
+// Sampul blog lama (dulu di repo /img/blog/) kini di R2 `site/blog/` → 301 permanen agar tautan/
+// pratinjau yang sudah tersebar tetap jalan. Hanya bila file tak ada lagi di repo (serveStatic lolos).
+siteRoutes.get('/img/blog/:file{[a-z0-9-]+\\.(?:webp|jpg)}', async (c, next) => {
+  let url: string;
+  try {
+    const { getStorage } = await import('../lib/storage.js');
+    url = getStorage().publicUrl(`site/blog/${c.req.param('file')}`);
+  } catch {
+    return next();
+  }
+  c.header('Cache-Control', 'public, max-age=86400');
+  return c.redirect(url, 301);
+});
 siteRoutes.get('/favicon.ico', longCache, serveStatic({ path: `${ROOT}/favicon.ico` }));
 // Skrip alat gratis (/alat/*) — same-origin, lolos CSP script-src 'self'.
 siteRoutes.use('/js/*', longCache, serveStatic({ root: ROOT }));

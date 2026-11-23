@@ -379,7 +379,8 @@ ${art}
 <meta name="twitter:image:alt" content="${escAttr(o.ogImageAlt ?? `${SITE_NAME} — ${TAGLINE}`)}">
 <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 ${env.GOOGLE_SITE_VERIFICATION ? `<meta name="google-site-verification" content="${escAttr(env.GOOGLE_SITE_VERIFICATION)}">` : ''}
-${o.preload ? `<link rel="preload" as="image" href="${escAttr(o.preload)}"${o.preloadSrcset ? ` imagesrcset="${escAttr(o.preloadSrcset)}" imagesizes="${o.preloadSizes ?? '(max-width:800px) 92vw, 760px'}"` : ''} fetchpriority="high">` : ''}
+${o.preload && /^https?:\/\//.test(o.preload) ? `<link rel="preconnect" href="${escAttr(new URL(o.preload).origin)}">
+` : ''}${o.preload ? `<link rel="preload" as="image" href="${escAttr(o.preload)}"${o.preloadSrcset ? ` imagesrcset="${escAttr(o.preloadSrcset)}" imagesizes="${o.preloadSizes ?? '(max-width:800px) 92vw, 760px'}"` : ''} fetchpriority="high">` : ''}
 <script>${THEME_BOOT}</script>
 <style>${SITE_CSS}</style>
 ${o.extraHead ?? ''}

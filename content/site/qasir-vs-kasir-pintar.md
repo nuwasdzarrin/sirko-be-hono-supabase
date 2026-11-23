@@ -8,7 +8,7 @@ focus_keyword: qasir vs kasir pintar
 excerpt: Perbandingan jujur Qasir dan Kasir Pintar dari sumber resmi (dicek November 2026), hitungan biaya dua tahun, dan saran memilih untuk warung serta toko kecil.
 category: Tips Sirko
 tags: [aplikasi kasir, perbandingan, qasir, kasir pintar]
-cover: /img/blog/qasir-vs-kasir-pintar.webp
+cover: https://media.sirkopos.com/prod/site/blog/qasir-vs-kasir-pintar.webp
 cover_alt: Pemilik warung membandingkan dua HP berisi aplikasi kasir di meja kasir dengan printer struk kecil
 published_at: 2026-12-06T08:00:00+07:00
 ---

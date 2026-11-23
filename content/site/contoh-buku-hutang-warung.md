@@ -8,7 +8,7 @@ focus_keyword: buku hutang warung
 excerpt: Tiga contoh format buku hutang warung yang bisa langsung ditiru, template A4 gratis untuk dicetak, cara pindah saldo saat halaman penuh, dan tanda kapan sebaiknya pindah ke aplikasi.
 category: Panduan Warung
 tags: [buku hutang, kasbon, template, warung]
-cover: /img/blog/contoh-buku-hutang-warung.webp
+cover: https://media.sirkopos.com/prod/site/blog/contoh-buku-hutang-warung.webp
 cover_alt: Pemilik warung menulis kasbon pelanggan di buku hutang bergaris kolom, dengan pelanggan membawa belanjaan di depan meja
 published_at: 2026-12-02T08:00:00+07:00
 ---

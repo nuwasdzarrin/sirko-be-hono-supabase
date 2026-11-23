@@ -468,7 +468,8 @@ async function siteKeyBase(original: string, fallback: string): Promise<string> 
   return `site/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${photoFileName(name, 'x').replace(/\.x$/, '')}`;
 }
 
-async function putSiteObject(key: string, type: string, body: Buffer): Promise<string> {
+/** PUT objek situs ke storage (R2) dengan cache 1 tahun → URL publik. Dipakai juga skrip migrasi sampul. */
+export async function putSiteObject(key: string, type: string, body: Buffer): Promise<string> {
   const { getStorage } = await import('../lib/storage.js');
   const storage = getStorage();
   const res = await fetch(storage.signPut(key, type), {
