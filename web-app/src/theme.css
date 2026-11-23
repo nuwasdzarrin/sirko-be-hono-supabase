@@ -527,3 +527,56 @@
   .main:has(.pos) > .content { flex: 1; min-height: 0; display: flex; padding: 0; }
   .main:has(.pos) .pos { height: auto; flex: 1; min-height: 0; }
 }
+
+/* ── Input + tombol di sampingnya (scan barcode, ⚙ kelola kategori/satuan, Cek meter) ── */
+.with-action { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.with-action > input, .with-action > select { flex: 1; min-width: 0; }
+.with-action > .pos-search { flex: 1; }
+
+/* ── Pemindai kamera / webcam ─────────────────────────────────────────── */
+.scan-view { position: relative; aspect-ratio: 4 / 3; background: #000; border-radius: 16px; overflow: hidden; }
+.scan-view video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-frame { position: absolute; inset: 24% 10%; border: 3px solid #fff; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); }
+.scan-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff; font-size: 14px; }
+.scan-msg.err { background: rgba(0, 0, 0, 0.6); }
+.scan-hint { text-align: center; margin: 8px 0 12px; }
+
+/* ── Kasir: tab PPOB (PpobSellPanel) ───────────────────────────────────── */
+.ppob-panel { padding: 12px; display: grid; gap: 10px; align-content: start; }
+.ppob-head { display: flex; align-items: center; gap: 6px; }
+.ppob-head > .ic { color: var(--m-primary); }
+.ppob-head b { font: 500 14px/20px Roboto, sans-serif; letter-spacing: 0.1px; }
+.ppob-no { margin: 0; }
+.ppob-no input { min-height: 48px !important; padding: 12px 16px !important; }
+.ppob-name { margin: 0; font-size: 14px; }
+.ppob-list { display: grid; gap: 6px; }
+.ppob-item { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; padding: 12px 16px; text-align: left; cursor: pointer; }
+.ppob-item b { font: 700 14px/20px Roboto, sans-serif; white-space: nowrap; }
+.ppob-item.off { opacity: 0.6; cursor: not-allowed; }
+.ppob-refresh { display: flex; justify-content: flex-end; }
+
+/* ── Produk: tab Fisik | PPOB, harga jual PPOB ─────────────────────────── */
+.content > .seg.ptabs { margin-bottom: 8px; }
+.produk-ppob { padding-top: 4px; }
+
+/* ── Shift / Bill ──────────────────────────────────────────────────────── */
+.shift-page { display: grid; gap: 4px; }
+.shift-card { padding: 16px; display: grid; gap: 10px; justify-items: start; }
+.shift-card p { margin: 0; }
+.shift-card .paysum { width: 100%; }
+.shift-card.open .m-card-head { color: var(--m-green); }
+
+@media (max-width: 860px) {
+  .content:has(> .split) > .seg.ptabs { margin: 0; width: 100%; }
+  .shift-page { padding-top: 8px; }
+  .ppob-panel { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 861px) {
+  .shift-page { max-width: 720px; }
+  .ppob-panel { padding: 12px 0; max-width: 720px; }
+  .content:has(> .split) > .seg.ptabs { max-width: 440px; }
+}
+
+@media (max-width: 860px) {
+  .cards.points-cards { grid-template-columns: minmax(0, 1fr); padding: 0; }
+}

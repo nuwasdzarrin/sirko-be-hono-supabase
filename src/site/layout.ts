@@ -233,11 +233,16 @@ footer.site .legal{margin-top:32px;padding-top:20px;border-top:1px solid var(--l
 .preview-bar{background:var(--mango);color:#14213D;text-align:center;padding:8px 16px;font-weight:700;font-size:14px}
 `;
 
+/** Web app (sirkopos.com/app) — tujuan utama ajakan situs selama aplikasi Android belum di Google Play. */
+export const APP_SIGNUP = '/app/daftar';
+export const APP_LOGIN = '/app/masuk';
+
 const NAV = [
   { href: '/#fitur', label: 'Fitur' },
   { href: '/jualan-pulsa-token-listrik', label: 'Pulsa & Token' },
   { href: '/#harga', label: 'Harga' },
   { href: '/blog', label: 'Blog' },
+  { href: APP_LOGIN, label: 'Masuk' },
 ];
 
 export function header(currentPath: string): string {
@@ -253,7 +258,7 @@ export function header(currentPath: string): string {
   <button type="button" class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Buka menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <a class="btn btn-primary cta-top" href="/#unduh">Coba Gratis</a>
+  <a class="btn btn-primary cta-top" href="${APP_SIGNUP}">Coba Gratis</a>
 </div></header>`;
 }
 

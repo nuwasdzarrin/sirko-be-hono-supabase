@@ -20,6 +20,7 @@ import { Modal, MoneyInput, Toast } from './ui';
 import { useNavigate } from '@solidjs/router';
 import { isMobile } from '../lib/media';
 import { Icon } from '../ui/icon';
+import { ScanButton } from '../ui/scanner';
 
 const live = (r: Row) => r.deletedAt == null;
 
@@ -30,7 +31,6 @@ type Dialog =
   | { kind: 'customer'; thenPay?: boolean }
   | { kind: 'pay'; credit?: boolean }
   | { kind: 'done'; result: CommitResult | null; receipt: ReceiptData | null; outcomes: PpobOutcome[] }
-  | { kind: 'ppob' }
   | { kind: 'held' }
   | { kind: 'shift' }
   | null;
@@ -96,6 +96,8 @@ export function KasirPage() {
   const nav = useNavigate();
   // HP: keranjang = bottom sheet (CartPanel di showModalBottomSheet), dibuka lewat FAB keranjang.
   const [cartOpen, setCartOpen] = createSignal(false);
+  // Tab Fisik | PPOB (PosScreen aplikasi): PPOB = panel jual langsung di halaman, bukan dialog.
+  const [tab, setTab] = createSignal<'fisik' | 'ppob'>('fisik');
   createEffect(() => {
     if (!cart.lines.length) setCartOpen(false);
   });
@@ -220,10 +222,11 @@ export function KasirPage() {
       <section class="pos-left">
         <Show when={can('ppobSell')}>
           <div class="m-tabs">
-            <button class="on">Fisik</button>
-            <button onClick={() => setDialog({ kind: 'ppob' })}>PPOB</button>
+            <button class={tab() === 'fisik' ? 'on' : ''} onClick={() => setTab('fisik')}>Fisik</button>
+            <button class={tab() === 'ppob' ? 'on' : ''} onClick={() => setTab('ppob')}>PPOB</button>
           </div>
         </Show>
+        <Show when={tab() === 'fisik'} fallback={<PpobPanel onAdded={() => say('Item PPOB ditambahkan ke keranjang.')} />}>
         <div class="pos-bar">
           <input
             ref={searchEl}
@@ -237,14 +240,12 @@ export function KasirPage() {
             }}
             aria-label="Cari produk atau scan barcode"
           />
+          <ScanButton title="Scan barcode" onCode={(c) => { setQuery(c); void onSearchEnter(); }} />
           <button class="m-icon-btn" title="Transaksi tertunda" onClick={() => setDialog({ kind: 'held' })}>
                 <Icon name="pauseCircle" />
                 <Show when={heldCount()}><span class="m-badge">{heldCount()}</span></Show>
               </button>
               <button class="m-icon-btn" title="Riwayat transaksi" onClick={() => nav('/transaksi')}><Icon name="receiptLong" /></button>
-              <button class={`m-icon-btn ${bill() ? 'm-shift-on' : settings().requireBill ? 'm-shift-req' : ''}`} title={bill() ? 'Shift dibuka — ketuk untuk tutup' : 'Buka shift'} onClick={() => setDialog({ kind: 'shift' })}>
-                <Icon name={bill() ? 'stopCircle' : 'playCircle'} />
-              </button>
         </div>
         <Show when={categories().length}>
           <div class="chips">
@@ -268,6 +269,7 @@ export function KasirPage() {
           </For>
         </div>
         <Show when={filtered().length > 200}><p class="mut small">Menampilkan 200 dari {filtered().length} produk — perjelas pencarian.</p></Show>
+        </Show>
       </section>
 
       <Show when={isMobile()}>
@@ -380,8 +382,6 @@ export function KasirPage() {
               return <PayDialog customer={customer()} initialCredit={d.credit} onPay={pay} onPickCustomer={() => setDialog({ kind: 'customer', thenPay: true })} onClose={close} />;
             case 'done':
               return <DoneDialog result={d.result} receipt={d.receipt} outcomes={d.outcomes} onClose={close} />;
-            case 'ppob':
-              return <PpobPanel onAdded={() => { close(); say('Item PPOB ditambahkan ke keranjang.'); }} onClose={close} />;
             case 'held':
               return <HeldDialog onResume={resume} onClose={close} />;
             case 'shift':
@@ -667,12 +667,12 @@ function DoneDialog(props: { result: CommitResult | null; receipt: ReceiptData |
 const digits = (s: string) => s.replace(/[^0-9]/g, '');
 
 /** Panel jual PPOB (PpobSellPanel): kategori → nomor (PLN: cek nama) → pilih produk → masuk keranjang. */
-function PpobPanel(props: { onAdded: () => void; onClose: () => void }) {
+function PpobPanel(props: { onAdded: () => void }) {
   const [cat, setCat] = createSignal<PpobCategory>('pulsa');
   const [no, setNo] = createSignal('');
   const [error, setError] = createSignal('');
   const [pln, setPln] = createSignal<{ name: string | null; segmentPower: string | null } | null>(null);
-  const [status] = createResource(
+  const [status, { refetch: retry }] = createResource(
     () => online(),
     () =>
       ppobStatus().catch((e) => {
@@ -704,39 +704,62 @@ function PpobPanel(props: { onAdded: () => void; onClose: () => void }) {
     addPpob(p, digits(no()));
     props.onAdded();
   };
+  const pnav = useNavigate();
   return (
-    <Modal title="Jual PPOB" onClose={props.onClose} wide>
-      <Show when={!online()}><div class="alert warn">PPOB butuh internet.</div></Show>
-      <Show when={status() && !status()!.enabled}><div class="alert warn">PPOB belum aktif untuk toko ini.</div></Show>
-      <Show when={status()?.points}>
-        {(pt) => <p class="small mut">Saldo Poin: <b>{rp(pt().balance)}</b>{pt().reason ? ` · ${pt().reason}` : ''}</p>}
+    <div class="ppob-panel">
+      <Show
+        when={online()}
+        fallback={
+          <div class="m-empty">
+            <Icon name="cloudOff" size={48} />
+            <span>Butuh internet untuk jualan PPOB.<br />Tab Fisik tetap bisa dipakai.</span>
+            <button type="button" class="btn" onClick={() => void retry()}>Coba lagi</button>
+          </div>
+        }
+      >
+        <div class="ppob-head">
+          <Icon name="bolt" size={18} />
+          <b>Saldo Poin {status()?.points ? rp(status()!.points.balance) : '…'}</b>
+          <span class="spacer" />
+          <button type="button" class="btn text sm" onClick={() => pnav('/ppob/riwayat')}><Icon name="history" size={18} />Riwayat PPOB</button>
+        </div>
+        <Show when={status() && !status()!.enabled}><div class="alert warn">PPOB belum aktif untuk toko ini.</div></Show>
+        <Show when={status()?.points.reason}><p class="small mut">{status()!.points.reason}</p></Show>
+        <div class="m-chiprow flush">
+          <For each={['pulsa', 'data', 'pln'] as PpobCategory[]}>
+            {(c) => <button type="button" class={`chip ${cat() === c ? 'on' : ''}`} onClick={() => { setCat(c); setPln(null); setError(''); }}>{CATEGORY_LABEL[c]}</button>}
+          </For>
+        </div>
+        <Show when={catStatus() && !catStatus()!.available}><div class="alert warn small">{catStatus()!.reason ?? 'Kategori ini sedang tidak tersedia.'}</div></Show>
+        <div class="field ppob-no">
+          <label for="ppob-no">{cat() === 'pln' ? 'Nomor meter / ID pelanggan' : 'Nomor HP'}</label>
+          <div class="with-action">
+            <input id="ppob-no" inputmode="numeric" autocomplete="off" value={no()} onInput={(e) => { setNo(e.currentTarget.value); setPln(null); }} />
+            <Show when={cat() === 'pln'}><button type="button" class="btn text" disabled={digits(no()).length < 6} onClick={() => void checkPln()}>Cek</button></Show>
+          </div>
+        </div>
+        <Show when={pln()}><p class="ppob-name">Atas nama: <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p></Show>
+        <Show when={error()}><div class="alert err small">{error()}</div></Show>
+        <Show when={products.loading}><p class="mut small">Memuat produk…</p></Show>
+        <div class="ppob-list">
+          <For each={products() ?? []}>
+            {(p) => (
+              <button type="button" class={`m-card ppob-item ${p.available ? '' : 'off'}`} disabled={!p.available} onClick={() => pick(p)} title={p.description ?? ''}>
+                <span class="m-row-text">
+                  <span class="m-row-title">{p.name}</span>
+                  <span class="m-row-sub">{p.available ? `${p.brand}${can('viewCostProfit') ? ` · untung ${rp(p.margin)}` : ''}` : p.unavailableReason ?? 'Sedang tidak tersedia'}</span>
+                </span>
+                <b>{rp(p.sellPrice)}</b>
+              </button>
+            )}
+          </For>
+        </div>
+        <Show when={!products() && !products.loading}>
+          <p class="small mut">Masukkan nomor tujuan untuk melihat produk.</p>
+        </Show>
+        <div class="ppob-refresh"><button type="button" class="btn text sm" onClick={() => void refetch()}>Muat ulang daftar</button></div>
       </Show>
-      <div class="seg" style={{ 'margin-bottom': '10px' }}>
-        <For each={['pulsa', 'data', 'pln'] as PpobCategory[]}>
-          {(c) => <button type="button" class={cat() === c ? 'on' : ''} onClick={() => { setCat(c); setPln(null); setError(''); }}>{CATEGORY_LABEL[c]}</button>}
-        </For>
-      </div>
-      <Show when={catStatus() && !catStatus()!.available}><div class="alert warn small">{catStatus()!.reason ?? 'Kategori ini sedang tidak tersedia.'}</div></Show>
-      <div class="row-btns">
-        <input class="pos-search" inputmode="numeric" autofocus placeholder={cat() === 'pln' ? 'Nomor meter / ID pelanggan PLN' : 'Nomor HP pembeli'} value={no()} onInput={(e) => { setNo(e.currentTarget.value); setPln(null); }} aria-label="Nomor tujuan" />
-        <Show when={cat() === 'pln'}><button type="button" class="btn" disabled={digits(no()).length < 6} onClick={() => void checkPln()}>Cek nama</button></Show>
-        <button type="button" class="btn sm" onClick={() => void refetch()} title="Muat ulang daftar">Muat ulang</button>
-      </div>
-      <Show when={pln()}><p class="small">a.n. <b>{pln()!.name}</b>{pln()!.segmentPower ? ` · ${pln()!.segmentPower}` : ''}</p></Show>
-      <Show when={error()}><div class="alert err small">{error()}</div></Show>
-      <Show when={products.loading}><p class="mut small">Memuat produk…</p></Show>
-      <div class="grid" style={{ 'margin-top': '10px' }}>
-        <For each={products() ?? []}>
-          {(p) => (
-            <button type="button" class={`pcard ${p.available ? '' : 'np'}`} disabled={!p.available} onClick={() => pick(p)} title={p.unavailableReason ?? p.description ?? ''}>
-              <span class="pname">{p.name}</span>
-              <span class="pprice">{rp(p.sellPrice)}</span>
-              <span class="pstock">{p.available ? `${p.brand}${can('viewCostProfit') ? ` · untung ${rp(p.margin)}` : ''}` : p.unavailableReason ?? 'Tidak tersedia'}</span>
-            </button>
-          )}
-        </For>
-      </div>
-    </Modal>
+    </div>
   );
 }
 
@@ -763,7 +786,7 @@ function HeldDialog(props: { onResume: (id: string) => void; onClose: () => void
   );
 }
 
-function ShiftDialog(props: { bill: Row | null; onClose: () => void; say: (m: string, k?: 'ok' | 'err' | 'warn') => void }) {
+export function ShiftDialog(props: { bill: Row | null; onClose: () => void; say: (m: string, k?: 'ok' | 'err' | 'warn') => void }) {
   const [amount, setAmount] = createSignal(0);
   const [error, setError] = createSignal('');
   const [summary] = createResource(() => (props.bill ? [db(), props.bill.id] as const : null), ([d, id]) => (d ? billSummary(d, id) : Promise.resolve(null as BillSummary | null)));

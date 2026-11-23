@@ -2,7 +2,7 @@ import { createMemo, createResource, createSignal, For, Show } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
 import { ApiError } from '../lib/api';
 import { createLive } from '../lib/live';
-import { can, db, online, user } from '../state';
+import { can, db, online } from '../state';
 import { rp } from '../pos/calc';
 import {
   cancelTopup, CATEGORY_LABEL, createTopup, getOrder, getPricing, getTopup, ledgerLabel, listOrders, points, pointsLedger, ppobProducts, savePricing, sellPriceFor,
@@ -10,34 +10,32 @@ import {
 } from '../cloud/ppob';
 import { fmtDateTime } from '../pos/receipt';
 import { MoneyInput } from './ui';
+import { Icon } from '../ui/icon';
 
-/** PPOB & Poin Sirko — Riwayat PPOB, Poin (saldo, top-up, mutasi), Harga jual (pemilik). Butuh internet. */
+/** Layar PPOB (seperti aplikasi): Poin Sirko (/ppob/poin) & Riwayat PPOB (/ppob/riwayat) terpisah.
+ *  Harga jual PPOB ada di Produk → tab PPOB; jualan PPOB di Kasir → tab PPOB. Butuh internet. */
 
 const errText = (e: unknown) => (e instanceof ApiError ? e.message : 'Gagal memuat. Periksa internet.');
-type Tab = 'riwayat' | 'poin' | 'harga';
 const ORDER_STATUS: Record<string, [string, string]> = { success: ['Berhasil', ''], failed: ['Gagal', 'off'], pending: ['Diproses', 'warn'], processing: ['Diproses', 'warn'] };
 
 export function PpobPage() {
   const params = useParams();
   const nav = useNavigate();
-  const tabs = (): Array<[Tab, string]> => [
-    ...(can('ppobSell') ? [['riwayat', 'Riwayat PPOB'] as [Tab, string]] : []),
-    ...(can('ppobSell') || can('pointTopup') ? [['poin', 'Poin Sirko'] as [Tab, string]] : []),
-    ...(user()?.isOwner ? [['harga', 'Harga jual'] as [Tab, string]] : []),
-  ];
-  const tab = () => ((params.tab as Tab) || tabs()[0]?.[0]) ?? 'poin';
+  // /ppob/harga lama → Produk tab PPOB (penempatan aplikasi HP).
+  if (params.tab === 'harga') nav('/produk?tab=ppob', { replace: true });
+  const view = () => (params.tab === 'riwayat' || (!params.tab && !can('pointTopup') && can('ppobSell')) ? 'riwayat' : 'poin');
   return (
     <>
-      <div class="row-btns">
-        <h1 style={{ margin: 0 }}>PPOB & Poin</h1>
-        <span class="spacer" />
-        <div class="seg ptabs"><For each={tabs()}>{([k, l]) => <button class={tab() === k ? 'on' : ''} onClick={() => nav(`/ppob/${k}`)}>{l}</button>}</For></div>
-      </div>
-      <p class="mut small">Jual pulsa, paket data & token listrik lewat tombol <b>PPOB</b> di halaman Kasir. Pembelian memotong Poin Sirko.</p>
       <Show when={!online()}><div class="alert warn">Halaman ini butuh internet.</div></Show>
-      <Show when={tab() === 'riwayat'}><OrdersTab /></Show>
-      <Show when={tab() === 'poin'}><PointsTab /></Show>
-      <Show when={tab() === 'harga' && user()?.isOwner}><PricingTab /></Show>
+      <Show when={view() === 'riwayat' && can('ppobSell')}><OrdersTab /></Show>
+      <Show when={view() === 'poin' && (can('ppobSell') || can('pointTopup'))}>
+        <Show when={can('ppobSell')}>
+          <div class="row-btns" style={{ 'justify-content': 'flex-end' }}>
+            <button class="btn text" onClick={() => nav('/ppob/riwayat')}><Icon name="history" size={18} />Riwayat PPOB</button>
+          </div>
+        </Show>
+        <PointsTab />
+      </Show>
     </>
   );
 }
@@ -114,7 +112,8 @@ function OrdersTab() {
 }
 
 function PointsTab() {
-  const [data, { refetch }] = createResource(() => online(), () => points());
+  // Gagal muat (offline / sesi habis) → pesan di halaman, bukan error yang memutus tampilan.
+  const [data, { refetch }] = createResource(() => online(), () => points().catch((e) => { setError(errText(e)); return null; }));
   const [ledger, setLedger] = createSignal<LedgerItem[]>([]);
   const [cursor, setCursor] = createSignal<string | null>(null);
   const [amount, setAmount] = createSignal(100000);
@@ -143,7 +142,7 @@ function PointsTab() {
   return (
     <>
       <Show when={error() || data.error}><div class="alert err">{error() || errText(data.error)}</div></Show>
-      <div class="cards" style={{ margin: '12px 0' }}>
+      <div class="cards points-cards" style={{ margin: '12px 0' }}>
         <div class="card kpi"><div class="mut small">Saldo Poin</div><div class="n">{data() ? rp(data()!.balance) : '…'}</div><div class="small mut">1 Poin = Rp1</div></div>
         <Show when={canTopup()}>
           <div class="card">
@@ -210,7 +209,8 @@ function TopupCard(props: { t: Topup; onChange: (t: Topup) => void }) {
   );
 }
 
-function PricingTab() {
+/** Harga jual PPOB — tampil di Produk → tab PPOB (seperti PpobPricingScreen aplikasi). */
+export function PpobPricingPanel() {
   const [pricing, setPricing] = createSignal<PpobPricing | null>(null);
   const [cat, setCat] = createSignal<PpobCategory>('pulsa');
   const [msg, setMsg] = createSignal<{ t: string; err?: boolean }>({ t: '' });

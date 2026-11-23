@@ -1,5 +1,7 @@
 # 07 · Rencana 90 hari
 
+> **Pembaruan 23 Nov 2026:** minggu 3–7 diganti oleh [09-rencana-30-hari-web-app.md](09-rencana-30-hari-web-app.md) selama Google Play tertunda. Minggu 1–2 tetap tercatat di bawah.
+
 Pembagian: **Pemilik** = akun & keputusan; **Claude** = kode, konten, analisis (via repo & CMS dashboard);
 **Agen mobile** = aplikasi & screenshot.
 

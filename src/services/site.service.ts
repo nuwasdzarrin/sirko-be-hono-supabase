@@ -378,6 +378,45 @@ export async function seedIfMissing(d: SeedDoc): Promise<boolean> {
   return true;
 }
 
+/**
+ * Terapkan ulang isi content/site/<slug>.md ke konten yang SUDAH tayang (judul, meta, kata kunci,
+ * ringkasan, isi). Lewat save() → revisi lama tersimpan & IndexNow dikabari. Status, tanggal terbit,
+ * sampul, kategori, tag, dan penulis tetap milik database (suntingan dashboard tak ikut tertimpa).
+ * Pakai bila perubahan memang dibuat di file .md: `npm run seed:site -- --update <slug> …`.
+ */
+export async function updateFromSeed(d: SeedDoc): Promise<'updated' | 'unchanged' | 'missing'> {
+  const r = await sql<Row[]>`SELECT id FROM site_posts WHERE kind = ${d.kind} AND slug = ${d.slug} AND deleted_at IS NULL`;
+  const cur = r[0] ? await getById(String(r[0].id)) : null;
+  if (!cur) return 'missing';
+  const same =
+    cur.title === d.title && cur.metaTitle === (d.meta_title ?? '') && cur.metaDescription === (d.meta_description ?? '') &&
+    cur.focusKeyword === (d.focus_keyword ?? '') && cur.excerpt === (d.excerpt ?? '') && cur.bodyMd === d.body;
+  if (same) return 'unchanged';
+  await save(
+    cur.id,
+    {
+      kind: cur.kind,
+      title: d.title,
+      slug: cur.slug,
+      metaTitle: d.meta_title ?? '',
+      metaDescription: d.meta_description ?? '',
+      focusKeyword: d.focus_keyword ?? '',
+      excerpt: d.excerpt ?? '',
+      bodyMd: d.body,
+      category: cur.category,
+      tags: cur.tags,
+      coverUrl: cur.coverUrl ?? '',
+      coverAlt: cur.coverAlt,
+      status: cur.status === 'published' ? 'published' : 'draft',
+      noindex: cur.noindex,
+      author: cur.author,
+      publishedAt: cur.publishedAt,
+    },
+    'seed-update',
+  );
+  return 'updated';
+}
+
 // ── Gambar (sampul & isi artikel) ────────────────────────────────────────────
 
 export const MAX_SITE_IMAGE_BYTES = 400 * 1024;

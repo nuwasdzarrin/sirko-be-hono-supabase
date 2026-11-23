@@ -1,5 +1,7 @@
 # 06 · Pengukuran & laporan
 
+> **Pembaruan 23 Nov 2026:** KPI utama kini **akun baru dari situs** (web app sudah tayang), bukan daftar tunggu. Pengukuran klik ajakan → /app/daftar per halaman memakai penanda `?dari=` first-party (tugas dev di 09 §7), tetap tanpa pelacak pihak ketiga.
+
 Situs sengaja tanpa pelacak pihak ketiga. Sumber data: **Google Search Console** (dan Bing Webmaster),
 **dashboard Sirko** (daftar tunggu, kontak, pendaftaran akun), dan klik WhatsApp (pesan masuk dengan teks
 "saya dari halaman …" → tahu halaman asal).

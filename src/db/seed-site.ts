@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sql } from './client.js';
 import { runMigrations } from './migrate.js';
-import { seedIfMissing, type SeedDoc } from '../services/site.service.js';
+import { seedIfMissing, updateFromSeed, type SeedDoc } from '../services/site.service.js';
 
 /**
  * Isi awal website dari content/site/*.md (frontmatter sederhana + Markdown).
@@ -11,6 +11,7 @@ import { seedIfMissing, type SeedDoc } from '../services/site.service.js';
  * kebenarannya database (disunting dari dashboard → Website).
  *
  *   npm run seed:site
+ *   npm run seed:site -- --update <slug> [<slug> …]   # terapkan ulang .md ke konten yang sudah tayang
  *
  * Token `[EMAIL KONTAK]` dibiarkan di isi; diganti saat render (lihat site/markdown.ts → kontak).
  */
@@ -66,6 +67,21 @@ export function loadContent(dir = CONTENT_DIR): SeedDoc[] {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await runMigrations(sql);
   const docs = loadContent();
+  const ui = process.argv.indexOf('--update');
+  if (ui !== -1) {
+    const slugs = process.argv.slice(ui + 1).filter((x) => !x.startsWith('--'));
+    if (!slugs.length) throw new Error('Sebutkan slug: npm run seed:site -- --update <slug> …');
+    for (const slug of slugs) {
+      const d = docs.find((x) => x.slug === slug);
+      if (!d) {
+        console.log(`? ${slug}: tidak ada di content/site`);
+        continue;
+      }
+      console.log(`${(await updateFromSeed(d)) === 'updated' ? '↻' : '='} ${slug}`);
+    }
+    await sql.end({ timeout: 5 });
+    process.exit(0);
+  }
   // Tanggal terbit = `published_at` di frontmatter (tanggal tulisan sebenarnya), bila kosong = sekarang.
   let n = 0;
   for (const d of docs) {

@@ -5,10 +5,10 @@ title: Aplikasi Kasir Warung yang Gratis, Mudah, dan Tetap Jalan Tanpa Sinyal
 meta_title: Aplikasi Kasir Warung Gratis untuk Toko Kelontong | Sirko
 meta_description: Aplikasi kasir warung gratis untuk toko kelontong & sembako. Scan barcode, stok otomatis, catat kasbon, lihat untung harian. Coba Sirko sekarang.
 focus_keyword: aplikasi kasir warung
-excerpt: Sirko adalah aplikasi kasir warung di HP Android untuk toko kelontong, sembako, grosir, dan toko ritel lain. Gratis untuk satu toko dan tetap jalan tanpa internet.
+excerpt: Sirko adalah aplikasi kasir warung untuk toko kelontong, sembako, grosir, dan toko ritel lain. Langsung pakai di browser HP atau laptop, gratis untuk satu toko, dan tetap jalan tanpa internet.
 published_at: 2026-11-11T08:00:00+07:00
 ---
-Sirko adalah aplikasi kasir warung di HP Android yang dibuat khusus untuk usaha ritel. Nama Sirko berasal dari "kaSIR toKO", dan memang itu tugasnya: membantu Anda mencatat penjualan, menjaga stok, dan melihat untung toko setiap hari. Tagline kami sederhana: **Kasir toko, untung kelihatan.**
+Sirko adalah aplikasi kasir warung yang dibuat khusus untuk usaha ritel dan bisa langsung dipakai di browser HP atau laptop. Nama Sirko berasal dari "kaSIR toKO", dan memang itu tugasnya: membantu Anda mencatat penjualan, menjaga stok, dan melihat untung toko setiap hari. Tagline kami sederhana: **Kasir toko, untung kelihatan.**
 
 ![Layar kasir Sirko dengan keranjang berisi barang sembako dan total belanja](/img/app/01-kasir.webp#w=720&h=1280)
 *Layar kasir Sirko: barang masuk keranjang, diskon dan total dihitung otomatis.*
@@ -36,7 +36,7 @@ Di layar kasir, Anda cukup mencari nama barang atau memindai barcode memakai kam
 
 ### Katalog umum lebih dari 2.000 produk
 
-Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan katalog umum berisi lebih dari 2.000 produk yang sudah lengkap dengan foto. Tinggal scan barcode, nama dan foto barang muncul, lalu Anda isi harga jual toko Anda sendiri.
+Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan Katalog Umum berisi 2.000+ produk umum Indonesia lengkap dengan foto. Di aplikasi Android, scan barcode barang baru dan nama, kategori, serta satuannya terisi dari katalog, lalu Anda isi harga jual toko Anda sendiri. Katalog Umum segera hadir juga di versi browser.
 
 ### Stok berkurang dan bertambah otomatis
 
@@ -89,10 +89,10 @@ Gratis untuk satu toko. Paket **Warung** berharga Rp0 untuk satu toko, selamanya
 
 ## Cara mulai memakai Sirko
 
-1. Pasang aplikasi Sirko di HP Android. Saat ini Sirko sedang menuju rilis di Google Play.
+1. Buka [sirkopos.com/app](/app/daftar) di browser HP atau laptop. Tidak perlu download; aplikasi Android sedang menuju rilis di Google Play.
 2. Daftar dengan nama, email, nomor WA, dan password.
 3. Masukkan kode OTP 6 digit yang dikirim ke email Anda.
-4. Buat toko, lalu mulai tambah barang dengan scan barcode.
+4. Buat toko, lalu mulai tambah barang: scan barcode pakai kamera HP atau webcam, atau ketik nama dan harga.
 5. Layani pembeli pertama Anda.
 
 Tidak ada PIN pemilik yang perlu diingat. Cukup email atau nomor WA dan password.
@@ -114,14 +114,14 @@ Bisa. Sirko memang dibuat untuk usaha ritel seperti warung, toko kelontong, toko
 
 ### Apakah saya perlu membeli alat scanner barcode?
 
-Tidak perlu. Sirko memakai kamera HP untuk memindai barcode, baik saat berjualan maupun saat mencatat barang masuk.
+Tidak perlu. Sirko memakai kamera HP atau webcam laptop untuk memindai barcode, baik saat berjualan maupun saat mencatat barang masuk, di aplikasi Android maupun di browser (izinkan akses kamera saat diminta). Bila sudah punya scanner barcode USB atau bluetooth, alat itu juga bisa dipakai.
 
 ### Apakah Sirko bisa dipakai di iPhone?
 
-Saat ini Sirko tersedia untuk HP Android dan sedang menuju rilis di Google Play.
+Bisa. Buka [sirkopos.com/app](/app/daftar) di Safari, lalu pilih Bagikan → Tambah ke Layar Utama agar terbuka seperti aplikasi. Tidak perlu App Store.
 
 ### Bagaimana kalau HP saya hilang?
 
-Data toko dicadangkan otomatis saat ada internet. Di HP baru, masuk dengan email atau nomor WA dan password Anda, lalu data toko kembali.
+Data toko dicadangkan otomatis saat ada internet. Di HP atau laptop lain, masuk dengan email atau nomor WA dan password Anda, lalu data toko kembali.
 
-Siap merapikan catatan warung Anda? Coba Sirko gratis untuk satu toko, dan lihat untung toko Anda setiap hari langsung dari HP.
+Siap merapikan catatan warung Anda? [Coba Sirko gratis di browser](/app/daftar) untuk satu toko, dan lihat untung toko Anda setiap hari langsung dari HP atau laptop.

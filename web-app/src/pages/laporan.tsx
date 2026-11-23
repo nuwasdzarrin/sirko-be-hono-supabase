@@ -1,11 +1,7 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
-import type { Row } from '../db/db';
-import { createLive } from '../lib/live';
 import { activeStore, can, db, sync, user } from '../state';
 import { METHOD_LABEL, num, rp, type PaymentMethod } from '../pos/calc';
-import { PosError } from '../pos/repo';
-import { buildReport, download, employeeSummary, makeRange, toCsv, type DateRange, type Preset, type ReportBundle } from '../finance/report';
-import { deleteClosedBill } from '../finance/wallets';
+import { buildReport, download, makeRange, toCsv, type DateRange, type Preset, type ReportBundle } from '../finance/report';
 import { fmtDateTime } from '../pos/receipt';
 import { Icon } from '../ui/icon';
 
@@ -19,7 +15,7 @@ const ymd = (ms: number) => {
 };
 const dmy = (ms: number) => new Date(ms).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
-type Tab = 'ringkas' | 'jual' | 'laba' | 'kas' | 'stok' | 'produk' | 'karyawan';
+type Tab = 'jual' | 'laba' | 'kas' | 'stok' | 'produk';
 
 export function RangeBar(props: { range: DateRange; onChange: (r: DateRange) => void }) {
   const [start, setStart] = createSignal(ymd(props.range.from));
@@ -42,12 +38,12 @@ export function RangeBar(props: { range: DateRange; onChange: (r: DateRange) => 
 
 export function LaporanPage() {
   const [range, setRange] = createSignal<DateRange>(makeRange('today'));
-  const [tab, setTab] = createSignal<Tab>('ringkas');
+  const [tab, setTab] = createSignal<Tab>('jual');
   const [report] = createResource(() => { const d = db(); return d ? { d, r: range(), at: sync.lastAt, dirty: sync.dirty } : null; }, ({ d, r }) => buildReport(d, r));
   const seeProfit = () => can('viewCostProfit');
+  // Tab sama dengan ReportsScreen aplikasi. Ringkasan = Beranda; Karyawan/Shift = menu Lainnya.
   const tabs = (): Array<[Tab, string]> => [
-    ['ringkas', 'Ringkasan'], ['jual', 'Penjualan'], ...(seeProfit() ? [['laba', 'Laba'] as [Tab, string]] : []), ['kas', 'Kas masuk'], ['stok', 'Mutasi stok'], ['produk', 'Produk terjual'],
-    ...(can('employeeSummary') ? [['karyawan', 'Karyawan & shift'] as [Tab, string]] : []),
+    ['jual', 'Penjualan'], ...(seeProfit() ? [['laba', 'Laba'] as [Tab, string]] : []), ['kas', 'Arus Kas'], ['stok', 'Arus Stok'], ['produk', 'Produk'],
   ];
   const period = () => `${dmy(range().from)}${range().days > 1 ? ` – ${dmy(range().to - 1)}` : ''}`;
 
@@ -98,7 +94,6 @@ export function LaporanPage() {
       <Show when={report()} fallback={<p class="mut">Menghitung…</p>}>
         {(b) => (
           <>
-            <Show when={tab() === 'ringkas'}><Summary b={b()} seeProfit={seeProfit()} /></Show>
             <Show when={tab() === 'jual'}><SalesTab b={b()} /></Show>
             <Show when={tab() === 'laba' && seeProfit()}><ProfitTab b={b()} /></Show>
             <Show when={tab() === 'kas'}><CashTab b={b()} /></Show>
@@ -107,50 +102,11 @@ export function LaporanPage() {
           </>
         )}
       </Show>
-      <Show when={tab() === 'karyawan'}><EmployeeTab range={range()} seeProfit={seeProfit()} /></Show>
     </div>
   );
 }
 
 const KV = (p: { k: string; v: string; b?: boolean }) => <tr class={p.b ? 'strong' : ''}><td>{p.k}</td><td class="num">{p.v}</td></tr>;
-
-function Summary(props: { b: ReportBundle; seeProfit: boolean }) {
-  const b = () => props.b;
-  const max = () => Math.max(1, ...b().daily.map((d) => d.revenue));
-  return (
-    <>
-      <div class="cards">
-        <div class="card kpi"><div class="mut small">Omzet</div><div class="n">{rp(b().sales.grossRevenue)}</div><div class="small mut">{b().sales.transactionCount} transaksi</div></div>
-        <Show when={props.seeProfit}><div class="card kpi"><div class="mut small">Laba</div><div class="n">{rp(b().profit.grossProfit)}</div><div class="small mut">Margin {b().profit.marginPercent.toFixed(1)}%</div></div></Show>
-        <div class="card kpi"><div class="mut small">Item terjual</div><div class="n">{num(b().sales.itemCount)}</div><div class="small mut">Rata-rata {rp(b().sales.averageTicket)}/nota</div></div>
-        <div class="card kpi"><div class="mut small">Piutang (kredit)</div><div class={`n ${b().status.outstanding ? 'bad-t' : ''}`}>{rp(b().status.outstanding)}</div><div class="small mut">{b().status.partialCount + b().status.creditCount} nota belum lunas</div></div>
-      </div>
-      <Show when={b().daily.length > 1}>
-        <div class="card" style={{ 'margin-top': '14px' }}>
-          <h2>Omzet harian</h2>
-          <div class="bars" role="img" aria-label="Grafik omzet harian">
-            <For each={b().daily}>
-              {(d) => (
-                <div class="bar-col" title={`${dmy(d.day)}: ${rp(d.revenue)} (${d.count} nota)`}>
-                  <div class="bar" style={{ height: `${(d.revenue / max()) * 100}%` }} />
-                  <span class="bar-l">{new Date(d.day).getDate()}</span>
-                </div>
-              )}
-            </For>
-          </div>
-        </div>
-      </Show>
-      <div class="card" style={{ 'margin-top': '14px' }}>
-        <h2>Produk terlaris</h2>
-        <table class="list"><tbody>
-          <For each={b().productsSold.slice(0, 10)} fallback={<tr><td class="mut">Belum ada produk terjual.</td></tr>}>
-            {(p, i) => <tr><td>{i() + 1}. {p.name}</td><td class="num">{num(p.qty)} terjual</td><td class="num">{rp(p.revenue)}</td></tr>}
-          </For>
-        </tbody></table>
-      </div>
-    </>
-  );
-}
 
 function SalesTab(props: { b: ReportBundle }) {
   const s = () => props.b.sales;
@@ -227,53 +183,3 @@ function ProductsTab(props: { b: ReportBundle; seeProfit: boolean }) {
   );
 }
 
-function EmployeeTab(props: { range: DateRange; seeProfit: boolean }) {
-  const [rows] = createResource(() => { const d = db(); return d ? { d, r: props.range, at: sync.lastAt, dirty: sync.dirty } : null; }, ({ d, r }) => employeeSummary(d, r));
-  const bills = createLive(db, async (d) => (await d.t('bills').toArray()).filter((b) => b.deletedAt == null).sort((a, b) => Number(b.openedAt) - Number(a.openedAt)).slice(0, 100), [] as Row[]);
-  const names = createLive(db, async (d) => new Map((await d.t('users').toArray()).map((u) => [u.id, String(u.name)])), new Map<string, string>());
-  const [err, setErr] = createSignal('');
-  return (
-    <>
-      <div class="card flush">
-        <table class="list">
-          <thead><tr><th>Kasir</th><th class="num">Transaksi</th><th class="num">Omzet</th><Show when={props.seeProfit}><th class="num">Laba</th></Show></tr></thead>
-          <tbody>
-            <For each={rows()} fallback={<tr><td colspan="4" class="mut">Belum ada transaksi.</td></tr>}>
-              {(r) => <tr><td>{r.name}</td><td class="num">{r.count}</td><td class="num">{rp(r.revenue)}</td><Show when={props.seeProfit}><td class="num">{rp(r.profit)}</td></Show></tr>}
-            </For>
-          </tbody>
-        </table>
-      </div>
-      <h2 style={{ 'margin-top': '18px' }}>Riwayat shift</h2>
-      <Show when={err()}><div class="alert err">{err()}</div></Show>
-      <div class="card flush">
-        <table class="list">
-          <thead><tr><th>Kasir</th><th>Buka</th><th>Tutup</th><th class="num">Kas awal</th><th class="num">Seharusnya</th><th class="num">Fisik</th><th class="num">Selisih</th><th /></tr></thead>
-          <tbody>
-            <For each={bills()} fallback={<tr><td colspan="8" class="mut">Belum ada shift.</td></tr>}>
-              {(b) => {
-                const v = () => Number(b.variance ?? 0);
-                return (
-                  <tr>
-                    <td>{names().get(String(b.employeeId)) ?? '—'}</td>
-                    <td>{fmtDateTime(Number(b.openedAt))}</td>
-                    <td>{b.closedAt ? fmtDateTime(Number(b.closedAt)) : <span class="badge">Terbuka</span>}</td>
-                    <td class="num">{rp(Number(b.openingCash ?? 0))}</td>
-                    <td class="num">{b.status === 'closed' ? rp(Number(b.expectedCash ?? 0)) : '—'}</td>
-                    <td class="num">{b.status === 'closed' ? rp(Number(b.closingCash ?? 0)) : '—'}</td>
-                    <td class={`num ${v() ? 'bad-t' : ''}`}>{b.status === 'closed' ? (v() === 0 ? 'pas' : `${v() > 0 ? '+' : ''}${rp(v())}`) : '—'}</td>
-                    <td class="num">
-                      <Show when={b.status === 'closed' && can('deleteClosedBill')}>
-                        <button class="btn sm bad no-print" onClick={async () => { if (!confirm('Hapus catatan shift ini?')) return; try { await deleteClosedBill(db()!, b.id); } catch (e) { setErr(e instanceof PosError ? e.message : String(e)); } }}>Hapus</button>
-                      </Show>
-                    </td>
-                  </tr>
-                );
-              }}
-            </For>
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-}

@@ -21,7 +21,7 @@ interface Shortcut {
 }
 
 const SHORTCUTS: Shortcut[] = [
-  { label: 'Buka Shift', icon: 'playCircle', to: '/kasir', show: () => !user()?.isOwner && can('transactionList') },
+  { label: 'Buka Shift', icon: 'playCircle', to: '/shift', show: () => !user()?.isOwner && can('transactionList') },
   { label: 'Riwayat Transaksi', icon: 'receiptLong', to: '/transaksi', show: () => can('transactionList') },
   { label: 'Stok Masuk', icon: 'moveToInbox', to: '/produk?aksi=stok-masuk', show: () => can('productManagement') },
   { label: 'Tambah Produk', icon: 'addBox', to: '/produk/baru', show: () => can('addProduct') },

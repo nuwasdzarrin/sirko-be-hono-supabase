@@ -55,7 +55,7 @@ Begitu HP tersambung ke internet, Sirko mengirim salinan data toko ke server cad
 
 ### HP hilang atau ganti HP, data kembali
 
-Ini bagian yang paling sering ditanyakan. Bila HP rusak, hilang, atau Anda membeli HP baru, pasang Sirko lalu masuk dengan email atau nomor WA dan password. Data toko yang sudah dicadangkan akan kembali ke HP baru, mulai dari daftar barang, stok, sampai catatan kasbon.
+Ini bagian yang paling sering ditanyakan. Bila HP rusak, hilang, atau Anda membeli HP baru, buka Sirko lalu masuk dengan email atau nomor WA dan password. Data toko yang sudah dicadangkan akan kembali ke HP baru, mulai dari daftar barang, stok, sampai catatan kasbon.
 
 ### Login juga bisa offline
 
