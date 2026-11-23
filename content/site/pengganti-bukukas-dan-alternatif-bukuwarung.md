@@ -8,7 +8,7 @@ focus_keyword: pengganti bukukas
 excerpt: BukuKas berhenti beroperasi pada 26 Mei 2023. Apa yang dibutuhkan dari penggantinya, perbandingan BukuWarung dan pilihan lain, serta langkah memindahkan catatan utang ke aplikasi baru.
 category: Tips Sirko
 tags: [bukukas, bukuwarung, catat utang, pembukuan warung]
-cover: /img/blog/pengganti-bukukas-dan-alternatif-bukuwarung.webp
+cover: https://media.sirkopos.com/prod/site/blog/pengganti-bukukas-dan-alternatif-bukuwarung.webp
 cover_alt: Pemilik warung memindahkan catatan dari buku besar kertas ke HP di meja warung dengan rak sembako di belakang
 published_at: 2026-12-09T08:00:00+07:00
 ---

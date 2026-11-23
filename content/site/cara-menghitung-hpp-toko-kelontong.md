@@ -8,7 +8,7 @@ focus_keyword: cara menghitung hpp toko kelontong
 excerpt: Panduan menghitung HPP khusus toko dagang, dari rumus persediaan, modal per bungkus dari harga dus, memilih harga beli terakhir atau rata-rata, sampai contoh hitungan satu bulan.
 category: Keuangan Toko
 tags: [hpp, keuangan toko, toko kelontong, stok]
-cover: /img/blog/cara-menghitung-hpp-toko-kelontong.webp
+cover: https://media.sirkopos.com/prod/site/blog/cara-menghitung-hpp-toko-kelontong.webp
 cover_alt: Pemilik toko kelontong menghitung harga modal per bungkus dari dus mi instan dengan kalkulator dan HP di meja kasir
 published_at: 2026-12-18T08:00:00+07:00
 ---

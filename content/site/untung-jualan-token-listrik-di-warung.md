@@ -8,7 +8,7 @@ focus_keyword: untung jualan token listrik
 excerpt: Penjelasan cara kerja jualan token listrik, contoh hitungan untung Rp2.000 per transaksi, tips, risiko salah nomor meter, dan cara memulainya di warung.
 category: Pulsa & PPOB
 tags: [token listrik, PPOB, pulsa, usaha sampingan]
-cover: /img/blog/untung-jualan-token-listrik-di-warung.webp
+cover: https://media.sirkopos.com/prod/site/blog/untung-jualan-token-listrik-di-warung.webp
 cover_alt: Penjaga warung menyerahkan struk token listrik kepada pembeli
 published_at: 2026-11-11T11:00:00+07:00
 ---

@@ -8,7 +8,7 @@ focus_keyword: cara mencatat hutang pelanggan
 excerpt: Panduan praktis mencatat kasbon pelanggan warung, dari kolom yang wajib ada, contoh catatan, sampai cara menagih tanpa merusak hubungan.
 category: Panduan Warung
 tags: [kasbon, hutang pelanggan, warung, toko kelontong]
-cover: /img/blog/cara-mencatat-hutang-pelanggan-warung.webp
+cover: https://media.sirkopos.com/prod/site/blog/cara-mencatat-hutang-pelanggan-warung.webp
 cover_alt: Pemilik warung mencatat hutang pelanggan di aplikasi HP, bukan di buku tulis
 published_at: 2026-11-11T09:00:00+07:00
 ---

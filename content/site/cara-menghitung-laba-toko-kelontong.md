@@ -8,7 +8,7 @@ focus_keyword: cara menghitung laba toko kelontong
 excerpt: Pelajari rumus laba kotor, laba bersih, dan HPP sederhana untuk toko kelontong, lengkap dengan contoh hitungan harian dan bulanan.
 category: Keuangan Toko
 tags: [laba, keuangan toko, toko kelontong, HPP]
-cover: /img/blog/cara-menghitung-laba-toko-kelontong.webp
+cover: https://media.sirkopos.com/prod/site/blog/cara-menghitung-laba-toko-kelontong.webp
 cover_alt: Meja kasir toko kelontong dengan kalkulator, uang, dan HP berisi grafik laba
 published_at: 2026-11-11T10:00:00+07:00
 ---

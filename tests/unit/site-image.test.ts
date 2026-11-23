@@ -43,6 +43,9 @@ describe('Gambar marketing → WebP ringan', { timeout: 30_000 }, () => {
     expect(coverSrcset('https://media.sirkopos.com/prod/site/2026/11/a-x1y2z3.webp')).toContain('a-x1y2z3-600.webp 600w');
     expect(coverSrcset('/img/blog/lama.jpg')).toBe('/img/blog/lama-600.jpg 600w, /img/blog/lama.jpg 1200w');
     expect(shareImage('/img/blog/a.webp')).toBe('/img/blog/a.jpg');
+    const r2 = 'https://media.sirkopos.com/prod/site/blog/apa-itu-ppob.webp';
+    expect(coverSrcset(r2)).toBe(`${r2.replace('.webp', '-600.webp')} 600w, ${r2} 1200w`);
+    expect(shareImage(r2)).toBe(r2.replace('.webp', '.jpg'));
     expect(shareImage('https://contoh.com/a.webp')).toBe('https://contoh.com/a.webp');
     expect(coverSrcset('https://contoh.com/a.webp')).toBeNull();
   });

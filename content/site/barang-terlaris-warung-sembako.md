@@ -8,7 +8,7 @@ focus_keyword: barang terlaris warung sembako
 excerpt: Daftar barang yang paling sering dicari di warung sembako, dikelompokkan per kategori, lengkap dengan alasan laku, kisaran margin ilustrasi, tips stok, barang musiman, dan cara menemukan barang terlaris dari data warung Anda sendiri.
 category: Panduan Warung
 tags: [warung, sembako, stok, barang laris]
-cover: /img/blog/barang-terlaris-warung-sembako.webp
+cover: https://media.sirkopos.com/prod/site/blog/barang-terlaris-warung-sembako.webp
 cover_alt: Rak warung sembako berisi beras, minyak goreng, telur, mi instan, dan minuman dengan pemilik warung yang sedang melayani pembeli
 published_at: 2026-12-20T08:00:00+07:00
 ---
