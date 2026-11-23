@@ -36,7 +36,7 @@ Di layar kasir, Anda cukup mencari nama barang atau memindai barcode memakai kam
 
 ### Katalog umum lebih dari 2.000 produk
 
-Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan Katalog Umum berisi 2.000+ produk umum Indonesia lengkap dengan foto. Di aplikasi Android, scan barcode barang baru dan nama, kategori, serta satuannya terisi dari katalog, lalu Anda isi harga jual toko Anda sendiri. Katalog Umum segera hadir juga di versi browser.
+Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan Katalog Umum berisi 2.000+ produk umum Indonesia lengkap dengan foto. Scan barcode barang baru pakai kamera HP atau webcam, dan nama, kategori, serta satuannya terisi dari katalog, lalu Anda isi harga jual toko Anda sendiri. Katalog juga bisa dicari berdasarkan nama, merek, atau barcode. Di versi browser, katalog diunduh sekali saat pertama dipakai (butuh internet), setelah itu bisa dicari tanpa sinyal. Produk yang belum ada bisa Anda usulkan ke Katalog Umum dan akan ditinjau tim Sirko.
 
 ### Stok berkurang dan bertambah otomatis
 

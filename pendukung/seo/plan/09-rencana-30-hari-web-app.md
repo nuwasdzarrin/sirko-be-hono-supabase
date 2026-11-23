@@ -175,5 +175,4 @@ Terbit Selasa, Kamis, dan Sabtu pukul 08.00 WIB lewat jadwal terbit CMS. Landing
    usaha makanan".
 3. ⏳ **Kapasitas menulis:** 3 artikel/minggu (rekomendasi) atau versi minimum 2/minggu.
 4. ⏳ **Siapa yang membuat video pendek** (§6.1).
-5. ⏳ **Klaim Katalog Umum di web** baru diterbitkan setelah rilis web app berikutnya (commit `12d1ebf`)
-   dikonfirmasi live. Draf klaim sudah disiapkan di branch `feature/seo-katalog`.
+5. ✅ **Klaim Katalog Umum di web** diterbitkan bersama rilis katalog web (commit `12d1ebf`).

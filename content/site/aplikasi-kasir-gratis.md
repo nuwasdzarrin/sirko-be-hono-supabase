@@ -20,7 +20,7 @@ Paket Warung sudah cukup untuk menjalankan satu toko setiap hari:
 | Fitur | Paket Warung (gratis) |
 |---|---|
 | Kasir: cari barang, scan barcode pakai kamera HP atau webcam, diskon, kembalian | ✓ |
-| Katalog Umum 2.000+ produk umum lengkap dengan foto | ✓ (aplikasi Android; versi browser segera) |
+| Katalog Umum 2.000+ produk umum lengkap dengan foto (Android & browser) | ✓ |
 | Stok otomatis, varian, harga grosir, stok opname | ✓ |
 | Peringatan stok menipis & mendekati kedaluwarsa | ✓ |
 | Kasbon pelanggan & cicilan | ✓ |
@@ -60,7 +60,7 @@ Satu hal yang membuat Sirko berbeda dari banyak aplikasi kasir gratis lain: **da
 
 1. Buka [sirkopos.com/app](/app/daftar) di browser HP atau laptop. Tidak perlu download; aplikasi Android menyusul di Google Play.
 2. Daftar dengan nama, email, dan nomor WhatsApp, lalu masukkan kode yang dikirim ke email.
-3. Beri nama toko Anda, lalu masukkan barang: scan barcode pakai kamera, atau ketik sendiri nama dan harganya.
+3. Beri nama toko Anda, lalu masukkan barang: scan barcode pakai kamera untuk mengambil data dari Katalog Umum, atau ketik sendiri.
 4. Mulai melayani pembeli. Catat [kasbon pelanggan](/aplikasi-kasbon) langsung dari kasir bila ada yang berutang.
 
 Baca juga: [cara menghitung laba toko kelontong](/blog/cara-menghitung-laba-toko-kelontong) dan [cara mencatat hutang pelanggan warung](/blog/cara-mencatat-hutang-pelanggan-warung).
