@@ -8,9 +8,9 @@ focus_keyword: kebijakan privasi sirko
 excerpt: Penjelasan jujur tentang data yang dikumpulkan aplikasi kasir Sirko, cara kami memakainya, dan hak Anda atas data tersebut.
 published_at: 2026-11-11T08:00:00+07:00
 ---
-Kebijakan privasi Sirko ini menjelaskan data apa saja yang kami kumpulkan saat Anda memakai aplikasi kasir Sirko dan situs sirkopos.com, bagaimana data itu dipakai, dengan siapa data dibagikan, serta hak Anda atas data tersebut. Kami menulisnya dengan bahasa sederhana agar mudah dipahami.
+Kebijakan privasi Sirko ini menjelaskan data apa saja yang kami kumpulkan saat Anda memakai aplikasi kasir Sirko (aplikasi Android maupun versi browser di sirkopos.com/app) dan situs sirkopos.com, bagaimana data itu dipakai, dengan siapa data dibagikan, serta hak Anda atas data tersebut. Kami menulisnya dengan bahasa sederhana agar mudah dipahami.
 
-**Tanggal berlaku: 11 November 2026**
+**Tanggal berlaku: 24 November 2026** (versi sebelumnya: 11 November 2026)
 
 Dengan mendaftar dan memakai Sirko, Anda menyetujui pengumpulan dan penggunaan data sebagaimana dijelaskan di halaman ini. Bila Anda tidak setuju, mohon tidak memakai layanan Sirko.
 
@@ -22,7 +22,8 @@ Sirko (singkatan dari "kaSIR toKO") adalah aplikasi kasir untuk usaha ritel sepe
 
 - Kami mengumpulkan data akun dan data toko untuk menjalankan aplikasi dan mencadangkan data Anda.
 - Password disimpan dalam bentuk ter-hash, bukan teks asli.
-- Kamera hanya dipakai untuk scan barcode. Kontak HP hanya dibaca bila Anda memilih impor kontak.
+- Kamera hanya dipakai untuk scan barcode dan gambarnya diproses di perangkat Anda. Kontak HP hanya dibaca bila Anda memilih impor kontak.
+- Di versi browser, data toko disimpan di penyimpanan browser perangkat Anda dan **dihapus dari browser saat Anda keluar**.
 - Data transaksi PPOB diteruskan ke penyedia PPOB hanya untuk memproses pembelian.
 - **Kami tidak menjual data Anda.**
 - Anda dapat meminta penghapusan akun.
@@ -40,7 +41,7 @@ Saat mendaftar, Anda memberikan:
 
 ### 2. Data toko
 
-Sirko menyimpan data toko di HP Anda dan mencadangkannya ke server kami saat ada internet. Data toko meliputi:
+Sirko menyimpan data toko di perangkat Anda (di aplikasi Android, atau di penyimpanan browser bila memakai versi browser) dan mencadangkannya ke server kami saat ada internet. Data toko meliputi:
 
 - Produk, harga, dan stok.
 - Transaksi penjualan, pembelian, dan arus kas.
@@ -63,7 +64,22 @@ Bila Anda menjual pulsa, paket data, atau token listrik, kami memproses:
 
 Kami mencatat pengisian, pemakaian, dan pengembalian Poin Sirko, termasuk informasi pembayaran yang diperlukan admin untuk mengonfirmasi pengisian Poin.
 
-### 5. Data dari formulir situs
+### 5. Usulan produk ke Katalog Umum
+
+Bila Anda mengusulkan produk baru atau perbaikan ke Katalog Umum Sirko, kami menyimpan isi usulan (misalnya nama produk, merek, barcode, kategori, dan foto produk yang Anda kirim) beserta toko pengirimnya. Usulan ditinjau admin; yang disetujui menjadi bagian Katalog Umum dan dapat dilihat oleh semua pengguna Sirko, tanpa menampilkan nama toko Anda. Jangan mengirim foto yang memuat wajah atau data pribadi orang lain.
+
+### 6. Data yang tersimpan di browser (versi browser)
+
+Saat memakai Sirko di browser (sirkopos.com/app), data berikut disimpan di penyimpanan browser perangkat Anda (IndexedDB dan penyimpanan lokal, bukan cookie pelacak) agar aplikasi tetap jalan tanpa internet:
+
+- Data toko yang Anda buka (produk, stok, transaksi, pelanggan, kasbon, dan seterusnya).
+- Token sesi untuk tersambung ke server, serta penanda login offline. Penanda ini berasal dari password Anda yang sudah di-hash, bukan password asli, dan hanya dipakai untuk mencocokkan password saat tidak ada internet.
+- Pengaturan tampilan, seperti sidebar terbuka atau tertutup.
+- File aplikasi yang disimpan service worker, agar halaman bisa dibuka tanpa internet. File ini tidak berisi data toko.
+
+**Saat Anda menekan Keluar, semua data toko dihapus dari browser tersebut.** Yang tetap disimpan hanya email atau nomor yang terakhir dipakai masuk dan ID perangkat, untuk memudahkan masuk berikutnya. Bila komputer dipakai bersama, selalu keluar setelah selesai.
+
+### 7. Data dari formulir situs
 
 Saat Anda mengisi formulir daftar tunggu, kontak, atau permintaan hapus akun di sirkopos.com, kami menyimpan nama, email atau nomor WhatsApp, jenis usaha (daftar tunggu), isi pesan, waktu kirim, dan alamat IP. Alamat IP hanya dipakai untuk mencegah spam. Data ini dipakai untuk membalas Anda, mengabari peluncuran Sirko, atau memproses permintaan hapus akun.
 
@@ -71,11 +87,11 @@ Saat Anda mengisi formulir daftar tunggu, kontak, atau permintaan hapus akun di 
 
 | Izin | Untuk apa | Kapan dipakai |
 |---|---|---|
-| Kamera | Scan barcode produk | Saat Anda membuka fitur scan |
-| Kontak | Impor kontak sebagai data pelanggan | Hanya bila Anda memilih impor kontak |
-| Internet | Pencadangan data, login pertama, dan transaksi PPOB | Saat HP tersambung internet |
+| Kamera (HP atau webcam) | Scan barcode produk | Saat Anda membuka fitur scan |
+| Kontak | Impor kontak sebagai data pelanggan (aplikasi Android) | Hanya bila Anda memilih impor kontak |
+| Internet | Pencadangan data, login pertama, dan transaksi PPOB | Saat perangkat tersambung internet |
 
-Gambar dari kamera dipakai untuk membaca barcode dan tidak kami kumpulkan. Kami tidak membaca seluruh daftar kontak Anda kecuali Anda memilih fitur impor kontak, dan yang disimpan hanya kontak yang Anda pilih sebagai pelanggan.
+Gambar dari kamera dipakai untuk membaca barcode langsung di perangkat Anda dan tidak dikirim ke server kami. Kami tidak membaca seluruh daftar kontak Anda kecuali Anda memilih fitur impor kontak, dan yang disimpan hanya kontak yang Anda pilih sebagai pelanggan.
 
 ## Untuk apa data dipakai
 
@@ -83,7 +99,7 @@ Kami memakai data Anda untuk:
 
 1. Membuat dan mengelola akun, termasuk verifikasi email dengan kode OTP.
 2. Menjalankan fitur aplikasi: kasir, stok, kasbon, laporan, dan multi-user.
-3. Mencadangkan data toko dan mengembalikannya bila Anda berganti HP.
+3. Mencadangkan data toko, menyinkronkannya antar-perangkat (misalnya HP dan laptop), dan mengembalikannya bila Anda berganti perangkat.
 4. Memproses transaksi PPOB dan mengelola saldo Poin Sirko.
 5. Mengirim email penting, seperti kode OTP dan informasi akun.
 6. Mengelola paket berlangganan, seperti paket Warung dan paket Juragan.
@@ -96,7 +112,7 @@ Kami tidak menjual data Anda kepada siapa pun. Data hanya dibagikan kepada pihak
 
 - **Penyedia PPOB (Digiflazz).** Nomor tujuan, nomor meter, email penerima token (bila diisi), dan rincian produk diteruskan untuk memproses pembelian pulsa, paket data, dan token listrik.
 - **Penyedia email transaksional.** Alamat email dan isi pesan (misalnya kode OTP) diteruskan untuk mengirim email kepada Anda.
-- **Penyedia infrastruktur server.** Data cadangan disimpan pada server yang kami kelola untuk menjalankan layanan.
+- **Penyedia infrastruktur server dan penyimpanan berkas.** Data cadangan disimpan pada server yang kami kelola untuk menjalankan layanan. Berkas gambar (seperti foto Katalog Umum dan gambar QRIS) disimpan di layanan penyimpanan awan.
 - **Telegram (notifikasi internal).** Saat ada top-up Poin, order token listrik, atau kiriman formulir situs, ringkasannya (misalnya nama, kontak, dan nominal) dikirim ke akun Telegram admin Sirko agar cepat diproses. Telegram tidak dipakai untuk menghubungi Anda.
 - **Pihak berwenang.** Bila diwajibkan oleh hukum yang berlaku.
 
@@ -104,15 +120,16 @@ Situs sirkopos.com tidak memuat iklan, piksel pelacak, analitik pihak ketiga, at
 
 ## Penyimpanan dan keamanan data
 
-Data toko disimpan pertama kali di HP Anda, sehingga aplikasi tetap jalan tanpa internet. Saat ada internet, data dicadangkan ke server kami melalui koneksi internet. Kami menerapkan langkah keamanan yang wajar, termasuk menyimpan password dalam bentuk ter-hash.
+Data toko disimpan pertama kali di perangkat Anda (aplikasi Android atau penyimpanan browser), sehingga aplikasi tetap jalan tanpa internet. Saat ada internet, data dicadangkan ke server kami melalui koneksi internet. Kami menerapkan langkah keamanan yang wajar, termasuk menyimpan password dalam bentuk ter-hash.
 
 Meski begitu, tidak ada sistem yang sepenuhnya bebas risiko. Anda juga ikut menjaga keamanan data dengan:
 
 - Tidak membagikan password kepada orang lain.
 - Memberikan hak akses karyawan sesuai kebutuhan.
-- Mengunci HP dengan kunci layar.
+- Mengunci HP atau komputer dengan kunci layar.
+- Menekan **Keluar** setelah memakai Sirko di browser komputer bersama.
 
-Data yang belum sempat dicadangkan hanya tersimpan di HP Anda. Bila HP hilang atau rusak sebelum tersambung internet, data tersebut bisa ikut hilang.
+Data yang belum sempat dicadangkan hanya tersimpan di perangkat Anda. Bila HP hilang atau rusak sebelum tersambung internet, data tersebut bisa ikut hilang. Di versi browser, data yang belum tercadangkan juga hilang bila Anda keluar tanpa internet, menghapus data situs, atau browser membersihkan penyimpanannya; Sirko memberi peringatan sebelum Anda keluar bila masih ada data yang belum terkirim.
 
 ## Berapa lama data disimpan
 
@@ -126,7 +143,7 @@ Anda berhak untuk:
 
 - Melihat dan memperbarui data akun dan data toko melalui aplikasi.
 - Mengekspor laporan toko ke Excel atau PDF (paket Juragan), atau meminta salinan data Anda melalui **[EMAIL KONTAK]**.
-- Menarik izin kamera atau kontak melalui pengaturan HP kapan saja.
+- Menarik izin kamera atau kontak melalui pengaturan HP atau pengaturan situs di browser kapan saja.
 - Meminta penghapusan akun beserta data toko.
 - Mengajukan pertanyaan atau keberatan tentang pengolahan data Anda.
 

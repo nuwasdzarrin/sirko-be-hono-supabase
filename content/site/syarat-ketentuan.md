@@ -8,15 +8,15 @@ focus_keyword: syarat dan ketentuan sirko
 excerpt: Aturan penggunaan aplikasi kasir Sirko, termasuk paket Warung dan Juragan, Poin Sirko, transaksi PPOB, dan tanggung jawab atas data toko.
 published_at: 2026-11-11T08:00:00+07:00
 ---
-Syarat dan ketentuan Sirko ini mengatur penggunaan aplikasi kasir Sirko dan situs sirkopos.com. Mohon baca dengan saksama. Dengan mendaftar atau memakai Sirko, Anda dianggap telah membaca, memahami, dan menyetujui ketentuan ini.
+Syarat dan ketentuan Sirko ini mengatur penggunaan aplikasi kasir Sirko (aplikasi Android maupun versi browser di sirkopos.com/app) dan situs sirkopos.com. Mohon baca dengan saksama. Dengan mendaftar atau memakai Sirko, Anda dianggap telah membaca, memahami, dan menyetujui ketentuan ini.
 
-**Tanggal berlaku: 11 November 2026**
+**Tanggal berlaku: 24 November 2026** (versi sebelumnya: 11 November 2026)
 
 Dalam ketentuan ini, "kami" berarti pengelola Sirko, "Anda" berarti pengguna yang mendaftar sebagai pemilik toko, dan "pengguna toko" berarti kasir atau karyawan yang ditambahkan oleh pemilik toko.
 
 ## 1. Tentang layanan
 
-Sirko adalah aplikasi kasir untuk HP Android yang dikelola oleh **[PENGELOLA]** dan ditujukan bagi usaha ritel, seperti warung, toko kelontong, toko sembako, toko grosir, minimarket, toko bangunan, dan toko pertanian. Sirko tidak dirancang untuk kafe atau restoran.
+Sirko adalah aplikasi kasir yang dapat dipakai lewat browser di HP, tablet, atau komputer (sirkopos.com/app) dan sebagai aplikasi Android. Sirko dikelola oleh **[PENGELOLA]** dan ditujukan bagi usaha ritel yang menjual barang fisik dan produk PPOB, seperti warung, toko kelontong, toko sembako, toko grosir, minimarket, toko bangunan, dan toko pertanian. Sirko tidak dirancang untuk usaha makanan dan minuman seperti kafe atau restoran.
 
 Layanan Sirko meliputi kasir, pengelolaan stok, pencatatan kasbon pelanggan, laporan, pengelolaan karyawan, pencadangan data, serta penjualan produk PPOB (pulsa, paket data, dan token listrik).
 
@@ -68,10 +68,12 @@ Informasi harga terbaru tersedia di bagian [harga](/#harga).
 ## 6. Tanggung jawab atas data
 
 1. Data toko Anda, termasuk produk, stok, transaksi, pelanggan, kasbon, pemasok, dan karyawan, adalah milik Anda.
-2. Sirko menyimpan data di HP dan mencadangkannya ke server saat ada internet. Data yang belum sempat dicadangkan hanya ada di HP Anda, dan dapat hilang bila HP hilang atau rusak sebelum tersambung internet.
-3. Anda bertanggung jawab atas kebenaran data yang Anda masukkan, termasuk angka laporan yang dihasilkan dari data tersebut.
-4. Anda bertanggung jawab memastikan bahwa Anda berhak mencatat data pelanggan, pemasok, dan karyawan di aplikasi.
-5. Cara kami mengumpulkan dan memakai data dijelaskan di [Kebijakan Privasi](/kebijakan-privasi).
+2. Sirko menyimpan data di perangkat Anda (aplikasi Android atau penyimpanan browser) dan mencadangkannya ke server saat ada internet. Data yang belum sempat dicadangkan hanya ada di perangkat tersebut, dan dapat hilang bila HP hilang atau rusak sebelum tersambung internet.
+3. Di versi browser, menekan **Keluar** menghapus data toko dari browser itu. Data yang sudah tercadangkan tetap aman di server dan kembali saat Anda masuk lagi. Bila Anda memakai komputer bersama, Anda bertanggung jawab untuk keluar setelah selesai.
+4. Anda bertanggung jawab atas kebenaran data yang Anda masukkan, termasuk angka laporan yang dihasilkan dari data tersebut.
+5. Anda bertanggung jawab memastikan bahwa Anda berhak mencatat data pelanggan, pemasok, dan karyawan di aplikasi.
+6. Usulan produk yang Anda kirim ke Katalog Umum, termasuk fotonya, boleh kami tinjau, ubah seperlunya, dan tampilkan kepada semua pengguna Sirko. Kirim hanya foto yang Anda ambil sendiri atau yang boleh Anda bagikan.
+7. Cara kami mengumpulkan dan memakai data dijelaskan di [Kebijakan Privasi](/kebijakan-privasi).
 
 ## 7. Penggunaan yang dilarang
 
@@ -87,7 +89,7 @@ Kami berhak membatasi, menangguhkan, atau menutup akun yang melanggar ketentuan 
 
 ## 8. Ketersediaan layanan
 
-Kami berupaya agar Sirko berjalan dengan baik. Namun layanan dapat terganggu karena pemeliharaan, gangguan jaringan, atau hal di luar kendali kami. Fitur kasir, stok, dan kasbon dirancang tetap jalan tanpa internet, tetapi pencadangan data dan transaksi PPOB membutuhkan internet. Saat ini Sirko tersedia untuk HP Android.
+Kami berupaya agar Sirko berjalan dengan baik. Namun layanan dapat terganggu karena pemeliharaan, gangguan jaringan, atau hal di luar kendali kami. Fitur kasir, stok, dan kasbon dirancang tetap jalan tanpa internet, tetapi login pertama, pencadangan data, dan transaksi PPOB membutuhkan internet. Saat ini Sirko dapat dipakai lewat browser modern (Chrome, Edge, Safari, atau Firefox) di sirkopos.com/app; aplikasi Android sedang disiapkan untuk Google Play.
 
 ## 9. Batasan tanggung jawab
 

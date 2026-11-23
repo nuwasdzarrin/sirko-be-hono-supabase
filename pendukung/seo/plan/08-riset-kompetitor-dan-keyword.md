@@ -41,7 +41,8 @@
    kosong untuk "kalkulator laba warung" yang mengundang tautan alami.
 6. **⚠ Kasirnesia.com milik PT Creativism Digital Marketing (Sleman)** — PWA, belum di Play Store, gratis 1
    outlet, Pro Rp49.000, fokus F&B + UMKM + "Toko & Retail" ([kasirnesia.com/android](https://kasirnesia.com/android)).
-   Dua produk satu grup akan **berebut kata kunci yang sama** bila tidak dibagi. Lihat keputusan di 09.
+   **Diputuskan 24 Nov:** Kasirnesia = usaha makanan & minuman (kafe, resto, warung makan); Sirko = barang fisik & PPOB
+   (warung, kelontong, grosir). Lihat 09 §9.
 
 ## Peta pesaing
 

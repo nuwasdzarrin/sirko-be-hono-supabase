@@ -162,7 +162,7 @@ export const LANDING_FAQ: Array<[string, string]> = [
   ['Apakah aplikasi kasir Sirko bisa dipakai tanpa internet?', 'Bisa. Kasir, stok, dan kasbon tersimpan di perangkat Anda (HP atau laptop) sehingga tetap jalan walau sinyal hilang. Pertama kali masuk butuh internet; setelah itu, begitu ada internet, data dicadangkan otomatis. Hanya penjualan pulsa, paket data, dan token listrik yang selalu memerlukan internet.'],
   ['Bagaimana cara jualan pulsa dan token listrik di Sirko?', 'Isi Poin Sirko lewat transfer atau QRIS, lalu jual pulsa, paket data, atau token listrik langsung dari layar kasir. Anda menentukan sendiri harga jual dan untungnya, dan item itu tercatat di nota yang sama dengan barang lain.'],
   ['Apakah data toko saya aman kalau HP rusak atau hilang?', 'Aman. Data toko dicadangkan ke cloud setiap ada internet. Masuk dengan email atau nomor WA di HP atau laptop lain, dan data toko kembali.'],
-  ['Sirko cocok untuk usaha apa saja?', 'Sirko dibuat untuk usaha ritel: warung, toko kelontong, toko sembako, toko grosir, minimarket, toko bangunan, dan toko pertanian. Sirko tidak dirancang untuk kafe atau restoran.'],
+  ['Sirko cocok untuk usaha apa saja?', 'Sirko dibuat untuk usaha ritel: warung, toko kelontong, toko sembako, toko grosir, minimarket, toko bangunan, dan toko pertanian. Sirko tidak dirancang untuk usaha makanan dan minuman; untuk kafe, resto, dan warung makan, gunakan Kasirnesia (kasirnesia.com), aplikasi kasir saudara Sirko.'],
 ];
 
 export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {}): string {
@@ -224,7 +224,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
     <div class="start-grid" style="text-align:left">
       <div><b>1. Buka sirkopos.com/app</b><p>Di browser HP Android, iPhone, atau laptop. Tidak perlu memasang aplikasi.</p></div>
       <div><b>2. Daftar &amp; buat toko</b><p>Isi nama, email, nomor WA, dan password, lalu beri nama toko Anda.</p></div>
-      <div><b>3. Masukkan barang &amp; jualan</b><p>Ketik nama dan harga barang, atau pakai scanner barcode. Simpan Sirko ke layar utama agar terbuka seperti aplikasi.</p></div>
+      <div><b>3. Masukkan barang &amp; jualan</b><p>Scan barcode pakai kamera HP atau webcam, atau ketik nama dan harga barang. Simpan Sirko ke layar utama agar terbuka seperti aplikasi.</p></div>
     </div>
     <ul class="where"><li>HP Android</li><li>iPhone</li><li>Laptop &amp; komputer</li><li>Tablet</li></ul>
     <div class="cta"><a class="btn btn-primary" href="${APP_SIGNUP}">Mulai Gratis Sekarang</a></div>
@@ -237,7 +237,7 @@ export function renderLanding(latestPosts: SitePost[], waitlist: FormState = {})
     <h2>Semua yang dibutuhkan toko, di satu aplikasi</h2>
     <p class="lead">Dibuat khusus untuk usaha ritel Indonesia: <a href="/aplikasi-kasir-warung">warung, kelontong, toko sembako</a>, grosir, sampai minimarket.</p>
     <div class="feat-grid" style="text-align:left">
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div><h3>Kasir cepat</h3><p>Cari barang atau scan barcode, hitung kembalian otomatis, cetak struk, dan simpan nota sekali tekan.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div><h3>Kasir cepat</h3><p>Cari barang atau scan barcode pakai kamera HP atau webcam laptop, hitung kembalian otomatis, cetak struk, dan simpan nota sekali tekan.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div><h3>Stok otomatis</h3><p>Stok berkurang tiap penjualan dan bertambah saat barang masuk. Lengkap dengan varian, harga grosir, dan stok opname.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg></div><h3>Kasbon &amp; cicilan</h3><p>Catat utang pelanggan, terima cicilan, dan lihat siapa saja yang belum lunas. <a href="/aplikasi-kasbon">Lihat cara kerjanya</a></p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></svg></div><h3>Laporan laba</h3><p>Lihat penjualan, modal, dan laba per hari atau per bulan. Ekspor ke Excel &amp; PDF tersedia di paket Juragan.</p></div>

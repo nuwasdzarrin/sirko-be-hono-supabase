@@ -36,7 +36,7 @@ Di layar kasir, Anda cukup mencari nama barang atau memindai barcode memakai kam
 
 ### Katalog umum lebih dari 2.000 produk
 
-Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan katalog umum berisi lebih dari 2.000 produk yang sudah lengkap dengan foto. Tinggal scan barcode, nama dan foto barang muncul, lalu Anda isi harga jual toko Anda sendiri.
+Memasukkan data barang satu per satu sering membuat orang malas memulai. Karena itu Sirko menyediakan Katalog Umum berisi 2.000+ produk umum Indonesia lengkap dengan foto. Di aplikasi Android, scan barcode barang baru dan nama, kategori, serta satuannya terisi dari katalog, lalu Anda isi harga jual toko Anda sendiri. Katalog Umum segera hadir juga di versi browser.
 
 ### Stok berkurang dan bertambah otomatis
 
@@ -92,7 +92,7 @@ Gratis untuk satu toko. Paket **Warung** berharga Rp0 untuk satu toko, selamanya
 1. Buka [sirkopos.com/app](/app/daftar) di browser HP atau laptop. Tidak perlu download; aplikasi Android sedang menuju rilis di Google Play.
 2. Daftar dengan nama, email, nomor WA, dan password.
 3. Masukkan kode OTP 6 digit yang dikirim ke email Anda.
-4. Buat toko, lalu mulai tambah barang: ketik nama dan harga, atau scan barcode.
+4. Buat toko, lalu mulai tambah barang: scan barcode pakai kamera HP atau webcam, atau ketik nama dan harga.
 5. Layani pembeli pertama Anda.
 
 Tidak ada PIN pemilik yang perlu diingat. Cukup email atau nomor WA dan password.
@@ -114,7 +114,7 @@ Bisa. Sirko memang dibuat untuk usaha ritel seperti warung, toko kelontong, toko
 
 ### Apakah saya perlu membeli alat scanner barcode?
 
-Tidak perlu. Barang bisa dicari dengan mengetik namanya. Di aplikasi Android, kamera HP dipakai untuk memindai barcode. Di versi browser, Anda bisa memakai scanner barcode yang bekerja seperti keyboard (USB atau bluetooth).
+Tidak perlu. Sirko memakai kamera HP atau webcam laptop untuk memindai barcode, baik saat berjualan maupun saat mencatat barang masuk, di aplikasi Android maupun di browser (izinkan akses kamera saat diminta). Bila sudah punya scanner barcode USB atau bluetooth, alat itu juga bisa dipakai.
 
 ### Apakah Sirko bisa dipakai di iPhone?
 

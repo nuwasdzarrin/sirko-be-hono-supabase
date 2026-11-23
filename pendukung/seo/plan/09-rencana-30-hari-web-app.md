@@ -57,7 +57,7 @@ Standar tiap konten mengikuti README & 02-kalender-konten:
 - Tautan ke 1 halaman fitur + 2 artikel.
 - **Ajakan ke `/app/daftar` di paragraf pembuka (landing), di tengah, dan di akhir.**
 - Skor SEO editor ≥ 90.
-- **Fakta Sirko hanya dari fitur yang benar-benar ada di production.** Scan barcode pakai kamera di web ada di commit `b6e74ae` (belum di production per 23 Nov). Setelah rilis, frasa "scan pakai kamera HP" boleh dipakai lagi di beranda & halaman fitur.
+- **Fakta Sirko hanya dari fitur yang benar-benar ada di production.** Scan kamera HP/webcam di web tayang 24 Nov dan boleh diklaim. Katalog Umum di web baru boleh diklaim setelah rilisnya live (lihat §9.5). Foto katalog **tidak** otomatis menjadi foto produk toko.
 
 ## 4. Kalender
 
@@ -151,7 +151,7 @@ Terbit Selasa, Kamis, dan Sabtu pukul 08.00 WIB lewat jadwal terbit CMS. Landing
   - FAQ baru "Apakah saya harus download aplikasi?". Jawaban offline & ganti perangkat disesuaikan.
   - Schema `SoftwareApplication`: `operatingSystem: Web, Android`, `browserRequirements`, `installUrl`.
   - Klaim yang tidak berlaku di web dihapus: "ribuan produk umum dengan foto" (katalog hanya di Android),
-    "scan pakai kamera HP" (kamera web belum di production; kembalikan setelah rilis).
+    "scan pakai kamera HP" (dipulihkan 24 Nov bersama rilis scan kamera di web).
 - **Header:** tombol "Coba Gratis" → `/app/daftar`, menu "Masuk" → `/app/masuk`. Kotak ajakan di akhir
   artikel → `/app/daftar`.
 - **Halaman fitur** (`content/site/*.md`): langkah "buka sirkopos.com/app", FAQ iPhone & scanner. Diterapkan ke
@@ -159,19 +159,21 @@ Terbit Selasa, Kamis, dan Sabtu pukul 08.00 WIB lewat jadwal terbit CMS. Landing
   jualan-pulsa-token-listrik aplikasi-kasir-offline` (mode baru: revisi tersimpan + IndexNow).
 - **Manifest PWA:** deskripsi "HP & komputer", warna tema biru aplikasi.
 
-## 9. Keputusan yang dibutuhkan dari pemilik
+## 9. Keputusan pemilik
 
-1. **Pembagian Sirko ↔ Kasirnesia** (keduanya milik PT Creativism, keduanya PWA Rp49rb):
-   - **Usulan:** Sirko = warung, kelontong, sembako, grosir, minimarket + kasbon + PPOB. Kasirnesia = resto, kafe,
-     F&B.
-   - Kasirnesia sebaiknya **tidak** menargetkan "aplikasi kasir warung/kelontong/sembako". Sirko tidak
-     menargetkan "kasir resto/kafe".
-   - Tanpa pembagian ini, kedua situs saling menurunkan peringkat di kueri yang sama.
-2. **Kebijakan Privasi & Syarat Ketentuan wajib diperbarui untuk web app.** Saat ini teksnya hanya menyebut
-   "HP Android" dan "data disimpan di HP".
-   - Web app menyimpan data di **penyimpanan browser (IndexedDB)**.
-   - **Keluar = data toko dihapus dari browser.**
-   - Bisa dipakai di perangkat bersama.
-   - Butuh persetujuan pemilik/legal. Tidak diubah otomatis.
-3. **Kapasitas menulis:** 3 artikel/minggu (rekomendasi) atau versi minimum 2/minggu.
-4. **Siapa yang membuat video pendek** (§6.1). Itu kanal akun tercepat bulan ini.
+1. ✅ **Pembagian Sirko ↔ Kasirnesia (diputuskan 24 Nov):**
+   - **Sirko** = usaha yang menjual **barang fisik & PPOB**: warung, kelontong, sembako, grosir, minimarket,
+     toko bangunan/pertanian.
+   - **Kasirnesia** = **usaha makanan & minuman**: kafe, resto, warung makan.
+   - Sirko tidak menargetkan kata kunci kasir resto/kafe/F&B. Kasirnesia tidak menargetkan kasir
+     warung/kelontong/sembako/grosir.
+   - Tautan silang hanya di tempat yang membantu pembaca. Contohnya FAQ beranda Sirko sudah merujuk ke
+     Kasirnesia untuk usaha makanan.
+2. ✅ **Kebijakan Privasi & Syarat Ketentuan diperbarui** (berlaku 24 Nov 2026). Isinya: versi browser,
+   penyimpanan di browser (IndexedDB), penanda login offline ber-hash, Keluar = data dihapus dari browser,
+   kamera/webcam diproses di perangkat, usulan Katalog Umum, penyimpanan berkas di awan, dan segmen "bukan
+   usaha makanan".
+3. ⏳ **Kapasitas menulis:** 3 artikel/minggu (rekomendasi) atau versi minimum 2/minggu.
+4. ⏳ **Siapa yang membuat video pendek** (§6.1).
+5. ⏳ **Klaim Katalog Umum di web** baru diterbitkan setelah rilis web app berikutnya (commit `12d1ebf`)
+   dikonfirmasi live. Draf klaim sudah disiapkan di branch `feature/seo-katalog`.
