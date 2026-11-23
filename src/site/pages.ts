@@ -1,5 +1,5 @@
 import { escAttr, escHtml, renderMarkdown, slugify, type Rendered } from './markdown.js';
-import { APP_SIGNUP, breadcrumbsHtml, renderPage, siteHost, siteUrl, ORG_ID, type Crumb } from './layout.js';
+import { signupUrl, tagSignupLinks, breadcrumbsHtml, renderPage, siteHost, siteUrl, ORG_ID, type Crumb } from './layout.js';
 import { pathOf, type SitePost } from '../services/site.service.js';
 
 /** Halaman publik selain beranda: daftar blog, kategori, artikel, halaman, 404. */
@@ -39,9 +39,9 @@ export function postCards(posts: SitePost[], heading: 'h2' | 'h3' = 'h2'): strin
     .join('')}</div>`;
 }
 
-const ctaBox = () => `<aside class="cta-box" aria-label="Coba Sirko">
+const ctaBox = (dari: string) => `<aside class="cta-box" aria-label="Coba Sirko">
   <div><b>Kasir toko, untung kelihatan.</b><p>Coba Sirko gratis untuk satu toko — langsung di browser HP atau laptop, tanpa download, tetap jalan tanpa internet.</p></div>
-  <a class="btn" href="${APP_SIGNUP}">Coba Gratis</a>
+  <a class="btn" href="${signupUrl(dari)}">Coba Gratis</a>
 </aside>`;
 
 function toc(r: Rendered): string {
@@ -87,9 +87,9 @@ export function renderPost(p: SitePost, related: SitePost[], opts: { preview?: b
   </header>
   ${p.coverUrl ? `<figure class="cover">${coverImg(p.coverUrl, p.coverAlt || p.title, { lcp: true, sizes: '(max-width:800px) 92vw, 760px' })}</figure>` : ''}
   ${toc(r)}
-  <div class="prose">${r.html}</div>
+  <div class="prose">${tagSignupLinks(r.html, `artikel-${p.slug}`)}</div>
   ${p.tags.length ? `<div class="tags" aria-label="Topik">${p.tags.map((t) => `<span>#${escHtml(t)}</span>`).join('')}</div>` : ''}
-  ${ctaBox()}
+  ${ctaBox(`artikel-${p.slug}`)}
 </article>
 ${related.length ? `<section class="related" aria-labelledby="terkait" style="padding:0 0 40px"><h2 id="terkait">Artikel terkait</h2>${postCards(related, 'h3')}</section>` : ''}
 </div></main>`;
@@ -143,8 +143,8 @@ export function renderStaticPage(p: SitePost, opts: { preview?: boolean } = {}):
   </header>
   ${p.coverUrl ? `<figure class="cover">${coverImg(p.coverUrl, p.coverAlt || p.title, { lcp: true, sizes: '(max-width:800px) 92vw, 760px' })}</figure>` : ''}
   ${toc(r)}
-  <div class="prose">${r.html}</div>
-  ${legal ? '' : ctaBox()}
+  <div class="prose">${tagSignupLinks(r.html, `halaman-${p.slug}`)}</div>
+  ${legal ? '' : ctaBox(`halaman-${p.slug}`)}
 </article></div></main>`;
   return renderPage({
     title: titleOf(p),

@@ -226,8 +226,31 @@ export interface OtpSent {
   devCode?: string;
 }
 
+/**
+ * Asal kunjungan dari tautan ajakan situs (`/app/...?dari=<halaman>`), diingat selama tab terbuka.
+ * Dikirim saat daftar → statistik first-party "akun baru per halaman asal" di dashboard.
+ */
+const SOURCE_KEY = 'sirko.dari';
+export function captureSignupSource(search = typeof location === 'undefined' ? '' : location.search): void {
+  const v = new URLSearchParams(search).get('dari')?.trim().toLowerCase();
+  if (v && /^[a-z0-9][a-z0-9-]{0,79}$/.test(v)) {
+    try {
+      sessionStorage.setItem(SOURCE_KEY, v);
+    } catch {
+      /* penyimpanan tak tersedia: abaikan */
+    }
+  }
+}
+function signupSource(): string | undefined {
+  try {
+    return sessionStorage.getItem(SOURCE_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function register(name: string, email: string, phone: string, password: string): Promise<OtpSent> {
-  return (await request<OtpSent>('POST', '/v1/auth/register', { body: { name: name.trim(), email: email.trim(), phone: phone.trim(), password } })).data;
+  return (await request<OtpSent>('POST', '/v1/auth/register', { body: { name: name.trim(), email: email.trim(), phone: phone.trim(), password, source: signupSource() } })).data;
 }
 
 /** Kode OTP benar → langsung masuk (sesi akun, belum punya toko). */

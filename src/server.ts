@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { startPpobJobs } from './services/ppob.service.js';
 import { newlyLive, pathOf, purgeOldLeads } from './services/site.service.js';
 import { submitUrls } from './site/indexnow.js';
+import { TOOLS } from './site/tools.js';
 
 /**
  * Server produksi untuk VPS (PM2). Vercel tetap memakai `export default app`.
@@ -24,10 +25,14 @@ setInterval(purgeLeads, 24 * 3_600_000).unref();
 let indexNowSince = Date.now();
 setInterval(() => {
   const now = Date.now();
-  newlyLive(indexNowSince, now)
+  const since = indexNowSince;
+  newlyLive(since, now)
     .then((posts) => {
       indexNowSince = now;
       if (posts.length) void submitUrls(posts.flatMap((p) => [pathOf(p), '/', '/blog']));
+      // Alat gratis yang baru tayang (/alat/*).
+      const tools = TOOLS.filter((t) => t.releaseAt > since && t.releaseAt <= now);
+      if (tools.length) void submitUrls(tools.map((t) => t.path));
     })
     .catch((e) => console.error('[indexnow] cek jadwal', e.message));
 }, 10 * 60_000).unref();

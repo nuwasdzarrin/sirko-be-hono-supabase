@@ -55,11 +55,13 @@ export interface Overview {
     id: string; name: string | null; barcode: string | null; photoUrl: string | null; category: string | null;
   }>;
   pendingContributions: number;
+  /** Akun baru 30 hari terakhir per asal halaman (`?dari=`), first-party. */
+  signupSources: Array<{ source: string; accounts: number; verified: number; withStore: number }>;
   serverTime: number;
 }
 
 export async function getOverview(): Promise<Overview> {
-  const [counts, catRows, recent, pending] = await Promise.all([
+  const [counts, catRows, recent, pending, sources] = await Promise.all([
     getCounts(),
     categoryCounts(),
     sql<{ id: string; name: string | null; barcode: string | null; photo_url: string | null; category: string | null }[]>`
@@ -68,6 +70,15 @@ export async function getOverview(): Promise<Overview> {
       ORDER BY updated_at DESC NULLS LAST LIMIT 20
     `,
     contribRepo.countByStatus('pending'),
+    sql<{ source: string; accounts: number; verified: number; with_store: number }[]>`
+      SELECT COALESCE(a.signup_source, '(tanpa penanda)') AS source,
+             count(*)::int AS accounts,
+             count(*) FILTER (WHERE NOT a.pending_verification)::int AS verified,
+             count(*) FILTER (WHERE EXISTS (SELECT 1 FROM users u WHERE u.account_id = a.id))::int AS with_store
+      FROM accounts a
+      WHERE a.created_at >= ${nowMs() - 30 * 86_400_000}
+      GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 30
+    `,
   ]);
   return {
     counts,
@@ -76,6 +87,7 @@ export async function getOverview(): Promise<Overview> {
       id: r.id, name: r.name, barcode: r.barcode, photoUrl: r.photo_url, category: r.category,
     })),
     pendingContributions: pending,
+    signupSources: sources.map((r) => ({ source: r.source, accounts: n(r.accounts), verified: n(r.verified), withStore: n(r.with_store) })),
     serverTime: nowMs(),
   };
 }
