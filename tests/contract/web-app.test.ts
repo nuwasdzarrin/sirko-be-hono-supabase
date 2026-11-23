@@ -41,6 +41,10 @@ describe('Web app /app', () => {
     const files = (await list.json()) as string[];
     expect(files).toContain(js);
     expect(files.filter((f) => f.endsWith('.js')).length).toBeGreaterThan(1);
+    // Logo (sidebar desktop & halaman Lainnya HP) disajikan sebagai gambar, bukan fallback index.html.
+    const logo = await app.request('/app/lockup.png');
+    expect(logo.status).toBe(200);
+    expect(logo.headers.get('content-type')).toContain('image/png');
   });
 
   it('API & situs tidak terganggu', async () => {
