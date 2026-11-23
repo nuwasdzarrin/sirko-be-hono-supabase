@@ -3,7 +3,7 @@
  * (cache 1 tahun), cek bisa diunduh publik, lalu alihkan `site_posts.cover_url` yang masih
  * menunjuk `/img/blog/<slug>.webp|.jpg` ke URL R2. Aman diulang. Jalankan DI SERVER (kredensial R2 + DB):
  *   node --env-file=.env --import tsx scripts/site-covers-to-r2.ts [--dir /tmp/sampul] [slug ...]
- * Bawaan --dir = public/site/img/blog (repo). Sampul baru dari laptop: kirim dulu foldernya ke server.
+ * Bawaan --dir = /tmp/sirko-sampul (kirim dari laptop: lihat skill gemini-image).
  */
 import { readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { sql } from '../src/db/client.js';
 
 const args = process.argv.slice(2);
 const di = args.indexOf('--dir');
-const DIR = di >= 0 ? args.splice(di, 2)[1]! : join(import.meta.dirname, '../public/site/img/blog');
+const DIR = di >= 0 ? args.splice(di, 2)[1]! : '/tmp/sirko-sampul';
 const only = args;
 const TYPES: Record<string, string> = { webp: 'image/webp', jpg: 'image/jpeg' };
 
